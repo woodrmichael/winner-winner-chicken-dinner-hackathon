@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "ComForce Connect",
+    "slug": "comforce-connect",
+    "version": "0.1.0",
+    "scheme": "comforce-connect",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router"
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}
