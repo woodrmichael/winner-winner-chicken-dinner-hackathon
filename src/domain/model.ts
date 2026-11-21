@@ -2,7 +2,7 @@ import { directory } from '../features/matching/directory';
 import { applyCommunityCommand } from '../features/community/model';
 import { applyReferralCommand, outstandingNeeds } from './referrals';
 import { historicalIncidents, program } from './seed';
-import { categories, neighborhoods, type Command, type DemoState } from './types';
+import { categories, neighborhoods, type Category, type Command, type DemoState } from './types';
 
 export { partnerInbox, residentTimeline, status } from './referrals';
 
@@ -40,7 +40,7 @@ export function impact(state: DemoState) {
   };
 }
 
-export function mapRows(state: DemoState) {
+export function mapRows(state: DemoState, category?: Category) {
   const referralsWithNeighborhood = state.referrals.map((referral) => ({
     referral,
     neighborhood: referral.assignments.find(({ shared }) => shared.neighborhood)?.shared
@@ -53,8 +53,9 @@ export function mapRows(state: DemoState) {
     return {
       area,
       ...historicalIncidents[area],
-      open: local.flatMap(outstandingNeeds).length,
-      delivered: local.flatMap((referral) => referral.services).length,
+      open: local.flatMap(outstandingNeeds).filter((need) => !category || need === category).length,
+      delivered: local.flatMap((referral) => referral.services)
+        .filter((service) => !category || service.category === category).length,
       resources: directory.filter((p) => p.area === area).length,
     };
   });
