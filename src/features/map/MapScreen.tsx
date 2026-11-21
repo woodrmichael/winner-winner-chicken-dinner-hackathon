@@ -11,9 +11,10 @@ import Svg, {
   Text as MapText,
 } from 'react-native-svg';
 
-import { ToggleRow } from '../../ui/SelectionRows';
+import { SelectionRow, ToggleRow } from '../../ui/SelectionRows';
 import { mapRows } from '../../domain/model';
-import type { Neighborhood } from '../../domain/types';
+import { categories, type Category, type Neighborhood } from '../../domain/types';
+import { Disclosure } from '../../ui/Disclosure';
 import { useDemo } from '../../state/Demo';
 import { Btn, Card, Columns, Copy, Page, color, wrap } from '../../ui/kit';
 import boundaries from './boundaries.json';
@@ -54,7 +55,9 @@ export default function MapScreen() {
     useState<Neighborhood | null>(null);
 
   // Calculate neighborhood counts from shared application state.
-  const rows = mapRows(state);
+  const [category, setCategory] = useState<Category | 'All'>('All');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const rows = mapRows(state, category === 'All' ? undefined : category);
 
   const active = layers.filter((layer) =>
     visible.includes(layer.key)
@@ -278,6 +281,17 @@ export default function MapScreen() {
         side={
           <Card>
             <Copy kind="strong">Map layers</Copy>
+
+            <Disclosure label={`Service category · ${category}`}
+              detail="Filters open needs and assistance delivered."
+              expanded={filterOpen} onToggle={() => setFilterOpen(!filterOpen)}>
+              <View accessibilityRole="radiogroup" accessibilityLabel="Service category">
+                {(['All', ...categories] as const).map((option) => (
+                  <SelectionRow key={option} label={option} selected={option === category}
+                    onPress={() => { setCategory(option); setFilterOpen(false); }} />
+                ))}
+              </View>
+            </Disclosure>
 
             <View>
               {layers.map((layer) => (
