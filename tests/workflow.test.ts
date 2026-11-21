@@ -18,7 +18,10 @@ import {
   interpretNeeds,
   isVagueRequest,
   matchWithModel,
+  missingAddableNeeds,
+  needsFullyCovered,
   setModelAvailable,
+  shouldOfferDraft,
   withNeeds,
 } from '../src/features/matching/modelMatch';
 import { decode } from '../src/state/persistence';
@@ -419,6 +422,61 @@ test('removing a need re-ranks partners for review', () => {
   const rideOnly = withNeeds(['Transportation']);
   assert.ok(rideOnly.matches.every((m) => m.covers.includes('Transportation')));
   assert.ok(!rideOnly.needs.includes('Clothing'));
+});
+
+test('draft refreshes to ride-only after clothing is removed', async () => {
+  setModelAvailable(true);
+  const both = await draftReferral(example, ['Clothing', 'Transportation'], 0);
+  assert.match(both, /cloth/i);
+  const rideOnly = await draftReferral(example, ['Transportation'], 0);
+  assert.match(rideOnly, /ride|pickup/i);
+  assert.doesNotMatch(rideOnly, /clothes for the kids/i);
+});
+
+test('preferred neighborhood breaks equal coverage ties', () => {
+  const harambee = withNeeds(['Transportation'], 'model', 'Harambee');
+  assert.equal(harambee.matches[0].partner.name, 'Winter Care Collective');
+  const riverwest = withNeeds(['Transportation'], 'model', 'Riverwest');
+  assert.equal(riverwest.matches[0].partner.name, 'Riverwest Ride Circle');
+});
+
+test('food and ride suggest complementary specialists first', () => {
+  const result = withNeeds(['Food', 'Transportation']);
+  assert.equal(result.matches[0].partner.name, 'Neighborhood Table');
+  assert.match(result.matches[0].explanation, /food/i);
+  assert.equal(result.matches[1].partner.name, 'Riverwest Ride Circle');
+  assert.match(result.matches[1].explanation, /transportation/i);
+  assert.ok(result.matches.some((match) => match.partner.name === 'Winter Care Collective'));
+});
+
+test('split needs are detected when no partner covers every category', () => {
+  assert.equal(needsFullyCovered(['Clothing', 'Transportation']), true);
+  assert.equal(needsFullyCovered(['Food', 'Transportation']), false);
+  assert.deepEqual(missingAddableNeeds(['Transportation']), ['Clothing', 'Food']);
+  assert.deepEqual(missingAddableNeeds(['Food']), ['Clothing', 'Transportation']);
+  assert.deepEqual(missingAddableNeeds(['Clothing', 'Food', 'Transportation']), []);
+});
+
+test('detailed clothing-and-ride requests skip the suggested draft', () => {
+  assert.equal(shouldOfferDraft(example, ['Clothing', 'Transportation']), false);
+  assert.equal(shouldOfferDraft('Need a ride', ['Transportation']), true);
+  assert.equal(shouldOfferDraft(example, ['Transportation']), true);
+});
+
+test('adding food to a ride request re-ranks complementary partners', () => {
+  const rideOnly = withNeeds(['Transportation']);
+  assert.ok(rideOnly.matches[0].covers.includes('Transportation'));
+  const withFood = withNeeds(['Transportation', 'Food']);
+  assert.equal(needsFullyCovered(withFood.needs), false);
+  const top = withFood.matches.slice(0, 2).map((match) => match.partner.name);
+  assert.deepEqual(top, ['Riverwest Ride Circle', 'Neighborhood Table']);
+});
+
+test('unmatched requests return no automatic partner matches', async () => {
+  setModelAvailable(true);
+  const result = await matchWithModel('Could someone help with algebra?', 0);
+  assert.equal(result.matches.length, 0);
+  assert.equal(result.needs.length, 0);
 });
 
 test('saved state validation and deterministic reset', () => {
