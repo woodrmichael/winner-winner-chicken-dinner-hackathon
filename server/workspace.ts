@@ -136,6 +136,13 @@ export function snapshot(workspace: Workspace, account: StoredAccount, revision:
       programServices: deliveredServices(workspace).flatMap(({ category, providerId, deliveredAt, programId }) =>
         programId === program.id ? [{ category, providerId, deliveredAt }] : [],
       ),
+      serviceRecords: partner
+        ? workspace.referrals.flatMap((referral) =>
+            referral.services
+              .filter((service) => service.providerId === partner)
+              .map((service) => ({ ...service, referralId: referral.id })),
+          )
+        : [],
     },
   };
 }
@@ -160,7 +167,11 @@ export function applySharedReferral(workspace: Workspace, account: Account, cmd:
       throw new WorkspaceError(404, 'Referral unavailable.');
     }
   }
-  return notifyReferralChange(workspace, applyReferralCommand(workspace, cmd, account), cmd);
+  const authenticated =
+    cmd.type === 'correct-service'
+      ? { ...cmd, workerId: account.id, workerName: account.name }
+      : cmd;
+  return notifyReferralChange(workspace, applyReferralCommand(workspace, authenticated, account), cmd);
 }
 
 export function applySharedCommunity(

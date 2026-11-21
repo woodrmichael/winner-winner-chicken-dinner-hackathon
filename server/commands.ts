@@ -130,6 +130,19 @@ export function parseCommand(input: unknown, details: SharedDetails): CommunityC
     case 'complete':
       return { type: cmd.type, id: text(cmd.id), partnerId: text(cmd.partnerId), category: option(cmd.category, categories),
         programId: cmd.programId === undefined ? undefined : text(cmd.programId), at };
+    case 'correct-service':
+      return {
+        type: cmd.type,
+        id: text(cmd.id),
+        partnerId: text(cmd.partnerId),
+        serviceId: text(cmd.serviceId),
+        category: cmd.category === undefined ? undefined : option(cmd.category, categories),
+        void: cmd.void === true,
+        reason: text(cmd.reason, 1200),
+        workerId: typeof cmd.workerId === 'string' ? text(cmd.workerId) : 'authenticated',
+        workerName: typeof cmd.workerName === 'string' ? text(cmd.workerName) : 'Authenticated worker',
+        at,
+      };
     case 'respond-handoff': {
       const response = option(cmd.response, ['approve', 'decline'] as const);
       const base = { type: cmd.type, id: text(cmd.id), handoffId: text(cmd.handoffId) } as const;

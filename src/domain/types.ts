@@ -46,11 +46,24 @@ export type CommunityState = {
 export type SharedDetails = { firstName?: string; callback?: string; neighborhood?: Neighborhood };
 export type Appointment = { date: string; time: string; instructions: string };
 export type Service = {
+  id: string;
   assignmentId: string;
   category: Category;
   providerId: string;
   deliveredAt: string;
   programId?: string;
+  voidedAt?: string;
+  corrections: ServiceCorrection[];
+};
+export type ServiceCorrection = {
+  id: string;
+  kind: 'category' | 'void';
+  workerId: string;
+  workerName: string;
+  reason: string;
+  at: string;
+  fromCategory?: Category;
+  toCategory?: Category;
 };
 export type ReferralAssignment = {
   id: string;
@@ -134,6 +147,18 @@ export type ReferralCommand =
       at: string;
       category: Category;
       programId?: string;
+    }
+  | {
+      type: 'correct-service';
+      id: string;
+      partnerId: string;
+      serviceId: string;
+      category?: Category;
+      void: boolean;
+      reason: string;
+      workerId: string;
+      workerName: string;
+      at: string;
     }
   | { type: 'respond-handoff'; id: string; handoffId: string; response: 'decline' }
   | {

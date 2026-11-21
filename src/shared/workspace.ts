@@ -5,6 +5,7 @@ import type {
   CommunityState,
   Post,
   Referral,
+  Service,
   SharedDetails,
   VolunteerRoleId,
   WorkspaceCommand,
@@ -48,6 +49,11 @@ export type VolunteerView = {
   summary: { signups: number; participants: number; minutes: number };
 };
 
+export type ServiceRecord = Pick<
+  Service,
+  'id' | 'assignmentId' | 'category' | 'providerId' | 'deliveredAt' | 'programId' | 'voidedAt' | 'corrections'
+> & { referralId: string };
+
 export type SharedSnapshot = {
   support: import('../features/partnerships/ledger').SupportBook;
   revision: number;
@@ -67,6 +73,7 @@ export type SharedSnapshot = {
     mapByCategory: { category: Category; rows: ReturnType<typeof mapRows> }[];
     projectDeliveries: ReturnType<typeof import('../features/partnerships/ledger').projectDeliveryCounts>;
     programServices: Pick<ReturnType<typeof deliveredServices>[number], 'category' | 'providerId' | 'deliveredAt'>[];
+    serviceRecords: ServiceRecord[];
   };
 };
 

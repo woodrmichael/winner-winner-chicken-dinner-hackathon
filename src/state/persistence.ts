@@ -148,10 +148,24 @@ function isAssignment(value: unknown): value is ReferralAssignment {
 function isService(value: unknown): value is Omit<Service, 'assignmentId'> {
   return (
     record(value) &&
+    (value.id === undefined || isText(value.id)) &&
     isCategory(value.category) &&
     isPartner(value.providerId) &&
     isDate(value.deliveredAt) &&
-    (value.programId === undefined || isText(value.programId))
+    (value.programId === undefined || isText(value.programId)) &&
+    (value.voidedAt === undefined || isDate(value.voidedAt)) &&
+    (value.corrections === undefined ||
+      (Array.isArray(value.corrections) &&
+        value.corrections.every((correction: unknown) =>
+          record(correction) &&
+          isText(correction.id) &&
+          includes(['category', 'void'], correction.kind) &&
+          isText(correction.workerId) &&
+          isText(correction.workerName) &&
+          isText(correction.reason) &&
+          isDate(correction.at) &&
+          (correction.fromCategory === undefined || isCategory(correction.fromCategory)) &&
+          (correction.toCategory === undefined || isCategory(correction.toCategory)))))
   );
 }
 
@@ -209,7 +223,13 @@ function isReferral(value: unknown): value is Referral {
         Boolean(assignment?.acceptedAt && assignment.partnerId === service.providerId)
       );
     }) &&
-    unique(services.map((service) => service.category)) &&
+    unique(
+      services.map((service) =>
+        typeof service === 'object' && service && 'id' in service
+          ? String((service as { id?: unknown }).id ?? '')
+          : '',
+      ).filter(Boolean),
+    ) &&
     withdrawn.every((category) => requested.includes(category)) &&
     unique(withdrawn) &&
     unique(handoffs.map((handoff) => handoff.id)) &&
@@ -249,7 +269,12 @@ function migrateReferral(value: unknown): Referral | undefined {
     sentAt,
     needs: [...new Set(needs)],
     assignments: [initial],
-    services: service ? [{ ...service, assignmentId: id }] : [],
+    services: service ? [{
+      ...service,
+      id: `${id}:${service.category}`,
+      assignmentId: id,
+      corrections: [],
+    }] : [],
     withdrawn: [],
     handoffs: [],
   };
@@ -271,11 +296,20 @@ export function decode(raw: string): DemoState {
       referrals.every(isReferral) &&
       unique(referrals.flatMap(({ assignments }) => assignments.map(({ id }) => id)))
     ) {
+      const normalizedReferrals = (referrals as Referral[]).map((referral) => ({
+        ...referral,
+        services: referral.services.map((service) => ({
+          ...service,
+          id: service.id || `${service.assignmentId}:${service.category}`,
+          corrections: service.corrections ?? [],
+        })),
+      }));
+      if (!normalizedReferrals.every(isReferral)) throw new Error('Your workspace couldn’t be opened. Reset it to start again.');
       return {
         version: 2,
         ...(state.supportEntries === undefined ? {} : { supportEntries: decodeEntries(state.supportEntries) }),
         posts: state.posts,
-        referrals,
+        referrals: normalizedReferrals,
         community: { ...emptyCommunity(), ...state.community },
       };
     }

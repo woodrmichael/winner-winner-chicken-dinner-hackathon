@@ -7,7 +7,7 @@ The [demo directory](../src/features/matching/directory.ts) contains sample prov
 | Change | Start here |
 | --- | --- |
 | Screen or navigation | [Routes and layout](../app/) delegate to [feature screens](../src/features/). Reuse the [UI components](../src/ui/). |
-| Matching or directory coverage | [LLM client](../src/features/matching/llm/) (demo hardcoding today) interprets request text, drafts a referral, and flags vague requests for a clarifying question. [modelMatch](../src/features/matching/modelMatch.ts) orchestrates that path, ranks partners by needs covered (directory order breaks ties), and falls back to the [keyword matcher](../src/features/matching/match.ts) plus manual partner selection when the model is unavailable. |
+| Matching or directory coverage | [LLM client](../src/features/matching/llm/) (demo hardcoding today) interprets request text, drafts a referral, and flags vague requests for a clarifying question. [modelMatch](../src/features/matching/modelMatch.ts) ranks by needs covered, then preferred neighborhood, then directory order. When no partner covers every need, it surfaces complementary specialists and a split-need tip. Residents can add or remove needs on review; a draft preview is opt-in. When nothing matches automatically, Ask asks them to rephrase or pick manually. Keyword matching remains when the model is unavailable. |
 | Referral lifecycle | [Types and commands](../src/domain/types.ts) define the contract. [Referral model](../src/domain/referrals.ts) implements transitions and private read functions. [Domain model](../src/domain/model.ts) exposes aggregate reads. |
 | Save, load or reset | [Provider](../src/state/Demo.tsx) queues writes. [Decoder](../src/state/persistence.ts) validates saved state. [Seed](../src/domain/seed.ts) defines the starting workspace. |
 
@@ -69,6 +69,8 @@ A screen supplies an ID and timestamp, then awaits `run(command)`. The provider 
 ### Counting rules for 4.3 and 5.2
 
 The shared server computes monthly and provider reports from its full workspace. Clients receive aggregates and program history with category, date and provider. Private referrals stay scoped to the signed-in account.
+
+Approved organization workers receive only their provider’s service-record projection. Each record preserves its original delivery fields and append-only correction history. Category corrections update the active category; void corrections mark the record voided and exclude it from delivery, program, map and Impact calculations. Voiding restores an outstanding need only when the category is still requested and no other active delivery satisfies it.
 
 The map's optional service category filters open needs and completed services in both the map labels and neighborhood list. The shared API provides the same per-category totals without sending private referral records to the map. Directory resources and historical observations keep their neighborhood totals.
 

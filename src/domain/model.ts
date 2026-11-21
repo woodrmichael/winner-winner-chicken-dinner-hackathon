@@ -44,7 +44,9 @@ export function applyCommand(
 }
 
 export const deliveredServices = (state: Pick<DemoState, 'referrals'>) =>
-  state.referrals.flatMap((referral) => referral.services);
+  state.referrals.flatMap((referral) =>
+    referral.services.filter((service) => !service.voidedAt),
+  );
 
 export function impact(state: Pick<DemoState, 'referrals'>) {
   const services = deliveredServices(state);
@@ -79,6 +81,7 @@ export function mapRows(state: Pick<DemoState, 'referrals'>, category?: Category
       ...historicalIncidents[area],
       open: local.flatMap(outstandingNeeds).filter((need) => !category || need === category).length,
       delivered: local.flatMap((referral) => referral.services)
+        .filter((service) => !service.voidedAt)
         .filter((service) => !category || service.category === category).length,
       resources: directory.filter((p) => p.area === area).length,
     };

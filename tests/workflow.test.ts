@@ -18,7 +18,10 @@ import {
   interpretNeeds,
   isVagueRequest,
   matchWithModel,
+  missingAddableNeeds,
+  needsFullyCovered,
   setModelAvailable,
+  shouldOfferDraft,
   withNeeds,
 } from '../src/features/matching/modelMatch';
 import { decode } from '../src/state/persistence';
@@ -421,6 +424,61 @@ test('removing a need re-ranks partners for review', () => {
   assert.ok(!rideOnly.needs.includes('Clothing'));
 });
 
+test('draft refreshes to ride-only after clothing is removed', async () => {
+  setModelAvailable(true);
+  const both = await draftReferral(example, ['Clothing', 'Transportation'], 0);
+  assert.match(both, /cloth/i);
+  const rideOnly = await draftReferral(example, ['Transportation'], 0);
+  assert.match(rideOnly, /ride|pickup/i);
+  assert.doesNotMatch(rideOnly, /clothes for the kids/i);
+});
+
+test('preferred neighborhood breaks equal coverage ties', () => {
+  const harambee = withNeeds(['Transportation'], 'model', 'Harambee');
+  assert.equal(harambee.matches[0].partner.name, 'Winter Care Collective');
+  const riverwest = withNeeds(['Transportation'], 'model', 'Riverwest');
+  assert.equal(riverwest.matches[0].partner.name, 'Riverwest Ride Circle');
+});
+
+test('food and ride suggest complementary specialists first', () => {
+  const result = withNeeds(['Food', 'Transportation']);
+  assert.equal(result.matches[0].partner.name, 'Neighborhood Table');
+  assert.match(result.matches[0].explanation, /food/i);
+  assert.equal(result.matches[1].partner.name, 'Riverwest Ride Circle');
+  assert.match(result.matches[1].explanation, /transportation/i);
+  assert.ok(result.matches.some((match) => match.partner.name === 'Winter Care Collective'));
+});
+
+test('split needs are detected when no partner covers every category', () => {
+  assert.equal(needsFullyCovered(['Clothing', 'Transportation']), true);
+  assert.equal(needsFullyCovered(['Food', 'Transportation']), false);
+  assert.deepEqual(missingAddableNeeds(['Transportation']), ['Clothing', 'Food']);
+  assert.deepEqual(missingAddableNeeds(['Food']), ['Clothing', 'Transportation']);
+  assert.deepEqual(missingAddableNeeds(['Clothing', 'Food', 'Transportation']), []);
+});
+
+test('detailed clothing-and-ride requests skip the suggested draft', () => {
+  assert.equal(shouldOfferDraft(example, ['Clothing', 'Transportation']), false);
+  assert.equal(shouldOfferDraft('Need a ride', ['Transportation']), true);
+  assert.equal(shouldOfferDraft(example, ['Transportation']), true);
+});
+
+test('adding food to a ride request re-ranks complementary partners', () => {
+  const rideOnly = withNeeds(['Transportation']);
+  assert.ok(rideOnly.matches[0].covers.includes('Transportation'));
+  const withFood = withNeeds(['Transportation', 'Food']);
+  assert.equal(needsFullyCovered(withFood.needs), false);
+  const top = withFood.matches.slice(0, 2).map((match) => match.partner.name);
+  assert.deepEqual(top, ['Riverwest Ride Circle', 'Neighborhood Table']);
+});
+
+test('unmatched requests return no automatic partner matches', async () => {
+  setModelAvailable(true);
+  const result = await matchWithModel('Could someone help with algebra?', 0);
+  assert.equal(result.matches.length, 0);
+  assert.equal(result.needs.length, 0);
+});
+
 test('saved state validation and deterministic reset', () => {
   assert.deepEqual(decode(JSON.stringify(fullDemo())), fullDemo());
   for (const raw of [
@@ -432,4 +490,70 @@ test('saved state validation and deterministic reset', () => {
     '{"version":1,"posts":[{}],"referrals":[]}',
   ])
     assert.throws(() => decode(raw));
+});
+
+test('voiding a mistaken delivery restores the open need and changes totals once', () => {
+  const initial = seedState();
+  const sent = applyCommand(initial, send);
+  const accepted = applyCommand(sent, accept);
+  const delivered = applyCommand(accepted, complete);
+  const serviceId = delivered.referrals[0].services.find(({ category }) => category === 'Clothing')!.id;
+  const correction: Command = {
+    type: 'correct-service',
+    id: send.id,
+    partnerId: send.partnerId,
+    serviceId,
+    void: true,
+    reason: 'The coat was not picked up.',
+    workerId: 'winter-worker',
+    workerName: 'Jamie Reed',
+    at: '2026-11-21T19:00:00Z',
+  };
+  const voided = decode(JSON.stringify(applyCommand(delivered, correction)));
+  assert.deepEqual(outstandingNeeds(residentTimeline(voided)[0]), ['Clothing', 'Transportation']);
+  assert.equal(status(residentTimeline(voided)[0]), 'Accepted');
+  assert.equal(impact(voided).delivered, impact(delivered).delivered - 1);
+  assert.equal(mapRows(voided)[0].delivered, mapRows(delivered)[0].delivered - 1);
+  assert.equal(mapRows(voided)[0].open, mapRows(delivered)[0].open + 1);
+  assert.equal(applyCommand(voided, correction), voided);
+  const voidHistory = voided.referrals[0].services.find(({ id }) => id === serviceId)?.corrections;
+  assert.equal(voidHistory?.[0].workerId, 'winter-worker');
+  assert.equal(voidHistory?.[0].reason, 'The coat was not picked up.');
+});
+
+test('category correction updates Impact and preserves original service history', () => {
+  const initial = seedState();
+  const sent = applyCommand(initial, send);
+  const accepted = applyCommand(sent, accept);
+  const delivered = applyCommand(accepted, complete);
+  const deliveredRecord = delivered.referrals[0].services.find(({ category }) => category === 'Clothing')!;
+  const corrected = decode(JSON.stringify(applyCommand(delivered, {
+    type: 'correct-service',
+    id: send.id,
+    partnerId: send.partnerId,
+    serviceId: deliveredRecord.id,
+    category: 'Transportation',
+    void: false,
+    reason: 'This was a ride, not coat delivery.',
+    workerId: 'winter-worker',
+    workerName: 'Jamie Reed',
+    at: '2026-11-21T19:00:00Z',
+  })));
+  assert.deepEqual(outstandingNeeds(residentTimeline(corrected)[0]), ['Clothing']);
+  assert.equal(impact(corrected).delivered, impact(delivered).delivered);
+  assert.equal(
+    impact(corrected).byCategory.find(({ name }) => name === 'Clothing')?.count,
+    impact(delivered).byCategory.find(({ name }) => name === 'Clothing')!.count - 1,
+  );
+  assert.equal(
+    impact(corrected).byCategory.find(({ name }) => name === 'Transportation')?.count,
+    impact(delivered).byCategory.find(({ name }) => name === 'Transportation')!.count + 1,
+  );
+  const record = corrected.referrals[0].services.find(({ id }) => id === deliveredRecord.id);
+  assert.equal(record?.category, 'Transportation');
+  assert.equal(record?.corrections[0].kind, 'category');
+  assert.deepEqual(
+    [record?.corrections[0].fromCategory, record?.corrections[0].toCategory],
+    ['Clothing', 'Transportation'],
+  );
 });

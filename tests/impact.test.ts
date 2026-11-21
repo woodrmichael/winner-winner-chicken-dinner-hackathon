@@ -4,7 +4,16 @@ import { applyCommand, deliveredServices, impact, mapRows, partnerInbox, residen
 import { outstandingNeeds } from '../src/domain/referrals';
 import { profile, program, seedState, withDemoSamples } from '../src/domain/seed';
 import { categories, type Command } from '../src/domain/types';
-import { defaultReportMonth, impactReport, periodName, reportMonths, reportSummary } from '../src/features/impact/report';
+import {
+  defaultReportMonth,
+  impactReport,
+  organizationServiceRecords,
+  periodName,
+  reportMonths,
+  reportSummary,
+  reportingMonth,
+  serviceRecordsCsv,
+} from '../src/features/impact/report';
 import { decode } from '../src/state/persistence';
 
 const send = {
@@ -139,4 +148,22 @@ test('median excludes unanswered referrals and retains first acceptance across r
   assert.equal(report.awaiting, 1);
   assert.equal(report.medianResponse, 60 * 60_000);
   assert.equal(report.delivered, 0);
+});
+
+test('organization exports reconcile with provider Impact and exclude unrelated records', () => {
+  const state = seedState();
+  const month = reportingMonth('2026-11-21T18:00:00Z');
+  const winterRecords = organizationServiceRecords(state, 'winter-team', month);
+  const tableRecords = organizationServiceRecords(state, 'table', month);
+  const winterReport = impactReport(state, month, 'winter-team');
+  assert.equal(winterRecords.length, winterReport.delivered);
+  assert(winterRecords.every((record) => record.providerId === 'winter-team'));
+  assert(!winterRecords.some((record) => record.providerId === 'table'));
+  const csv = serviceRecordsCsv(winterRecords);
+  assert(csv.includes('Delivery date'));
+  assert(csv.includes('Category'));
+  assert(csv.includes('Winter Care Collective'));
+  assert(csv.includes(winterRecords[0].deliveredAt));
+  assert.equal(tableRecords.length, impactReport(state, month, 'table').delivered);
+  assert.equal(organizationServiceRecords(state, 'winter-team', reportingMonth('2026-01-01T00:00:00Z')).length, 0);
 });

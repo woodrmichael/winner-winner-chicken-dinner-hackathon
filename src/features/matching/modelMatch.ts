@@ -1,10 +1,46 @@
-import type { Category } from '../../domain/types';
+import type { Category, Neighborhood } from '../../domain/types';
+import { directory } from './directory';
 import { matchResources } from './match';
-import { getDemoLlmClient, getLlmClient, rankPartners } from './llm';
+import {
+  detectNeighborhood,
+  getDemoLlmClient,
+  getLlmClient,
+  interpretNeeds,
+  rankPartners,
+} from './llm';
 import type { MatchResult } from './llm/types';
 
 export type { MatchResult, MatchSource, PartnerMatch } from './llm/types';
-export { interpretNeeds, rankPartners } from './llm';
+export { detectNeighborhood, interpretNeeds, rankPartners } from './llm';
+
+const addableNeeds: Category[] = ['Clothing', 'Food', 'Transportation'];
+
+/** True when some directory partner offers every listed need. */
+export function needsFullyCovered(needs: Category[]): boolean {
+  if (!needs.length) return false;
+  return directory.some((partner) => needs.every((need) => partner.categories.includes(need)));
+}
+
+/** Categories the resident can still add on review. */
+export function missingAddableNeeds(needs: Category[]): Category[] {
+  return addableNeeds.filter((need) => !needs.includes(need));
+}
+
+/**
+ * Skip drafts when the resident already wrote a detailed request that names every need
+ * (e.g. the clothing-and-ride example). Still offer a draft when needs chips diverge
+ * from what the text says, or when the prompt is short.
+ */
+export function shouldOfferDraft(text: string, needs: Category[]): boolean {
+  if (!needs.length) return false;
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  const mentioned = interpretNeeds(trimmed);
+  const same =
+    needs.length === mentioned.length && needs.every((need) => mentioned.includes(need));
+  if (same && trimmed.length >= 40) return false;
+  return true;
+}
 
 /** Demo flag: set false to force the keyword fallback path. */
 export let modelAvailable = true;
@@ -59,7 +95,20 @@ export async function draftReferral(text: string, needs: Category[], waitMs = 55
   return draft.text;
 }
 
-/** Re-rank partners after the resident removes a need chip. */
-export function withNeeds(needs: Category[], source: MatchResult['source'] = 'model'): MatchResult {
-  return { needs, matches: rankPartners(needs), source };
+/** Re-rank partners after the resident removes a need chip or changes neighborhood preference. */
+export function withNeeds(
+  needs: Category[],
+  source: MatchResult['source'] = 'model',
+  preferredArea?: Neighborhood,
+): MatchResult {
+  return { needs, matches: rankPartners(needs, preferredArea), source };
+}
+
+export function preferredAreaFrom(
+  text: string,
+  sharedNeighborhood?: boolean,
+  profileNeighborhood?: Neighborhood,
+): Neighborhood | undefined {
+  if (sharedNeighborhood && profileNeighborhood) return profileNeighborhood;
+  return detectNeighborhood(text);
 }

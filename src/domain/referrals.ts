@@ -12,13 +12,18 @@ import type {
 } from './types';
 
 export function outstandingNeeds(referral: Referral): Category[] {
-  if (!referral.needs.length && referral.services.length) return [];
+  const activeServices = referral.services.filter((service) => !service.voidedAt);
+  if (!referral.needs.length && activeServices.length) return [];
   const requested = referral.needs.length ? referral.needs : ['Other' as const];
   return requested.filter(
     (category) =>
       !referral.withdrawn.includes(category) &&
-      !referral.services.some((service) => service.category === category),
+      !activeServices.some((service) => service.category === category),
   );
+}
+
+function requestedCategoryInReferral(referral: Referral, category: Category) {
+  return referral.needs.includes(category) || (!referral.needs.length && category === 'Other');
 }
 
 export function currentAssignment(referral: Referral, category: Category) {
@@ -65,7 +70,7 @@ export function pendingHandoffs(referral: Referral) {
 
 export function status(referral: Referral) {
   const open = outstandingNeeds(referral);
-  if (!open.length) return referral.services.length ? 'Completed' : 'Closed';
+  if (!open.length) return referral.services.some((service) => !service.voidedAt) ? 'Completed' : 'Closed';
   const active = open.filter(
     (category) => !currentAssignment(referral, category).declines[category],
   );
@@ -83,9 +88,10 @@ function partnerTicket(referral: Referral, assignment: ReferralAssignment) {
   const actionable = actionableNeeds(referral, assignment);
   const services = referral.services.filter(
     (service) =>
-      original ||
-      service.assignmentId === assignment.id ||
-      service.category === assignment.category,
+      !service.voidedAt &&
+      (original ||
+        service.assignmentId === assignment.id ||
+        service.category === assignment.category),
   );
   const outstanding = outstandingNeeds(referral).filter(
     (category) => original || category === assignment.category,
@@ -260,7 +266,7 @@ function applyPartnerCommand(
   assignment: ReferralAssignment,
   cmd: Extract<
     ReferralCommand,
-    { type: 'accept' | 'schedule' | 'decline-service' | 'propose-handoff' | 'complete' }
+    { type: 'accept' | 'schedule' | 'decline-service' | 'propose-handoff' | 'complete' | 'correct-service' }
   >,
 ): Referral {
   const actionable = actionableNeeds(referral, assignment);
@@ -317,9 +323,79 @@ function applyPartnerCommand(
       ],
     };
   }
+  if (cmd.type === 'correct-service') {
+    const reason = requiredText(cmd.reason, 'Explain why this delivery is being corrected.');
+    const service = referral.services.find((entry) =>
+      entry.id === cmd.serviceId && entry.providerId === cmd.partnerId,
+    );
+    if (!service) throw new Error('This service record is unavailable or already corrected.');
+    if (cmd.void) {
+      if (service.voidedAt) return referral;
+      return {
+        ...referral,
+        services: referral.services.map((entry) =>
+          entry.id === service.id
+            ? {
+                ...entry,
+                voidedAt: cmd.at,
+                corrections: [
+                  ...entry.corrections,
+                  {
+                    id: cmd.workerId + '-' + cmd.at,
+                    kind: 'void' as const,
+                    workerId: cmd.workerId,
+                    workerName: cmd.workerName,
+                    reason,
+                    at: cmd.at,
+                  },
+                ],
+              }
+            : entry),
+      };
+    }
+    if (service.voidedAt) throw new Error('This service record is unavailable or already voided.');
+    if (!cmd.category || cmd.category === service.category) return referral;
+    if (!requestedCategoryInReferral(referral, cmd.category)) {
+      throw new Error('Choose a category requested by this referral.');
+    }
+    if (referral.services.some((entry) =>
+      entry.id !== service.id &&
+      !entry.voidedAt &&
+      entry.category === cmd.category &&
+      entry.assignmentId === service.assignmentId,
+    )) {
+      throw new Error('This category already has an active delivery.');
+    }
+    return {
+      ...referral,
+      services: referral.services.map((entry) =>
+        entry.id === service.id
+          ? {
+              ...entry,
+              category: cmd.category!,
+              corrections: [
+                ...entry.corrections,
+                {
+                  id: cmd.workerId + '-' + cmd.at,
+                  kind: 'category' as const,
+                  workerId: cmd.workerId,
+                  workerName: cmd.workerName,
+                  reason,
+                  at: cmd.at,
+                  fromCategory: service.category,
+                  toCategory: cmd.category,
+                },
+              ],
+            }
+          : entry),
+    };
+  }
   if (
     referral.services.some(
-      (service) => service.category === cmd.category && service.assignmentId === assignment.id,
+      (service) =>
+        !service.voidedAt &&
+        service.category === cmd.category &&
+        service.assignmentId === assignment.id,
     )
   )
     return referral;
@@ -338,11 +414,13 @@ function applyPartnerCommand(
     services: [
       ...referral.services,
       {
+        id: `${cmd.id}:${cmd.category}:${cmd.at}`,
         assignmentId: assignment.id,
         providerId: cmd.partnerId,
         deliveredAt: cmd.at,
         category: cmd.category,
         programId: cmd.programId,
+        corrections: [],
       },
     ],
   };
