@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import Svg, {
   Circle,
@@ -15,15 +16,16 @@ import { mapRows } from '../../domain/model';
 import { categories, type Category, type Neighborhood } from '../../domain/types';
 import { Disclosure } from '../../ui/Disclosure';
 import { useDemo } from '../../state/Demo';
-import { Card, Columns, Copy, Page, color, wrap } from '../../ui/kit';
+import { Btn, Card, Columns, Copy, Page, color, wrap } from '../../ui/kit';
 import boundaries from './boundaries.json';
+import { directory } from '../matching/directory';
+import { incidentBand, incidentBands, incidentLayers, incidentPeriod, noIncidentData } from './incidentScale';
 
 const layers = [
   { key: 'open', label: 'Open needs', symbol: '○', ink: '#844923' },
   { key: 'delivered', label: 'Assistance delivered', symbol: '✓', ink: '#17634B' },
   { key: 'resources', label: 'Resources', symbol: '+', ink: '#385E91' },
-  { key: 'fatal', label: 'Homicides', symbol: '◆', ink: '#914855' },
-  { key: 'nonfatal', label: 'Nonfatal shootings', symbol: '△', ink: '#825E0F' },
+  ...incidentLayers,
 ] as const;
 
 type Layer = (typeof layers)[number]['key'];
@@ -39,6 +41,7 @@ const pins: Record<
 };
 
 export default function MapScreen() {
+  const router = useRouter();
   const { state } = useDemo();
 
   // Map layer visibility.
@@ -59,6 +62,9 @@ export default function MapScreen() {
   const active = layers.filter((layer) =>
     visible.includes(layer.key)
   );
+  // Switches are independent. The last enabled incident layer supplies the fill.
+  const shadeKey = visible.slice().reverse().find((key) => key === 'fatal' || key === 'nonfatal');
+  const shadeLayer = incidentLayers.find((layer) => layer.key === shadeKey);
 
   // Filter totals when a neighborhood is selected.
   const displayedRows = selectedNeighborhood
@@ -111,15 +117,21 @@ export default function MapScreen() {
                 viewBox="0 0 360 240"
               >
                 {/* Neighborhood boundaries */}
-                {boundaries.map((b) => (
-                  <Path
-                    key={b.name}
-                    d={b.path}
-                    fill={b.name in pins ? '#CEE4DB' : '#E5EAE7'}
-                    stroke="#FCFBF3"
-                    strokeWidth={1.4}
-                  />
-                ))}
+                {boundaries.map((b) => {
+                  const counts = rows.find((row) => row.area === b.name);
+                  const fill = shadeLayer
+                    ? incidentBand(counts?.[shadeLayer.key])[shadeLayer.key]
+                    : counts ? '#CEE4DB' : '#E5EAE7';
+                  return (
+                    <Path
+                      key={b.name}
+                      d={b.path}
+                      fill={fill}
+                      stroke={shadeLayer ? '#788484' : '#FCFBF3'}
+                      strokeWidth={1.4}
+                    />
+                  );
+                })}
 
                 {/* Neighborhood markers and labels */}
                 {rows.map(({ area, ...counts }) => {
@@ -191,7 +203,7 @@ export default function MapScreen() {
                           fill={layer.ink}
                         >
                           {layer.symbol}
-                          {counts[layer.key]}
+                          {counts[layer.key] ?? '—'}
                         </MapText>
                       ))}
                     </G>
@@ -200,7 +212,7 @@ export default function MapScreen() {
               </Svg>
 
               {/* Interactive neighborhood touch targets */}
-              {rows.map(({ area }) => {
+              {rows.map(({ area, ...counts }) => {
                 const p = pins[area];
                 const selected = selectedNeighborhood === area;
 
@@ -212,7 +224,9 @@ export default function MapScreen() {
                     key={area}
                     onPress={() => selectNeighborhood(area)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Select ${area}`}
+                    accessibilityLabel={`Select ${area}` + (shadeLayer
+                      ? `, ${shadeLayer.label}, ${incidentPeriod}, ${counts[shadeLayer.key] ?? noIncidentData.label}`
+                      : '')}
                     accessibilityState={{ selected }}
                     style={{
                       position: 'absolute',
@@ -233,12 +247,32 @@ export default function MapScreen() {
               style={{
                 paddingHorizontal: 16,
                 paddingBottom: 14,
+                gap: 8,
               }}
             >
+              {shadeLayer && (
+                <View style={{ gap: 6 }}>
+                  <Copy kind="strong">Shading · {shadeLayer.label} · {incidentPeriod}</Copy>
+                  <View style={wrap}>
+                    {[...incidentBands, noIncidentData].map((band) => (
+                      <View key={band.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <View style={{
+                          width: 16, height: 16, borderRadius: 3, borderWidth: 1,
+                          borderColor: '#687474', backgroundColor: band[shadeLayer.key],
+                        }} />
+                        <Copy kind="small">{band.label}</Copy>
+                      </View>
+                    ))}
+                  </View>
+                  {incidentLayers.every((layer) => visible.includes(layer.key)) && (
+                    <Copy kind="small">Both counts are shown. Shading follows the last incident layer turned on.</Copy>
+                  )}
+                </View>
+              )}
               <Copy kind="small" tint={color.muted}>
                 City of Milwaukee DCD and ITMD-GIS
-                {visible.includes('fatal') || visible.includes('nonfatal')
-                  ? ' · Incidents: Milwaukee Homicide Review Commission, 2014–2016'
+                {shadeLayer
+                  ? ' · Incident totals from the Milwaukee Homicide Review Commission'
                   : ''}
               </Copy>
             </View>
@@ -286,6 +320,20 @@ export default function MapScreen() {
       />
 
       {/* Neighborhood totals */}
+      {selectedNeighborhood && (
+        <Card>
+          <Copy kind="title">Providers in {selectedNeighborhood}</Copy>
+          {directory.filter((partner) => partner.area === selectedNeighborhood).map((partner) => (
+            <View key={partner.id} style={{ gap: 6 }}>
+              <Copy kind="strong">{partner.name}</Copy>
+              <Copy>{partner.categories.join(' · ')}</Copy>
+              <Btn label={`Request help from ${partner.name}`} secondary onPress={() =>
+                router.push({ pathname: '/ask', params: { partner: partner.id } })
+              } />
+            </View>
+          ))}
+        </Card>
+      )}
       <Card>
         <View
           style={{
@@ -326,7 +374,9 @@ export default function MapScreen() {
                 key={r.area}
                 onPress={() => selectNeighborhood(r.area)}
                 accessibilityRole="button"
-                accessibilityLabel={`Select ${r.area} neighborhood totals`}
+                accessibilityLabel={`Select ${r.area} neighborhood totals. ` +
+                  active.map((layer) => `${layer.label} ${r[layer.key] ?? noIncidentData.label}`).join(', ') +
+                  (shadeLayer ? `. Incident totals for ${incidentPeriod}.` : '')}
                 accessibilityState={{ selected }}
                 style={{
                   borderTopWidth: 1,
@@ -348,7 +398,8 @@ export default function MapScreen() {
                       kind="small"
                       tint={layer.ink}
                     >
-                      {layer.symbol} {layer.label} · {r[layer.key]}
+                      {layer.symbol} {layer.label} · {r[layer.key] ?? noIncidentData.label}
+                      {(layer.key === 'fatal' || layer.key === 'nonfatal') && ` (${incidentPeriod})`}
                     </Copy>
                   ))}
                 </View>
