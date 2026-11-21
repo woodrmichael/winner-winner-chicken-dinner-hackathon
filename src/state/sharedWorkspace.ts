@@ -92,7 +92,7 @@ export function useSharedWorkspace() {
     if (session) await request('/session', { method: 'DELETE' }, session).catch(() => {});
   }
 
-  async function run(command: CommunityCommand | ReferralCommand | WorkspaceCommand) {
+  async function run(command: CommunityCommand | ReferralCommand | WorkspaceCommand | import('../features/partnerships/ledger').SupportCommand) {
     const session = token.current;
     if (!session) throw new Error('Sign in through Settings to use the shared workspace.');
     try {

@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Check, ChevronRight, Share } from 'lucide-react-native';
+import { Check, ChevronRight, HandHeart, Share } from 'lucide-react-native';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { program } from '../../domain/seed';
 import { useMobileHeaderAction } from '../../ui/MobileHeaderAction';
 import { SelectMenu } from '../../ui/SelectMenu';
 import { Btn, Card, Columns, Copy, Page, ProgressBar, color, row, wrap } from '../../ui/kit';
@@ -56,6 +55,37 @@ export default function Impact() {
         main={
           <>
             <Overview report={report} wide={wide && fontScale < 1.3} />
+            <Card style={styles.sponsorInvite}>
+              <View style={row}>
+                <HandHeart color={color.pine} size={24} />
+                <Copy kind="title" style={styles.fill}>Sponsor a local project</Copy>
+              </View>
+              <Copy>Help fund a winter coat, stock a pantry, or bring a volunteer team.</Copy>
+              <View style={styles.recent}>
+                <Copy kind="strong">See what community support makes possible</Copy>
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel={`View Winter essentials drive, ${programCount} ${programCount === 1 ? 'delivery' : 'deliveries'}`}
+                  onPress={() => router.push({
+                    pathname: '/impact-program',
+                    params: { period: month === null ? 'all' : String(month) },
+                  })}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+                >
+                  <Card style={styles.workCard}>
+                    <View style={styles.workIcon}><Check color={color.pine} size={22} /></View>
+                    <View style={styles.fill}>
+                      <Copy kind="strong">
+                        {programCount} winter program {programCount === 1 ? 'delivery' : 'deliveries'}
+                      </Copy>
+                      <Copy kind="small" tint={color.muted}>Winter essentials drive</Copy>
+                    </View>
+                    <ChevronRight size={20} color={color.pine} />
+                  </Card>
+                </Pressable>
+              </View>
+              <Btn label="Choose a project to support" stretch onPress={() => router.push('/partnerships')} />
+            </Card>
             <ServiceRecords />
             <Card style={styles.assistance}>
               <View style={[wrap, styles.between]}>
@@ -80,29 +110,6 @@ export default function Impact() {
         }
         side={
           <>
-            <View style={styles.recent}>
-              <Copy kind="title" style={styles.sectionTitle}>Recent work</Copy>
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel={`View ${program.name}, ${programCount} ${programCount === 1 ? 'delivery' : 'deliveries'}`}
-                onPress={() => router.push({
-                  pathname: '/impact-program',
-                  params: { period: month === null ? 'all' : String(month) },
-                })}
-                style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
-              >
-                <Card style={styles.workCard}>
-                  <View style={styles.workIcon}><Check color={color.pine} size={22} /></View>
-                  <View style={styles.fill}>
-                    <Copy kind="strong">
-                      {programCount} winter program {programCount === 1 ? 'delivery' : 'deliveries'}
-                    </Copy>
-                    <Copy kind="small" tint={color.muted}>{program.name}</Copy>
-                  </View>
-                  <ChevronRight size={20} color={color.pine} />
-                </Card>
-              </Pressable>
-            </View>
             <CommunityPartners report={completeReport} />
             {!wide && <ResponseMetrics report={completeReport} />}
           </>
@@ -186,6 +193,7 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: 'row', gap: 9, alignItems: 'stretch' },
   stat: { flex: 1, minWidth: 0, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, gap: 2 },
   total: { fontSize: 32, lineHeight: 36, fontVariant: ['tabular-nums'] },
+  sponsorInvite: { backgroundColor: color.pale, borderColor: color.pale },
   assistance: { gap: 8 },
   category: { flexBasis: 85, flexShrink: 1 },
   chartCount: { minWidth: 30, textAlign: 'right', fontVariant: ['tabular-nums'] },

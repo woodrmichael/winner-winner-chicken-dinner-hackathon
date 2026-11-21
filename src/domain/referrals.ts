@@ -1,5 +1,6 @@
+import { projects } from '../features/partnerships/ledger';
 import { directory } from '../features/matching/directory';
-import { profile, program, residentId } from './seed';
+import { profile, residentId } from './seed';
 import type {
   Appointment,
   Category,
@@ -404,11 +405,9 @@ function applyPartnerCommand(
   }
   if (
     cmd.programId &&
-    (cmd.programId !== program.id ||
-      cmd.partnerId !== program.providerId ||
-      cmd.category !== 'Clothing')
+    !projects.some((p) => p.programId === cmd.programId && p.providerId === cmd.partnerId && p.category === cmd.category)
   ) {
-    throw new Error('This delivery is ineligible for the winter program.');
+    throw new Error('This delivery is ineligible for the selected program.');
   }
   return {
     ...referral,

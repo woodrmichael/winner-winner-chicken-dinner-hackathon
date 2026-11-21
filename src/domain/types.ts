@@ -95,6 +95,7 @@ export type Referral = {
   handoffs: Handoff[];
 };
 export type DemoState = {
+  supportEntries?: import('../features/partnerships/ledger').SupportEntry[];
   version: 2;
   posts: Post[];
   referrals: Referral[];
@@ -191,4 +192,4 @@ export type WorkspaceCommand =
   | { type: 'update-volunteer-role'; roleId: VolunteerRoleId; capacity: number; instructions: string }
   | { type: 'record-attendance'; accountId: string; minutes: number };
 
-export type Command = CommunityCommand | ReferralCommand | WorkspaceCommand;
+export type Command = CommunityCommand | ReferralCommand | WorkspaceCommand | import('../features/partnerships/ledger').SupportCommand;
