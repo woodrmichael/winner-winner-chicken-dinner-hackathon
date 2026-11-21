@@ -21,7 +21,7 @@ Expo Go opens the app on your phone while your laptop serves the code. Run both 
 | Select **Clothing**, keep the winter program selected and tap **Record completed service**. Switch to **Resident view**. | The timeline shows **Completed**, with Winter Care Collective credited. |
 | Open **Map**, then **Impact**. | Harambee shows 2 deliveries. Overall totals are 5 received, 2 open, 3 delivered. The winter program has 2 deliveries. |
 
-Also try typing your own request. Check that the keyboard leaves the message and submit action reachable. Record your phone model, OS and any failing step on the [task board](tasks.md).
+Also try typing your own request. Check that the keyboard leaves the message and submit action reachable. Include your phone model, OS and the result in the PR for the change you tested.
 
 ## Community and larger-text walkthrough
 
