@@ -112,6 +112,10 @@ In a shared workspace, sign in before opening Impact. Its totals come from the s
 3. Tap the share icon at the top of Impact and compare the month, provider and totals in the summary. Tap **Share summary** and confirm the phone’s share sheet opens. On the web, use **Copy summary** and paste it into a local editor.
 4. Tap the month beside **Our impact** and choose **October 2026**. Check that the month and provider menus float over the page and dismiss when you tap outside. Compare October’s 74 requests and 67 deliveries with November, then repeat on a narrow phone with larger system text.
 
+## Check business partnerships
+
+Open **Community → Winter essentials drive → Team inquiries and project details**. Ask about bringing a team, then offer $150 for supplies, $50 for operations and two volunteers. In shared mode, sign in as the organizer to review the inquiry and confirm the offer. For local rehearsal use **Settings → Partner → Winter Care Collective**. From **Manage project support → Payments**, expand the business pledge and apply a $50 payment and verify $150 remains. Pay the balance and check the allocation on the program page. Use the same business name for a pantry meal-kit pledge and find both projects in **Business summary**. Only confirmed business places count toward staffing. Confirming or paying a pledge leaves delivery counts unchanged.
+
 ## If it won’t open
 
 | Symptom | Try |

@@ -49,6 +49,7 @@ export type VolunteerView = {
 };
 
 export type SharedSnapshot = {
+  support: import('../features/partnerships/ledger').SupportBook;
   revision: number;
   account: Account;
   posts: Post[];
@@ -64,6 +65,7 @@ export type SharedSnapshot = {
     impactReports: ImpactReports;
     map: ReturnType<typeof mapRows>;
     mapByCategory: { category: Category; rows: ReturnType<typeof mapRows> }[];
+    projectDeliveries: ReturnType<typeof import('../features/partnerships/ledger').projectDeliveryCounts>;
     programServices: Pick<ReturnType<typeof deliveredServices>[number], 'category' | 'providerId' | 'deliveredAt'>[];
   };
 };

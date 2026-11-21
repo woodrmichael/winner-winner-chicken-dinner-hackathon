@@ -1,3 +1,4 @@
+import { funding } from '../partnerships/ledger';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { program } from '../../domain/seed';
@@ -92,7 +93,8 @@ export function VolunteerOptions({ openSettings }: { openSettings: () => void })
       </Card>
       <Card>
         <Copy kind="title">Volunteer project summary</Copy>
-        <Copy>Sign-ups: {summary.signups}</Copy>
+        <Copy>Staffing commitments: {summary.signups + funding(shared.data.support.pledges.filter((p) => p.project === 'drive')).volunteers}</Copy>
+        <Copy>Individual sign-ups: {summary.signups}</Copy>
         <Copy>Participants: {summary.participants}</Copy>
         <Copy>Contributed time: {duration(summary.minutes)}</Copy>
       </Card>

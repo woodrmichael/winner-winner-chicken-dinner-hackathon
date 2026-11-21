@@ -1,3 +1,4 @@
+import { appendEntry, projectDeliveryCounts, supportBook, type SupportEntry } from '../src/features/partnerships/ledger';
 import { deliveredServices, impact, mapRows } from '../src/domain/model';
 import { applyReferralCommand, partnerInbox, residentTimeline } from '../src/domain/referrals';
 import { profile, program, seedState } from '../src/domain/seed';
@@ -19,6 +20,7 @@ import { approvedPartner, assignmentScope, WorkspaceError } from './referral-acc
 
 export type StoredAccount = Account & { passwordHash: string };
 export type Workspace = {
+  supportEntries?: SupportEntry[];
   referrals: Referral[];
   posts: Post[];
   community: CommunityState;
@@ -94,8 +96,10 @@ export function snapshot(workspace: Workspace, account: StoredAccount, revision:
   const partner = approvedPartner(account);
   const admin = adminPartner(account);
   const { roles, signups } = workspace;
+  const book = supportBook(workspace.supportEntries);
   return {
     revision,
+    support: isOrganizer(account) ? book : { pledges: book.pledges, inquiries: [], offers: [] },
     account: publicAccount,
     posts: account.moderator ? workspace.posts : workspace.posts.filter((post) => post.status !== 'hidden'),
     community: {
@@ -128,11 +132,19 @@ export function snapshot(workspace: Workspace, account: StoredAccount, revision:
       impactReports: sharedImpactReports(workspace),
       map: mapRows(workspace),
       mapByCategory: categories.map((category) => ({ category, rows: mapRows(workspace, category) })),
+      projectDeliveries: projectDeliveryCounts(deliveredServices(workspace)),
       programServices: deliveredServices(workspace).flatMap(({ category, providerId, deliveredAt, programId }) =>
         programId === program.id ? [{ category, providerId, deliveredAt }] : [],
       ),
     },
   };
+}
+
+export function applySharedSupport(workspace: Workspace, account: Account, entry: SupportEntry): Workspace {
+  if (entry.kind !== 'offer' && entry.kind !== 'inquiry' && !isOrganizer(account))
+    throw new WorkspaceError(403, 'Coordinator access is required.');
+  const supportEntries = appendEntry(workspace.supportEntries, entry);
+  return supportEntries === workspace.supportEntries ? workspace : { ...workspace, supportEntries };
 }
 
 export function applySharedReferral(workspace: Workspace, account: Account, cmd: ReferralCommand): Workspace {

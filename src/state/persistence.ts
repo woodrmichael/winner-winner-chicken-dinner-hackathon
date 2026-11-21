@@ -16,6 +16,8 @@ import type {
 import { categories, neighborhoods } from '../domain/types';
 import { directory } from '../features/matching/directory';
 
+import { decodeEntries } from '../features/partnerships/ledger';
+
 export const storageKey = 'comforce-connect/demo/v1';
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -271,6 +273,7 @@ export function decode(raw: string): DemoState {
     ) {
       return {
         version: 2,
+        ...(state.supportEntries === undefined ? {} : { supportEntries: decodeEntries(state.supportEntries) }),
         posts: state.posts,
         referrals,
         community: { ...emptyCommunity(), ...state.community },

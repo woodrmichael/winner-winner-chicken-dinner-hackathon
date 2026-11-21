@@ -59,6 +59,8 @@ Impact helps ComForce answer a funder’s question about what the winter program
 
 ## 6. Business partnerships and sponsorships
 
+6.1–6.6 claimed by Corbin Langfeldt on `partnerships/project-support`.
+
 One proposed funding model is for an employer to sponsor a ComForce project such as the winter drive. The employer could fund supplies, send employees to help, or pay ComForce to organize a volunteer day and report the results. An agreement would specify which funds cover direct services and which cover coordination or app operations. ComForce would decide which projects it can run and what to charge.
 
 - [ ] **6.1 Track a sponsor’s pledge and payment.** A coordinator records the business, the program it supports and the amount promised. Record a $200 pledge from a market, then apply a $50 payment to it. The program should show $50 received and $150 outstanding for that pledge, with the same delivery count.

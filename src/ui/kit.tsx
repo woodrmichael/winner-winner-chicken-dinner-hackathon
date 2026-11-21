@@ -244,6 +244,7 @@ export function Field({
   multiline = false,
   placeholder,
   secure = false,
+  keyboardType,
   autoCapitalize,
 }: {
   label: string;
@@ -252,6 +253,7 @@ export function Field({
   multiline?: boolean;
   placeholder?: string;
   secure?: boolean;
+  keyboardType?: 'decimal-pad' | 'number-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }) {
   return (
@@ -263,6 +265,7 @@ export function Field({
         placeholderTextColor={color.muted}
         value={value}
         onChangeText={change}
+        keyboardType={keyboardType}
         secureTextEntry={secure}
         autoCapitalize={secure ? 'none' : autoCapitalize}
         autoCorrect={secure || autoCapitalize === 'none' ? false : undefined}

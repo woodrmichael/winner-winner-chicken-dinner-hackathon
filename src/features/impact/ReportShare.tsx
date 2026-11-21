@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Copy as CopyIcon, Share as ShareIcon, X } from 'lucide-react-native';
 import { Modal, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Btn, Card, Copy, color, row } from '../../ui/kit';
+import { useSupport } from '../partnerships/useSupport';
 import { reportSummary, type ImpactReport } from './report';
 
 export function ReportShare({
@@ -14,7 +15,8 @@ export function ReportShare({
   onClose: () => void;
 }) {
   const [status, setStatus] = useState('');
-  const summary = reportSummary(report, programDeliveries);
+  const { book } = useSupport();
+  const summary = reportSummary(report, programDeliveries, book ?? { pledges: [], offers: [], inquiries: [] });
   const web = Platform.OS === 'web';
 
   async function shareReport() {

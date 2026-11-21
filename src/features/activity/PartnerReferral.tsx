@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { ClipboardCheck } from 'lucide-react-native';
 import { otherProviders, type partnerInbox } from '../../domain/referrals';
-import { program } from '../../domain/seed';
+import { projects } from '../partnerships/ledger';
 import type { Appointment, Category, ReferralAssignment } from '../../domain/types';
 import { newId, now, useDemo } from '../../state/Demo';
 import { Disclosure } from '../../ui/Disclosure';
@@ -33,9 +33,9 @@ function Delivery({
 }) {
   const { run } = useDemo();
   const [selected, setSelected] = useState(categories[0]);
-  const [link, setLink] = useState(true);
+  const [link, setLink] = useState(assignment.partnerId === 'winter-team');
   const category = categories.includes(selected) ? selected : categories[0];
-  const eligible = assignment.partnerId === program.providerId && category === 'Clothing';
+  const eligible = projects.find((p) => p.providerId === assignment.partnerId && p.category === category);
   return (
     <View style={{ gap: 6 }}>
       <Copy kind="strong">Service delivered{categories.length === 1 ? ' · ' + category : ''}</Copy>
@@ -43,7 +43,7 @@ function Delivery({
         <Segments options={categories} value={category} onChange={setSelected} label={needName} />
       )}
       {eligible && (
-        <ToggleRow label="Count toward Winter essentials" value={link} onChange={setLink} />
+        <ToggleRow label={`Count toward ${eligible.name}`} value={link} onChange={setLink} />
       )}
       <View style={wrap}>
         <Btn
@@ -54,7 +54,7 @@ function Delivery({
               id: assignment.id,
               partnerId: assignment.partnerId,
               category,
-              programId: eligible && link ? program.id : undefined,
+              programId: link ? eligible?.programId : undefined,
               at: now(),
             });
             close();

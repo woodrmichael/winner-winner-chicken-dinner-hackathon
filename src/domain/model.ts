@@ -1,3 +1,4 @@
+import { appendEntry, type SupportCommand } from '../features/partnerships/ledger';
 import { directory } from '../features/matching/directory';
 import { applyCommunityCommand } from '../features/community/model';
 import { applyReferralCommand, outstandingNeeds } from './referrals';
@@ -22,10 +23,11 @@ export function isCommunityCommand(cmd: { type: string }): cmd is CommunityComma
 
 export function applyCommand(
   state: DemoState,
-  cmd: CommunityCommand | ReferralCommand,
+  cmd: CommunityCommand | ReferralCommand | SupportCommand,
   actorId?: string,
 ): DemoState {
   switch (cmd.type) {
+    case 'partnership': return { ...state, supportEntries: appendEntry(state.supportEntries, cmd.entry) };
     case 'post':
     case 'reply':
     case 'event-rsvp':

@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { isWorkspaceCommand, type Account } from '../src/shared/workspace';
 import { object, parseCommand } from './commands';
 import { WorkspaceError } from './referral-access';
-import { applySharedCommunity, applySharedReferral, applyWorkspaceCommand, snapshot, type StoredAccount, type Workspace } from './workspace';
+import { applySharedSupport, applySharedCommunity, applySharedReferral, applyWorkspaceCommand, snapshot, type StoredAccount, type Workspace } from './workspace';
 import { isCommunityCommand } from '../src/domain/model';
 
 const lifetime = 8 * 60 * 60 * 1000;
@@ -97,7 +97,7 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
         const cmd = parseCommand(command, account.details);
         let updated: Workspace;
         try {
-          updated = isCommunityCommand(cmd)
+          updated = cmd.type === 'partnership' ? applySharedSupport(workspace, account, cmd.entry) : isCommunityCommand(cmd)
             ? applySharedCommunity(workspace, account, cmd)
             : isWorkspaceCommand(cmd)
               ? applyWorkspaceCommand(workspace, account, cmd)

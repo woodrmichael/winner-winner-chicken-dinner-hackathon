@@ -11,6 +11,16 @@ The [demo directory](../src/features/matching/directory.ts) contains sample prov
 | Referral lifecycle | [Types and commands](../src/domain/types.ts) define the contract. [Referral model](../src/domain/referrals.ts) implements transitions and private read functions. [Domain model](../src/domain/model.ts) exposes aggregate reads. |
 | Save, load or reset | [Provider](../src/state/Demo.tsx) queues writes. [Decoder](../src/state/persistence.ts) validates saved state. [Seed](../src/domain/seed.ts) defines the starting workspace. |
 
+## Business partnerships
+
+Community event details and the Impact program open project partnerships. Offers and inquiries can be submitted by any signed-in account. The winter organizer reviews private inquiries and offers, confirms support, and records pledges and payments. In the local workspace, use the winter partner or moderator view in Settings for coordinator actions.
+
+Partnership commands store amounts in integer cents. A confirmed offer becomes one pledge with the offer ID. Payments reference that pledge and cannot exceed its outstanding balance. Partial payments are allocated proportionally across supplies and operations, rounded on cumulative receipts. Business volunteer commitments count toward project staffing separately from individual role reservations and attended hours. Existing winter funding opens with Juniper Market’s recorded balance. Its original purpose is unknown and reported separately from allocated receipts. Earlier device and server snapshots need no migration to display it.
+
+The meal-kit project uses the existing pantry event, a $1,000 goal and optional program attribution on Neighborhood Table food deliveries. Winter clothing deliveries retain their existing program option. Shared summaries expose counts and provider credit by project.
+
+Only confirmed support is published in the shared projection. Delivery credit comes from the existing program service records. The business summary uses public project information, funding and aggregate provider credit.
+
 ## Shared UI
 
 Use system typography, neutral surfaces and one teal accent. Give each screen a clear title and keep text that helps someone decide, act or understand a result.

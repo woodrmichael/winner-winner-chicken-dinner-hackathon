@@ -97,7 +97,11 @@ export function DemoProvider({ children }: PropsWithChildren) {
         } : state,
         shared,
         run: (cmd) => {
-          if (shared.enabled && (isCommunityCommand(cmd) || isWorkspaceCommand(cmd))) return shared.run(cmd);
+          if (shared.enabled && (cmd.type === 'partnership' || isCommunityCommand(cmd) || isWorkspaceCommand(cmd))) return shared.run(cmd);
+          if (cmd.type === 'partnership' && cmd.entry.kind !== 'offer' && cmd.entry.kind !== 'inquiry' &&
+            role !== 'Moderator' && !(role === 'Partner' && partnerId === 'winter-team')) {
+            return Promise.reject(new Error('Choose the coordinator view in Settings to manage support.'));
+          }
           if (isWorkspaceCommand(cmd)) return Promise.reject(new Error('Open the shared workspace first.'));
           return save(cmd);
         },

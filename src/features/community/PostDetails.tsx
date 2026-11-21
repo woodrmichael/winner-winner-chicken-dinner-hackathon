@@ -8,6 +8,9 @@ import { Btn, Card, Copy, Field, Page, color, row } from '../../ui/kit';
 import { communityEvents, residentAuthor } from './model';
 import { PostTimestamp } from './PostTimestamp';
 import { SavePostButton } from './SavePostButton';
+import { projects, funding } from '../partnerships/ledger';
+import { ProjectFunding } from '../partnerships/ProjectFunding';
+import { useSupport } from '../partnerships/useSupport';
 import { VolunteerOptions } from '../volunteer/Volunteer';
 
 function OfferThread({ post }: { post: Post }) {
@@ -50,6 +53,9 @@ function OfferThread({ post }: { post: Post }) {
 function EventDetails({ postId }: { postId: string }) {
   const { state, run, shared } = useDemo();
   const router = useRouter();
+  const { book } = useSupport();
+  const project = projects.find((p) => p.id === postId);
+  const teamPlaces = funding(book?.pledges.filter((p) => p.project === postId) ?? []).volunteers;
   const event = communityEvents.get(postId);
   if (!event) return null;
   const joined = state.community.joinedEvents.includes(postId);
@@ -68,7 +74,7 @@ function EventDetails({ postId }: { postId: string }) {
         {!sharedDrive && (
           <>
             <View accessibilityLiveRegion="polite" style={{ gap: 4 }}>
-              <Copy kind="strong">{event.volunteers + Number(joined)} volunteers</Copy>
+              <Copy kind="strong">{event.volunteers + Number(joined) + teamPlaces} volunteers</Copy>
               {joined && <Copy tint={color.pine}>You’ve joined this event.</Copy>}
             </View>
             <Btn
@@ -79,6 +85,15 @@ function EventDetails({ postId }: { postId: string }) {
           </>
         )}
       </Card>
+      {project && <Card>
+        <Copy kind="title">Help sponsor this event</Copy>
+        <Copy>Organized by {project.organizer}</Copy>
+        {book && <ProjectFunding goal={project.goal} pledges={book.pledges.filter((p) => p.project === project.id)} />}
+        <Copy>{project.supplies}</Copy>
+        <Copy>{teamPlaces} volunteer places confirmed through businesses</Copy>
+        <Btn label="Pledge support" stretch onPress={() => router.push({ pathname: '/partnerships', params: { project: project.id, action: 'offer' } })} />
+        <Btn label="Team inquiries and project details" quiet onPress={() => router.push({ pathname: '/partnerships', params: { project: project.id } })} />
+      </Card>}
       {sharedDrive && <VolunteerOptions openSettings={() => router.navigate('/settings')} />}
     </>
   );

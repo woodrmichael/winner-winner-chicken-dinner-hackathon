@@ -43,6 +43,35 @@ async function fixture(t: TestContext) {
   };
 }
 
+test('partnerships route private inquiries to organizers and publish only confirmed project support', async (t) => {
+  const api = await fixture(t);
+  const resident = await api.login('alex');
+  const organizer = await api.login('organizer');
+  const observer = await api.login('jordan');
+  const submit = (token: string, entry: object) => api.command(token, { type: 'partnership', entry });
+  const before = (await api.read(observer)).data;
+  const offer = { kind: 'offer', id: 'team', project: 'drive', business: 'Corner Shop', supplies: 15000, operations: 5000, volunteers: 2 };
+  assert.equal((await submit(resident, { kind: 'inquiry', id: 'question', project: 'drive', business: 'Corner Shop',
+    proposal: 'Could we bring a team?', contact: 'Email the team lead' })).status, 200);
+  assert.equal((await submit(resident, offer)).status, 200);
+  const pending = (await api.read(observer)).data;
+  assert.deepEqual(pending.support, before.support);
+  assert.deepEqual(pending.volunteers.summary, before.volunteers.summary);
+  const inbox = (await api.read(organizer)).data.support;
+  assert.equal(inbox.inquiries[0].contact, 'Email the team lead');
+  assert.equal(inbox.offers.length, 1);
+  const confirm = { kind: 'confirm', id: 'review', offerId: 'team' };
+  assert.equal((await submit(resident, confirm)).status, 403);
+  assert.equal((await submit(organizer, confirm)).status, 200);
+  assert.equal((await submit(organizer, { kind: 'payment', id: 'check', cents: 5000, pledgeId: 'team' })).status, 200);
+  const publicView = (await api.read(observer)).data;
+  const sponsor = publicView.support.pledges.find((p) => p.id === 'team');
+  assert.equal(sponsor?.paid, 5000);
+  assert.equal(sponsor?.volunteers, 2);
+  assert.deepEqual(publicView.reporting.projectDeliveries, before.reporting.projectDeliveries);
+  assert(!JSON.stringify(publicView).includes('Email the team lead'));
+});
+
 test('shared map filters count the outstanding ride and delivered coat separately', async (t) => {
   const api = await fixture(t);
   const resident = await api.login('alex');

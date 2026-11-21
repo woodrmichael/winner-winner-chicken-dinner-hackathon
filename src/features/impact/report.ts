@@ -1,3 +1,4 @@
+import { cash, funding, supportBook } from '../partnerships/ledger';
 import { deliveredServices } from '../../domain/model';
 import { outstandingNeeds } from '../../domain/referrals';
 import { program } from '../../domain/seed';
@@ -171,7 +172,9 @@ export function impactReports(state: ReferralSource, now = new Date()) {
 
 export type ImpactReports = ReturnType<typeof impactReports>;
 
-export function reportSummary(report: ImpactReport, programDeliveryCount: number) {
+export function reportSummary(report: ImpactReport, programDeliveryCount: number, book = supportBook()) {
+  const pledges = book.pledges.filter((p) => p.project === 'drive');
+  const totals = funding(pledges);
   const breakdown = ({ name, count }: { name: string; count: number }) => `${name} — ${count}`;
   return [
     'ComForce Connect · Our impact',
@@ -189,7 +192,9 @@ export function reportSummary(report: ImpactReport, programDeliveryCount: number
     ...(report.byCategory.length ? ['By service', ...report.byCategory.map(breakdown)] : []),
     '',
     `${program.name} deliveries across all providers: ${programDeliveryCount}`,
-    `Program funding to date: ${dollars.format(program.received)} received toward ${dollars.format(program.goal)}, plus ${dollars.format(program.pledged)} in outstanding pledges`,
-    `Program sponsor: ${program.sponsor}`,
+    `Program funding to date: ${cash(totals.paid)} received toward ${dollars.format(program.goal)}, plus ${cash(totals.outstanding)} in outstanding pledges`,
+    `Supplies and services received: ${cash(totals.suppliesPaid)} · Operations received: ${cash(totals.operationsPaid)}`,
+    ...(totals.unallocatedPaid ? [`Earlier receipts without a recorded purpose: ${cash(totals.unallocatedPaid)}`] : []),
+    `Program sponsors: ${[...new Map(pledges.map((p) => [p.business.toLowerCase(), p.business])).values()].join(', ')}`,
   ].join('\n');
 }

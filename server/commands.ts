@@ -1,3 +1,4 @@
+import { parseEntry, type SupportCommand } from '../src/features/partnerships/ledger';
 import { detailsToShare, shareFields } from '../src/domain/referrals';
 import {
   categories,
@@ -39,10 +40,13 @@ function share(value: unknown) {
   return value.map((key) => option(key, shareFields));
 }
 
-export function parseCommand(input: unknown, details: SharedDetails): CommunityCommand | ReferralCommand | WorkspaceCommand {
+export function parseCommand(input: unknown, details: SharedDetails): CommunityCommand | ReferralCommand | WorkspaceCommand | SupportCommand {
   const cmd = object(input);
   const at = new Date().toISOString();
   switch (cmd.type) {
+    case 'partnership': {
+      try { return { type: 'partnership', entry: parseEntry(cmd.entry) }; } catch { return invalid(); }
+    }
     case 'post':
       return {
         type: cmd.type,
