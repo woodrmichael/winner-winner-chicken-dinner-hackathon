@@ -20,6 +20,7 @@ Use system typography, neutral surfaces and one teal accent. Give each screen a 
 | Screen, card, form or action | [Page, Columns, Card, Copy, Field and Btn](../src/ui/kit.tsx). Pass header actions through `Page.right` for phone and desktop placement. `Btn` handles pending presses and errors. |
 | Short set of mutually exclusive views | [Segments](../src/ui/Segments.tsx), as used for Community filters and the role selectors in Settings. |
 | List with one selection or independent on/off settings | [SelectionRow and ToggleRow](../src/ui/SelectionRows.tsx). Use a selection row for a partner, and a switch for consent, program inclusion or a map layer. |
+| Compact filter whose options should float over the screen | [SelectMenu](../src/ui/SelectMenu.tsx), as used for reporting period and provider in Impact and service category on the map. |
 | Compact summary that opens more details | [Disclosure](../src/ui/Disclosure.tsx), as used for the recipient picker, sharing options and partner inbox. |
 | Resident referral consent | [ShareDetails](../src/features/matching/ShareDetails.tsx) displays the same opt-in fields when sending a request or approving a new recipient. Each recipient starts with every field off. |
 | Proportion with a visible number | `ProgressBar` in the UI kit. The calling screen supplies the label, value and total. |
@@ -52,7 +53,7 @@ A screen supplies an ID and timestamp, then awaits `run(command)`. The provider 
 | --- | --- |
 | Community | The public board shows public posts. My groups shows posts from joined neighborhoods. Saved shows bookmarked posts the resident can currently see. Leaving a group hides its posts from My groups and Saved until the resident rejoins. Search filters titles and descriptions within the selected Community view. Private referrals appear in Activity. |
 | Activity | `residentTimeline` selects the resident’s referrals and their assignment history. `partnerInbox` includes only the selected partner’s assignments and their private fields. The original partner sees outstanding categories and delivery attribution for the coordinated request. |
-| Impact | [`impactReport`](../src/features/impact/report.ts) counts one received request per referral, one open referral per request with outstanding needs, and one delivery per service record. It uses `deliveredServices` for provider, program and period breakdowns. The share summary uses the same aggregates. Program funding is shown to date, with received funds and outstanding pledges listed separately. |
+| Impact | [`impactReport`](../src/features/impact/report.ts) counts one received request per referral, one open referral per request with outstanding needs, and one delivery per service record. Provider, program and period breakdowns use those same service records. The share summary uses the same aggregates. Program funding is shown to date, with received funds and outstanding pledges listed separately. |
 | Map | `mapRows` counts each outstanding category and each recorded delivery under the first neighborhood the resident shared on the referral. A referral without a shared neighborhood still contributes to overall impact. Resources come from the directory. Incident layers use a separately dated [historical series](sources.md). |
 
 ### Counting rules for 4.3 and 5.2

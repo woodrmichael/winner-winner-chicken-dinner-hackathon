@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyCommand, deliveredServices, mapRows, partnerInbox, residentTimeline } from '../src/domain/model';
+import { applyCommand, deliveredServices, impact, mapRows, partnerInbox, residentTimeline } from '../src/domain/model';
+import { outstandingNeeds } from '../src/domain/referrals';
 import { profile, program, seedState, withDemoSamples } from '../src/domain/seed';
-import type { Command } from '../src/domain/types';
+import { categories, type Command } from '../src/domain/types';
 import { defaultReportMonth, impactReport, periodName, reportMonths, reportSummary } from '../src/features/impact/report';
 import { decode } from '../src/state/persistence';
 
@@ -92,10 +93,27 @@ test('demo fixtures enrich older workspaces without replacing existing records',
   assert(report.assisted < report.delivered);
   assert.equal(total.delivered, deliveredServices(full).length);
   assert.equal(total.delivered, total.byProvider.reduce((sum, { count }) => sum + count, 0));
+  const community = impact(full);
+  assert.deepEqual(
+    [total.received, total.open, total.delivered, total.programDeliveries.length],
+    [community.received, community.open, community.delivered, community.programDeliveries],
+  );
   for (const { area, delivered } of mapRows(full)) {
     assert(delivered > 20);
     const local = full.referrals.filter(({ assignments }) => assignments[0].shared.neighborhood === area);
     assert.equal(delivered, local.flatMap(({ services }) => services).length);
+  }
+  for (const category of categories) {
+    const rows = mapRows(full, category);
+    const shared = full.referrals.filter(({ assignments }) => assignments[0].shared.neighborhood);
+    assert.equal(
+      rows.reduce((sum, row) => sum + row.open, 0),
+      shared.flatMap(outstandingNeeds).filter((need) => need === category).length,
+    );
+    assert.equal(
+      rows.reduce((sum, row) => sum + row.delivered, 0),
+      shared.flatMap(({ services }) => services).filter((service) => service.category === category).length,
+    );
   }
   assert.equal(residentTimeline(full).length, 3);
   assert(partnerInbox(full, 'winter-team').some(({ status }) => status === 'Sent'));

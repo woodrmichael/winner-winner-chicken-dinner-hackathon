@@ -70,12 +70,12 @@ export function Page({
   children,
   title,
   right,
-  subtitle,
+  titleAccessory,
   back,
 }: PropsWithChildren<{
   title: string;
   right?: ReactNode;
-  subtitle?: ReactNode;
+  titleAccessory?: ReactNode;
   back?: ReactNode;
 }>) {
   const wide = useWindowDimensions().width >= 900;
@@ -98,23 +98,25 @@ export function Page({
       >
         {back && <View style={{ marginBottom: -14 }}>{back}</View>}
         <View style={[wrap, { justifyContent: 'space-between', columnGap: 12 }]}>
-          <Text
-            accessibilityRole="header"
-            style={{
-              color: color.ink,
-              fontFamily: systemFont,
-              fontWeight: '700',
-              letterSpacing: -0.9,
-              fontSize: wide ? 42 : 34,
-              lineHeight: wide ? 52 : 42,
-              flexShrink: 1,
-            }}
-          >
-            {title}
-          </Text>
+          <View style={[wrap, { flexShrink: 1, rowGap: 4, columnGap: wide ? 16 : 12 }]}>
+            <Text
+              accessibilityRole="header"
+              style={{
+                color: color.ink,
+                fontFamily: systemFont,
+                fontWeight: '700',
+                letterSpacing: -0.9,
+                fontSize: wide ? 42 : 34,
+                lineHeight: wide ? 52 : 42,
+                flexShrink: 1,
+              }}
+            >
+              {title}
+            </Text>
+            {titleAccessory}
+          </View>
           {wide && right}
         </View>
-        {subtitle && <View style={{ marginTop: -16 }}>{subtitle}</View>}
         {!wide && right}
         {children}
       </View>
@@ -150,7 +152,6 @@ export function Btn({
   quiet = false,
   stretch = false,
   disabled = false,
-  expanded,
 }: {
   label: string;
   onPress: () => unknown;
@@ -161,7 +162,6 @@ export function Btn({
   quiet?: boolean;
   stretch?: boolean;
   disabled?: boolean;
-  expanded?: boolean;
 }) {
   const lock = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -187,7 +187,7 @@ export function Btn({
         accessibilityRole="button"
         accessibilityLabel={iconOnly ? label : undefined}
         disabled={disabled || busy}
-        accessibilityState={{ disabled: disabled || busy, expanded }}
+        accessibilityState={{ disabled: disabled || busy }}
         onPress={press}
         style={({ pressed }) => [
           row,

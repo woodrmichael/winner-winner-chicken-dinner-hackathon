@@ -1,24 +1,32 @@
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Check, ChevronDown, ChevronRight, Share } from 'lucide-react-native';
+import { Check, ChevronRight, Share } from 'lucide-react-native';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { program } from '../../domain/seed';
 import { useDemo } from '../../state/Demo';
 import { useMobileHeaderAction } from '../../ui/MobileHeaderAction';
-import { SelectionRow } from '../../ui/SelectionRows';
+import { SelectMenu } from '../../ui/SelectMenu';
 import { Btn, Card, Columns, Copy, Page, ProgressBar, color, row, wrap } from '../../ui/kit';
 import { directory } from '../matching/directory';
 import { ReportShare } from './ReportShare';
 import { impactReport, periodName, reportMonths, responseTime, selectedReportMonth, type ImpactReport } from './report';
 
+const providerOptions = [
+  { value: null, label: 'All providers' },
+  ...directory.map(({ id, name }) => ({ value: id, label: name })),
+];
+
 export default function Impact() {
   const { state } = useDemo();
   const router = useRouter();
   const { period } = useLocalSearchParams<{ period?: string }>();
-  const [picker, setPicker] = useState<'period' | 'provider' | null>(null);
   const [provider, setProvider] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
   const month = useMemo(() => selectedReportMonth(period, state), [period, state]);
+  const periods = useMemo(
+    () => [...reportMonths(state), null].map((value) => ({ value, label: periodName(value) })),
+    [state],
+  );
   const completeReport = useMemo(() => impactReport(state, month, null), [state, month]);
   const report = useMemo(
     () => provider ? impactReport(state, month, provider) : completeReport,
@@ -38,35 +46,16 @@ export default function Impact() {
       right={width >= 900 ? (
         <Btn label="Share report" icon={Share} secondary onPress={() => setShowShare(true)} />
       ) : undefined}
-      subtitle={
-        <Btn
-          label={report.period}
-          icon={ChevronDown}
-          quiet
-          expanded={picker === 'period'}
-          onPress={() => setPicker(picker === 'period' ? null : 'period')}
+      titleAccessory={
+        <SelectMenu
+          label="Reporting period"
+          value={month}
+          options={periods}
+          align="start"
+          onChange={(value) => router.setParams({ period: value === null ? 'all' : String(value) })}
         />
       }
     >
-      {picker === 'period' && (
-        <Card>
-          <Copy kind="strong">Reporting period</Copy>
-          <View accessibilityRole="radiogroup" accessibilityLabel="Reporting period">
-            {[...reportMonths(state), null].map((choice) => (
-              <SelectionRow
-                key={choice ?? 'all'}
-                label={periodName(choice)}
-                selected={month === choice}
-                onPress={() => {
-                  router.setParams({ period: choice === null ? 'all' : String(choice) });
-                  setPicker(null);
-                }}
-              />
-            ))}
-          </View>
-        </Card>
-      )}
-
       <Columns
         main={
           <>
@@ -74,29 +63,13 @@ export default function Impact() {
             <Card style={styles.assistance}>
               <View style={[wrap, styles.between]}>
                 <Copy kind="title" style={styles.sectionTitle}>Assistance by type</Copy>
-                <Btn
-                  label={report.provider}
-                  icon={ChevronDown}
-                  quiet
-                  expanded={picker === 'provider'}
-                  onPress={() => setPicker(picker === 'provider' ? null : 'provider')}
+                <SelectMenu
+                  label="Delivery provider"
+                  value={provider}
+                  options={providerOptions}
+                  onChange={setProvider}
                 />
               </View>
-              {picker === 'provider' && (
-                <View accessibilityRole="radiogroup" accessibilityLabel="Delivery provider">
-                  {[{ id: null, name: 'All providers' }, ...directory].map(({ id, name }) => (
-                    <SelectionRow
-                      key={id ?? 'all'}
-                      label={name}
-                      selected={provider === id}
-                      onPress={() => {
-                        setProvider(id);
-                        setPicker(null);
-                      }}
-                    />
-                  ))}
-                </View>
-              )}
               {report.byCategory.length ? report.byCategory.map(({ name, count }) => (
                 <View key={name} style={row}>
                   <Copy style={styles.category}>{name === 'Transportation' ? 'Transport' : name}</Copy>
