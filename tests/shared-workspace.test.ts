@@ -50,7 +50,7 @@ test('shared map filters count the outstanding ride and delivered coat separatel
   const observer = await api.login('jordan');
   const id = 'map-category-referral';
   const message = 'Private clothing and ride request for the map check';
-  const before = (await api.read(observer)).data.reporting.mapByCategory;
+  const before = (await api.read(observer)).data.reporting;
 
   assert.equal((await api.command(resident, {
     type: 'send', id, partnerId: 'winter-team', message,
@@ -63,13 +63,19 @@ test('shared map filters count the outstanding ride and delivered coat separatel
   const after = snapshot.reporting.mapByCategory;
   const harambee = (groups: typeof after, category: 'Clothing' | 'Transportation') =>
     groups.find((entry) => entry.category === category)?.rows.find((row) => row.area === 'Harambee');
-  const clothesBefore = harambee(before, 'Clothing');
+  const clothesBefore = harambee(before.mapByCategory, 'Clothing');
   const clothesAfter = harambee(after, 'Clothing');
-  const ridesBefore = harambee(before, 'Transportation');
+  const ridesBefore = harambee(before.mapByCategory, 'Transportation');
   const ridesAfter = harambee(after, 'Transportation');
   assert(clothesBefore && clothesAfter && ridesBefore && ridesAfter);
   assert.deepEqual(clothesAfter, { ...clothesBefore, delivered: clothesBefore.delivered + 1 });
   assert.deepEqual(ridesAfter, { ...ridesBefore, open: ridesBefore.open + 1 });
+  const beforeImpact = before.impactReports.periods.all;
+  const afterImpact = snapshot.reporting.impactReports.periods.all;
+  assert.equal(afterImpact.all.received, beforeImpact.all.received + 1);
+  assert.equal(afterImpact.byProvider['winter-team'].delivered, beforeImpact.byProvider['winter-team'].delivered + 1);
+  assert.equal(afterImpact.all.delivered, snapshot.reporting.impact.delivered);
+  assert(!JSON.stringify(snapshot.reporting.impactReports).includes(id));
   assert(!JSON.stringify(snapshot).includes(message));
 });
 

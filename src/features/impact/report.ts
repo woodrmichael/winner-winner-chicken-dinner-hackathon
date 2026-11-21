@@ -25,7 +25,7 @@ export const dollars = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
 
-function reportingMonth(at: string | Date) {
+export function reportingMonth(at: string | Date) {
   const parts = monthParts.formatToParts(new Date(at));
   const year = Number(parts.find((part) => part.type === 'year')?.value);
   const month = Number(parts.find((part) => part.type === 'month')?.value);
@@ -39,7 +39,9 @@ export function periodName(month: number | null) {
   return monthLabel.format(date);
 }
 
-export function reportMonths(state: DemoState, now = new Date()) {
+type ReferralSource = Pick<DemoState, 'referrals'>;
+
+export function reportMonths(state: ReferralSource, now = new Date()) {
   const current = reportingMonth(now);
   const recorded = [
     ...state.referrals.map(({ sentAt }) => reportingMonth(sentAt)),
@@ -50,18 +52,18 @@ export function reportMonths(state: DemoState, now = new Date()) {
   return Array.from({ length: last - first + 1 }, (_, index) => last - index);
 }
 
-export function defaultReportMonth(state: DemoState) {
+export function defaultReportMonth(state: ReferralSource, now = new Date()) {
   const mostRecent = Math.max(
     ...state.referrals.map(({ sentAt }) => Date.parse(sentAt)),
     ...deliveredServices(state).map(({ deliveredAt }) => Date.parse(deliveredAt)),
   );
-  return reportingMonth(Number.isFinite(mostRecent) ? new Date(mostRecent) : new Date());
+  return reportingMonth(Number.isFinite(mostRecent) ? new Date(mostRecent) : now);
 }
 
-export function selectedReportMonth(period: string | undefined, state: DemoState) {
+export function selectedReportMonth(period: string | undefined, months: number[], defaultMonth: number) {
   if (period === 'all') return null;
   const month = Number(period);
-  return Number.isInteger(month) && reportMonths(state).includes(month) ? month : defaultReportMonth(state);
+  return months.includes(month) ? month : defaultMonth;
 }
 
 function firstResponse(referral: Referral) {
@@ -91,7 +93,7 @@ export function responseTime(milliseconds: number | null) {
   return `${minutes} min`;
 }
 
-export function impactReport(state: DemoState, month: number | null, providerId: string | null) {
+export function impactReport(state: ReferralSource, month: number | null, providerId: string | null) {
   const inPeriod = (at: string) => month === null || reportingMonth(at) === month;
   const services: Service[] = [];
   const assisted = new Set<string>();
@@ -137,8 +139,8 @@ export function impactReport(state: DemoState, month: number | null, providerId:
     })).filter(({ count }) => count > 0).sort((a, b) => b.count - a.count),
     programDeliveries: services.filter(({ programId }) => programId === program.id)
       .sort((a, b) => Date.parse(b.deliveredAt) - Date.parse(a.deliveredAt))
-      .map(({ assignmentId, category, deliveredAt, providerId }) => ({
-        key: assignmentId + ':' + category,
+      .map(({ category, deliveredAt, providerId }, index) => ({
+        key: `${providerId}-${category}-${index}`,
         category,
         date: deliveryDate.format(new Date(deliveredAt)),
         provider: partnerName(providerId),
@@ -147,6 +149,27 @@ export function impactReport(state: DemoState, month: number | null, providerId:
 }
 
 export type ImpactReport = ReturnType<typeof impactReport>;
+
+export const reportKey = (month: number | null) => String(month ?? 'all');
+
+export function impactReports(state: ReferralSource, now = new Date()) {
+  const months = reportMonths(state, now);
+  return {
+    months,
+    defaultMonth: defaultReportMonth(state, now),
+    periods: Object.fromEntries([null, ...months].map((month) => [
+      reportKey(month),
+      {
+        all: impactReport(state, month, null),
+        byProvider: Object.fromEntries(
+          directory.map(({ id }) => [id, impactReport(state, month, id)]),
+        ),
+      },
+    ])),
+  };
+}
+
+export type ImpactReports = ReturnType<typeof impactReports>;
 
 export function reportSummary(report: ImpactReport, programDeliveryCount: number) {
   const breakdown = ({ name, count }: { name: string; count: number }) => `${name} — ${count}`;

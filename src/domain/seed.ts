@@ -158,13 +158,20 @@ function appendMissing<T extends { id: string }>(existing: T[], samples: T[]) {
   return missing.length ? [...existing, ...missing] : existing;
 }
 
-export function withDemoSamples(state: DemoState): DemoState {
+export function withDemoSamples(state: DemoState, sampleResidentId = residentId): DemoState {
   const posts = appendMissing(state.posts, demoPosts().filter(({ id }) => id.startsWith('demo-post-')));
-  const referrals = appendMissing(state.referrals, expandedReferrals());
+  const referrals = withDemoReferrals(state.referrals, sampleResidentId);
   return posts === state.posts && referrals === state.referrals ? state : { ...state, posts, referrals };
 }
 
-export function seedState(): DemoState {
+export function withDemoReferrals(referrals: Referral[], sampleResidentId = residentId) {
+  const samples = expandedReferrals().map((referral) =>
+    referral.residentId === residentId ? { ...referral, residentId: sampleResidentId } : referral,
+  );
+  return appendMissing(referrals, samples);
+}
+
+export function seedState(sampleResidentId = residentId): DemoState {
   const sent = Date.UTC(2026, 10, 18, 15);
   return withDemoSamples({
     version: 2,
@@ -207,5 +214,5 @@ export function seedState(): DemoState {
       }),
     ],
     posts: demoPosts(),
-  });
+  }, sampleResidentId);
 }

@@ -37,7 +37,7 @@ A screen supplies an ID and timestamp, then awaits `run(command)`. The provider 
 - `decline-service` records a provider’s reason for a category. The resident can use `seek-provider` to send a reviewed message to another provider or `withdraw-need` to close that category.
 - `complete` requires acceptance and an outstanding category the assignment handles. Each delivery stores its category, assignment, provider, time and optional program. Repeating acceptance, approval or delivery preserves the original record.
 - AsyncStorage uses the existing key `comforce-connect/demo/v1`. The v2 decoder upgrades v1 records to one original assignment and preserves every old delivery. A requested category without a delivery stays open after migration. Older snapshots without community state or bookmarks load with empty defaults for those fields. Settings holds the referral view, partner inbox and offer reply identity for the session. Unsent drafts are session state.
-- The [demo seed](../src/domain/seed.ts) supplies deterministic August–November 2026 requests and deliveries. The [community seed](../src/domain/demoCommunity.ts) pairs sample event posts with their details. On load, missing sample records are added by ID so existing device workspaces pick up the expanded demo while retaining saved records and community interactions.
+- The [demo seed](../src/domain/seed.ts) supplies deterministic August–November 2026 requests and deliveries. The [community seed](../src/domain/demoCommunity.ts) pairs sample event posts with their details. On load, missing samples are added by ID so existing device and shared workspaces keep their saved records. On the shared server, Alex’s sample referrals belong to the `alex` account.
 
 ### Shared account and volunteer contracts
 
@@ -57,6 +57,8 @@ A screen supplies an ID and timestamp, then awaits `run(command)`. The provider 
 | Map | `mapRows` counts each outstanding category and each recorded delivery under the first neighborhood the resident shared on the referral. A referral without a shared neighborhood still contributes to overall impact. Resources come from the directory. Incident layers use a separately dated [historical series](sources.md). |
 
 ### Counting rules for 4.3 and 5.2
+
+The shared server computes monthly and provider reports from its full workspace. Clients receive aggregates and program history with category, date and provider. Private referrals stay scoped to the signed-in account.
 
 The map's optional service category filters open needs and completed services in both the map labels and neighborhood list. The shared API provides the same per-category totals without sending private referral records to the map. Directory resources and historical observations keep their neighborhood totals.
 

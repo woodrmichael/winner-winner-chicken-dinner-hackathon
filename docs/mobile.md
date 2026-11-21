@@ -105,6 +105,8 @@ Use the shared workspace with a resident and approved worker on separate devices
 
 ## Check monthly impact
 
+In a shared workspace, sign in before opening Impact. Its totals come from the server.
+
 1. In a fresh workspace, open **Impact**. November 2026 shows 126 requests, 89 deliveries, 62 residents assisted and 58 open referrals. The median time to first acceptance is 1 hour 35 minutes, with 25 referrals still awaiting acceptance.
 2. Select **Winter Care Collective** in **Assistance by type**. Compare the delivery total and breakdown. Open **Winter essentials** under **Recent work** and tap **View delivery history** to see who delivered the clothing. Program funding shows $1,250 received and $300 pledged.
 3. Tap the share icon at the top of Impact and compare the month, provider and totals in the summary. Tap **Share summary** and confirm the phone’s share sheet opens. On the web, use **Copy summary** and paste it into a local editor.

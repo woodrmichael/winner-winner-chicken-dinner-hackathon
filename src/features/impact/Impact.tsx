@@ -3,13 +3,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Check, ChevronRight, Share } from 'lucide-react-native';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { program } from '../../domain/seed';
-import { useDemo } from '../../state/Demo';
 import { useMobileHeaderAction } from '../../ui/MobileHeaderAction';
 import { SelectMenu } from '../../ui/SelectMenu';
 import { Btn, Card, Columns, Copy, Page, ProgressBar, color, row, wrap } from '../../ui/kit';
 import { directory } from '../matching/directory';
 import { ReportShare } from './ReportShare';
-import { impactReport, periodName, reportMonths, responseTime, selectedReportMonth, type ImpactReport } from './report';
+import { periodName, responseTime, type ImpactReport } from './report';
+import { useImpactReport } from './useImpactReport';
 
 const providerOptions = [
   { value: null, label: 'All providers' },
@@ -17,20 +17,14 @@ const providerOptions = [
 ];
 
 export default function Impact() {
-  const { state } = useDemo();
   const router = useRouter();
   const { period } = useLocalSearchParams<{ period?: string }>();
   const [provider, setProvider] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
-  const month = useMemo(() => selectedReportMonth(period, state), [period, state]);
+  const { month, months, completeReport, report } = useImpactReport(period, provider);
   const periods = useMemo(
-    () => [...reportMonths(state), null].map((value) => ({ value, label: periodName(value) })),
-    [state],
-  );
-  const completeReport = useMemo(() => impactReport(state, month, null), [state, month]);
-  const report = useMemo(
-    () => provider ? impactReport(state, month, provider) : completeReport,
-    [state, month, provider, completeReport],
+    () => [...months, null].map((value) => ({ value, label: periodName(value) })),
+    [months],
   );
   const { width, fontScale } = useWindowDimensions();
   const wide = width >= 1024;

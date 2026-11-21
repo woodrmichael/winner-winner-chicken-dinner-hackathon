@@ -1,23 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Check, ChevronLeft } from 'lucide-react-native';
 import { Image, StyleSheet, View } from 'react-native';
 import { program } from '../../domain/seed';
-import { useDemo } from '../../state/Demo';
 import { Btn, Card, Columns, Copy, Page, ProgressBar, color, row, wrap } from '../../ui/kit';
-import { dollars, impactReport, selectedReportMonth } from './report';
+import { dollars } from './report';
+import { useImpactReport } from './useImpactReport';
 
 const pageSize = 8;
 
 export default function ProgramImpact() {
-  const { state } = useDemo();
   const router = useRouter();
   const { period } = useLocalSearchParams<{ period?: string }>();
   const [historyLimit, setHistoryLimit] = useState(0);
-  const report = useMemo(
-    () => impactReport(state, selectedReportMonth(period, state), null),
-    [state, period],
-  );
+  const { report } = useImpactReport(period);
   const deliveries = report.programDeliveries;
 
   return (
