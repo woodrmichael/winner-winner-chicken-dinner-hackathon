@@ -81,26 +81,28 @@ Residents choose a referral recipient from the directory, and the matcher uses i
 
 A referral can be accepted before the worker knows enough to deliver help. A conversation attached to the request gives the family a place to answer, and an unread update helps each participant find the case that needs attention.
 
-- [ ] **8.1 Continue a private conversation about a request.** · **Ben Nguyen.** After 9.1. A worker asks which sizes to bring and the resident replies “6 and 8.” Reopen the request from each account and find both messages with senders and times. Another resident or an unrelated organization cannot read the thread.
-- [ ] **8.2 Open an unread update from Activity.** · **Ben Nguyen.** After 9.1. Sending a referral gives the receiving partner an unread item. Acceptance gives the resident one. Opening it takes that person to the referral and marks their item read, including after reopening Activity. Use the same behavior for a private reply or proposed handoff when those flows are available.
+- [x] **8.1 Continue a private conversation about a request.** After 9.1. A worker asks which sizes to bring and the resident replies “6 and 8.” Reopen the request from each account and find both messages with senders and times. Another resident or an unrelated organization cannot read the thread.
+- [x] **8.2 Open an unread update from Activity.** After 9.1. Sending a referral gives the receiving partner an unread item. Acceptance gives the resident one. Opening it takes that person to the referral and marks their item read, including after reopening Activity. Use the same behavior for a private reply or proposed handoff when those flows are available.
 
-Task 8 passed in separate Chrome sessions at phone and desktop widths. The [physical two-device check](mobile.md#check-private-messages-and-unread-updates) is pending.
+Ben Nguyen verified private messages and unread updates on iPhone and PC. [Shared workspace commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/526b591)
 
 ## 9. Resident and organization access
 
 The offline demo switches roles on one device. The [shared workspace](../README.md#run-the-shared-workspace) uses signed-in sample accounts so residents and organizations can open their own referrals across devices.
 
-- [ ] **9.1 Open a referral from the right account.** · **Ben Nguyen.** Show the active person and organization. Send a request as a resident on one device, accept it as an approved worker on another, and verify that the resident sees the update. Check that an unrelated signed-in account cannot read the same referral or record a delivery against it.
-- [ ] **9.2 Approve a worker to act for an organization.** · **Ben Nguyen.** After 9.1. A worker requests membership or accepts an invitation. While approval is pending, the worker cannot open the partner inbox. After an authorized administrator approves membership, the worker can handle that organization’s referrals.
+- [x] **9.1 Open a referral from the right account.** Show the active person and organization. Send a request as a resident on one device, accept it as an approved worker on another, and verify that the resident sees the update. Check that an unrelated signed-in account cannot read the same referral or record a delivery against it.
+- [x] **9.2 Approve a worker to act for an organization.** After 9.1. A worker requests membership or accepts an invitation. While approval is pending, the worker cannot open the partner inbox. After an authorized administrator approves membership, the worker can handle that organization’s referrals.
+
+Ben Nguyen verified cross-device referral access and worker approval on iPhone and PC. [Shared workspace commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/526b591)
 
 ## 10. Volunteer coordination
 
 The winter drive needs people to sort coats and help with distribution. Before the event, the organizer needs to know which roles are filled. Afterward, attendance lets ComForce report who helped and how much time they contributed.
 
-- [ ] **10.1 Reserve a volunteer role.** · **Ben Nguyen.** After 1.3. The organizer lists four sorting places and two distribution places. Taking the last distribution place fills that role and puts its instructions in the volunteer’s Activity. Cancelling reopens one distribution place and leaves sorting capacity unchanged.
-- [ ] **10.2 Confirm attendance and time.** · **Ben Nguyen.** After 10.1. Two employees register and one works two hours. The organizer records attendance and the project summary shows two sign-ups, one participant and two contributed hours. The attending employee can use the confirmed hours when requesting an eligible employer volunteer grant.
+- [x] **10.1 Reserve a volunteer role.** After 1.3. The organizer lists four sorting places and two distribution places. Taking the last distribution place fills that role and puts its instructions in the volunteer’s Activity. Cancelling reopens one distribution place and leaves sorting capacity unchanged.
+- [x] **10.2 Confirm attendance and time.** After 10.1. Two employees register and one works two hours. The organizer records attendance and the project summary shows two sign-ups, one participant and two contributed hours. The attending employee can use the confirmed hours when requesting an eligible employer volunteer grant.
 
-Tasks 9 and 10 passed in separate Chrome sessions at phone and desktop widths. The [physical two-device walkthrough](mobile.md#check-the-shared-workspace-on-two-devices) is pending.
+Ben Nguyen verified volunteer reservations and attendance on iPhone and PC. [Shared workspace commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/526b591)
 
 ## 11. Post management and moderation
 
