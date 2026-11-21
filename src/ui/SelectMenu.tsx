@@ -9,8 +9,10 @@ type Anchor = { x: number; y: number; width: number; height: number };
 type Option<T> = { value: T; label: string };
 
 const margin = 10;
-const gap = 6;
+const gap = 4;
 const heightLimit = 300;
+const optionHeight = 44;
+const menuPadding = 6;
 
 export function SelectMenu<T extends string | number | null>({
   label,
@@ -18,12 +20,14 @@ export function SelectMenu<T extends string | number | null>({
   options,
   onChange,
   align = 'end',
+  appearance = 'plain',
 }: {
   label: string;
   value: T;
   options: readonly Option<T>[];
   onChange: (value: T) => void;
   align?: 'start' | 'end';
+  appearance?: 'plain' | 'pill';
 }) {
   const trigger = useRef<ComponentRef<typeof View>>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
@@ -47,7 +51,10 @@ export function SelectMenu<T extends string | number | null>({
     const top = anchor.y + anchor.height + gap;
     const below = height - insets.bottom - margin - top;
     const above = anchor.y - gap - insets.top - margin;
-    const desiredHeight = Math.min(heightLimit, options.length * Math.max(48, 28 * fontScale) + 8);
+    const desiredHeight = Math.min(
+      heightLimit,
+      options.length * Math.max(optionHeight, 22 * fontScale + 12) + menuPadding * 2,
+    );
     const down = below >= desiredHeight || below >= above;
     return {
       left,
@@ -66,8 +73,16 @@ export function SelectMenu<T extends string | number | null>({
         onPress={open}
         style={({ pressed }) => [styles.trigger, pressed && { opacity: 0.65 }]}
       >
-        <Copy kind="strong" style={styles.triggerLabel} tint={color.pine}>{selected?.label ?? label}</Copy>
-        <ChevronDown color={color.pine} size={15} />
+        <View style={[styles.triggerContent, appearance === 'pill' && styles.pill]}>
+          <Copy
+            kind="strong"
+            style={[styles.triggerLabel, appearance === 'pill' && styles.pillLabel]}
+            tint={color.pine}
+          >
+            {selected?.label ?? label}
+          </Copy>
+          <ChevronDown color={color.pine} size={15} />
+        </View>
       </Pressable>
       {placement && (
         <Modal transparent visible animationType="none" onRequestClose={close}>
@@ -90,6 +105,7 @@ export function SelectMenu<T extends string | number | null>({
                   key={option.value ?? 'all'}
                   label={option.label}
                   selected={value === option.value}
+                  style={[styles.option, value === option.value && styles.selectedOption]}
                   onPress={() => {
                     close();
                     onChange(option.value);
@@ -106,8 +122,11 @@ export function SelectMenu<T extends string | number | null>({
 
 const styles = StyleSheet.create({
   anchor: { alignSelf: 'flex-start', flexShrink: 1, maxWidth: '100%' },
-  trigger: { ...row, minHeight: 44, gap: 5, paddingVertical: 5 },
+  trigger: { minHeight: 44, justifyContent: 'center' },
+  triggerContent: { ...row, gap: 5 },
   triggerLabel: { flexShrink: 1, fontSize: 14 },
+  pill: { backgroundColor: color.pale, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+  pillLabel: { fontSize: 16 },
   layer: { flex: 1 },
   menu: {
     position: 'absolute',
@@ -117,5 +136,13 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     boxShadow: '0 6px 22px #17181A24',
   },
-  options: { paddingHorizontal: 12, paddingVertical: 4 },
+  options: { padding: menuPadding },
+  option: {
+    minHeight: optionHeight,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderTopWidth: 0,
+    borderRadius: 8,
+  },
+  selectedOption: { backgroundColor: color.pale },
 });

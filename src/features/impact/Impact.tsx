@@ -45,6 +45,7 @@ export default function Impact() {
           label="Reporting period"
           value={month}
           options={periods}
+          appearance="pill"
           align="start"
           onChange={(value) => router.setParams({ period: value === null ? 'all' : String(value) })}
         />

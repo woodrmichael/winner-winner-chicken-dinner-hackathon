@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { Copy, color, row } from './kit';
 
@@ -44,18 +44,20 @@ export function SelectionRow({
   detail,
   selected,
   onPress,
+  style,
 }: {
   label: string;
   detail?: string;
   selected: boolean;
   onPress: () => void;
+  style?: StyleProp<ViewStyle>;
 }) {
   return (
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: color.bg }]}
+      style={({ pressed }) => [styles.row, style, pressed && { backgroundColor: color.bg }]}
     >
       <View style={styles.label}>
         <Copy kind={selected ? 'strong' : 'body'}>{label}</Copy>
