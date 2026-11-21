@@ -4,6 +4,7 @@ import { ArrowUpRight, CalendarDays, HandHeart, MapPin, Plus, Shirt } from 'luci
 import { Image, View } from 'react-native';
 import { useDemo } from '../../state/Demo';
 import { impact, residentTimeline } from '../../domain/model';
+import { outstandingNeeds } from '../../domain/referrals';
 import { Btn, Card, Columns, Copy, Field, Page, color, row, wrap } from '../../ui/kit';
 import { Segments } from '../../ui/Segments';
 import { neighborhoods, type Post } from '../../domain/types';
@@ -149,7 +150,7 @@ export default function Community() {
       : 'Join a neighborhood group to see its posts here.',
     saved: 'Save a post to find it here later.',
   };
-  const active = residentTimeline(state).filter((ticket) => !ticket.service).length;
+  const active = residentTimeline(state).filter((ticket) => outstandingNeeds(ticket).length > 0).length;
   const actions = (
     <View style={wrap}>
       <Btn label="Ask for help" icon={HandHeart} onPress={() => router.push('/ask')} />

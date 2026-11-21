@@ -5,12 +5,13 @@ import {
   HeartHandshake,
   Map,
   MapPin,
+  Settings,
   UsersRound,
 } from 'lucide-react-native';
 import { Pressable, StatusBar, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { DemoProvider } from '../src/state/Demo';
-import { Copy, color, row, wrap } from '../src/ui/kit';
+import { Btn, Copy, color, row } from '../src/ui/kit';
 
 const tabs = [
   { name: 'Community', path: '/', icon: UsersRound },
@@ -53,7 +54,26 @@ function Location() {
 function Shell() {
   const pathname = usePathname();
   const router = useRouter();
-  const wide = useWindowDimensions().width >= 900;
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
+  const settingsAction = pathname === '/settings' ? (
+    <Btn
+      label="Done"
+      quiet
+      onPress={() => {
+        if (router.canGoBack()) router.back();
+        else router.replace('/');
+      }}
+    />
+  ) : (
+    <Btn
+      label="Settings"
+      icon={Settings}
+      iconOnly
+      quiet
+      onPress={() => router.push('/settings')}
+    />
+  );
   const navigation = (
     <View
       style={{
@@ -132,8 +152,11 @@ function Shell() {
           >
             <Brand />
             {navigation}
-            <View style={{ marginTop: 'auto', padding: 10 }}>
+            <View
+              style={[row, { marginTop: 'auto', paddingLeft: 10, justifyContent: 'space-between' }]}
+            >
               <Location />
+              {settingsAction}
             </View>
           </View>
         )}
@@ -141,7 +164,7 @@ function Shell() {
           {!wide && (
             <View
               style={[
-                wrap,
+                row,
                 {
                   justifyContent: 'space-between',
                   paddingHorizontal: 18,
@@ -151,7 +174,10 @@ function Shell() {
               ]}
             >
               <Brand />
-              <Location />
+              <View style={row}>
+                {width >= 400 && <Location />}
+                {settingsAction}
+              </View>
             </View>
           )}
           <Slot />

@@ -4,6 +4,7 @@ Choose an open subtask from the [team task board](docs/tasks.md). Check any depe
 
 - Keep routes in `app/` thin. Put screens and feature-specific logic in `src/features/`. Shared components live in `src/ui/`.
 - Call `useDemo().run(command)` for writes. Read the [architecture](docs/architecture.md) before changing a command, persistence or a metric. Coordinate shared contract changes with anyone working on a dependent ticket.
+- For referral work, use the [shared counting rules](docs/architecture.md#counting-rules-for-43-and-52). Look up which commands take a referral ID or an assignment ID before changing Activity, Map or Impact.
 - Build screens from the [shared UI components](docs/architecture.md#shared-ui). Reuse the existing control for the same interaction across features. Keep a one-off layout inside its feature until another screen needs it.
 - Install Expo-compatible native dependencies with `npx expo install` and include the resulting lockfile change.
 - Run `npm run check` and `npm run export:web` before handoff. For touch or layout changes, include the device and result from the [phone check](docs/mobile.md) in the PR.

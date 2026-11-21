@@ -1,0 +1,23 @@
+version = 1
+name = "ComForce Connect"
+
+[setup]
+script = "npm ci"
+
+[setup.win32]
+script = "npm.cmd ci"
+
+[[actions]]
+name = "Mobile LAN"
+icon = "run"
+command = "npm run mobile:lan"
+
+[[actions]]
+name = "Mobile Tunnel"
+icon = "run"
+command = "npm run mobile:tunnel"
+
+[[actions]]
+name = "Check"
+icon = "test"
+command = "npm run check"

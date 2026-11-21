@@ -57,8 +57,14 @@ export function Copy({
   kind = 'body',
   tint = color.ink,
   style,
-}: PropsWithChildren<{ kind?: keyof typeof type; tint?: string; style?: StyleProp<TextStyle> }>) {
-  return <Text style={[type[kind], { color: tint }, style]}>{children}</Text>;
+  numberOfLines,
+}: PropsWithChildren<{
+  kind?: keyof typeof type;
+  tint?: string;
+  style?: StyleProp<TextStyle>;
+  numberOfLines?: number;
+}>) {
+  return <Text numberOfLines={numberOfLines} style={[type[kind], { color: tint }, style]}>{children}</Text>;
 }
 export function Page({
   children,
@@ -132,6 +138,8 @@ export function Btn({
   iconOnly = false,
   fillIcon = false,
   secondary = false,
+  quiet = false,
+  stretch = false,
   disabled = false,
 }: {
   label: string;
@@ -140,6 +148,8 @@ export function Btn({
   iconOnly?: boolean;
   fillIcon?: boolean;
   secondary?: boolean;
+  quiet?: boolean;
+  stretch?: boolean;
   disabled?: boolean;
 }) {
   const lock = useRef(false);
@@ -159,7 +169,7 @@ export function Btn({
       setBusy(false);
     }
   }
-  const fg = secondary ? color.pine : '#FFF';
+  const fg = secondary || quiet ? color.pine : '#FFF';
   return (
     <View style={{ flexShrink: 1, maxWidth: '100%', gap: error ? 4 : 0 }}>
       <Pressable
@@ -171,17 +181,17 @@ export function Btn({
         style={({ pressed }) => [
           row,
           {
-            alignSelf: 'flex-start',
+            alignSelf: stretch ? 'stretch' : 'flex-start',
             maxWidth: '100%',
             justifyContent: 'center',
             minHeight: 44,
             width: iconOnly ? 44 : undefined,
-            paddingHorizontal: iconOnly ? 0 : 16,
+            paddingHorizontal: iconOnly || quiet ? 0 : 16,
             paddingVertical: iconOnly ? 0 : 9,
             borderRadius: iconOnly ? 10 : 13,
             borderWidth: 0,
             borderColor: secondary ? color.line : color.pine,
-            backgroundColor: secondary ? color.pale : color.pine,
+            backgroundColor: quiet ? 'transparent' : secondary ? color.pale : color.pine,
             opacity: disabled || busy || pressed ? 0.65 : 1,
           },
         ]}

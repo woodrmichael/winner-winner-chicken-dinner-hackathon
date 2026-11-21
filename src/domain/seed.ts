@@ -1,4 +1,4 @@
-import type { CommunityState, DemoState, Referral } from './types';
+import type { Category, CommunityState, DemoState, Referral, SharedDetails } from './types';
 
 export const residentId = 'demo-resident';
 export const profile = {
@@ -33,58 +33,90 @@ export function seedState(): DemoState {
   const sentAt = '2026-11-18T15:00:00.000Z';
   const acceptedAt = '2026-11-18T16:00:00.000Z';
   const deliveredAt = '2026-11-19T18:30:00.000Z';
-  const referrals: Referral[] = [
-    {
-      id: 'seed-winter',
-      residentId: 'sample-a',
-      partnerId: 'winter-team',
-      message: 'A warm coat, please.',
-      needs: ['Clothing'],
-      shared: { neighborhood: 'Harambee' },
+  function sample(
+    id: string,
+    ownerId: string,
+    partnerId: string,
+    message: string,
+    category: Category,
+    shared: SharedDetails,
+    stage: 'sent' | 'accepted' | 'delivered',
+    programId?: string,
+  ): Referral {
+    return {
+      id,
+      residentId: ownerId,
+      needs: [category],
       sentAt,
-      acceptedAt,
-      service: {
-        category: 'Clothing',
-        providerId: 'winter-team',
-        deliveredAt,
-        programId: program.id,
-      },
-    },
-    {
-      id: 'seed-food',
-      residentId: 'sample-b',
-      partnerId: 'table',
-      message: 'Could I pick up groceries?',
-      needs: ['Food'],
-      shared: { neighborhood: 'Brewers Hill' },
-      sentAt,
-      acceptedAt,
-      service: { category: 'Food', providerId: 'table', deliveredAt },
-    },
-    {
-      id: 'seed-ride',
-      residentId: 'sample-c',
-      partnerId: 'ride-circle',
-      message: 'I could use a ride this week.',
-      needs: ['Transportation'],
-      shared: { neighborhood: 'Riverwest' },
-      sentAt,
-      acceptedAt,
-    },
-    {
-      id: 'seed-open',
-      residentId: 'sample-d',
-      partnerId: 'table',
-      message: 'Is there a pantry pickup?',
-      needs: ['Food'],
-      shared: { neighborhood: 'Harambee' },
-      sentAt,
-    },
-  ];
+      assignments: [
+        {
+          id,
+          partnerId,
+          message,
+          shared,
+          sentAt,
+          ...(stage !== 'sent' && { acceptedAt }),
+          declines: {},
+        },
+      ],
+      services:
+        stage === 'delivered'
+          ? [
+              {
+                assignmentId: id,
+                category,
+                providerId: partnerId,
+                deliveredAt,
+                ...(programId && { programId }),
+              },
+            ]
+          : [],
+      withdrawn: [],
+      handoffs: [],
+    };
+  }
   return {
-    version: 1,
+    version: 2,
     community: emptyCommunity(),
-    referrals,
+    referrals: [
+      sample(
+        'seed-winter',
+        'sample-a',
+        'winter-team',
+        'A warm coat, please.',
+        'Clothing',
+        { neighborhood: 'Harambee' },
+        'delivered',
+        program.id,
+      ),
+      sample(
+        'seed-food',
+        'sample-b',
+        'table',
+        'Could I pick up groceries?',
+        'Food',
+        { neighborhood: 'Brewers Hill' },
+        'delivered',
+      ),
+      sample(
+        'seed-ride',
+        'sample-c',
+        'ride-circle',
+        'I could use a ride this week.',
+        'Transportation',
+        { neighborhood: 'Riverwest' },
+        'accepted',
+      ),
+      sample(
+        'seed-open',
+        'sample-d',
+        'table',
+        'Is there a pantry pickup?',
+        'Food',
+        { neighborhood: 'Harambee' },
+        'sent',
+      ),
+    ],
     posts: [
       {
         id: 'drive',
