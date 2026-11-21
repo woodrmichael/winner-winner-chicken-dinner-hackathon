@@ -1,20 +1,18 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
-import type { OfferReply, Post } from '../../domain/types';
+import type { Post } from '../../domain/types';
 import { newId, now, useDemo } from '../../state/Demo';
 import { Btn, Card, Copy, Field, Page, color, row } from '../../ui/kit';
-import { Segments } from '../../ui/Segments';
 import { communityEvents, residentAuthor } from './model';
 import { PostTimestamp } from './PostTimestamp';
 import { SavePostButton } from './SavePostButton';
 
 function OfferThread({ post }: { post: Post }) {
-  const { state, run } = useDemo();
-  const [from, setFrom] = useState<OfferReply['from']>('resident');
+  const { state, run, offerReplyFrom: from } = useDemo();
   const [body, setBody] = useState('');
   const replies = state.community.replies.filter((reply) => reply.postId === post.id);
-  const readerName = post.author === residentAuthor ? 'Jordan (demo resident)' : residentAuthor;
+  const readerName = post.author === residentAuthor ? 'Jordan' : residentAuthor;
 
   return (
     <Card>
@@ -32,14 +30,8 @@ function OfferThread({ post }: { post: Post }) {
         </View>
       ))}
       <Copy kind="small" tint={color.muted}>
-        Switch views to try both sides of the thread in this demo.
+        Replying as {from === 'author' ? post.author : readerName}
       </Copy>
-      <Segments
-        options={['resident', 'author'] as const}
-        value={from}
-        onChange={setFrom}
-        label={(option) => (option === 'author' ? 'Offer author' : 'Resident')}
-      />
       <Field label="Public reply" value={body} change={setBody} multiline />
       <Btn
         label="Post reply"

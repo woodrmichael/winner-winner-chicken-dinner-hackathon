@@ -27,26 +27,56 @@ export type CommunityState = {
   savedPostIds: string[];
 };
 export type SharedDetails = { firstName?: string; callback?: string; neighborhood?: Neighborhood };
+export type Appointment = { date: string; time: string; instructions: string };
+export type Service = {
+  assignmentId: string;
+  category: Category;
+  providerId: string;
+  deliveredAt: string;
+  programId?: string;
+};
+export type ReferralAssignment = {
+  id: string;
+  partnerId: string;
+  message: string;
+  shared: SharedDetails;
+  sentAt: string;
+  category?: Category;
+  acceptedAt?: string;
+  appointment?: Appointment;
+  declines: Partial<Record<Category, { reason: string; at: string }>>;
+};
+export type Handoff = {
+  id: string;
+  fromAssignmentId: string;
+  partnerId: string;
+  category: Category;
+  reason: string;
+  status: 'pending' | 'approved' | 'declined';
+};
 export type Referral = {
   id: string;
   residentId: string;
-  partnerId: string;
-  message: string;
   needs: Category[];
-  shared: SharedDetails;
   sentAt: string;
-  acceptedAt?: string;
-  service?: { category: Category; providerId: string; deliveredAt: string; programId?: string };
+  assignments: [ReferralAssignment, ...ReferralAssignment[]];
+  services: Service[];
+  withdrawn: Category[];
+  handoffs: Handoff[];
 };
-export type DemoState = { version: 1; posts: Post[]; referrals: Referral[]; community: CommunityState };
+export type DemoState = {
+  version: 2;
+  posts: Post[];
+  referrals: Referral[];
+  community: CommunityState;
+};
 export type CommunityCommand =
   | { type: 'post'; id: string; title: string; body: string; at: string; group?: Neighborhood }
   | ({ type: 'reply' } & OfferReply)
   | { type: 'event-rsvp'; postId: string; joined: boolean }
   | { type: 'group-membership'; group: Neighborhood; joined: boolean }
   | { type: 'save-post'; postId: string; saved: boolean };
-export type Command =
-  | CommunityCommand
+export type ReferralCommand =
   | {
       type: 'send';
       id: string;
@@ -57,6 +87,24 @@ export type Command =
       at: string;
     }
   | { type: 'accept'; id: string; partnerId: string; at: string }
+  | { type: 'schedule'; id: string; partnerId: string; appointment: Appointment | null }
+  | {
+      type: 'decline-service';
+      id: string;
+      partnerId: string;
+      category: Category;
+      reason: string;
+      at: string;
+    }
+  | {
+      type: 'propose-handoff';
+      id: string;
+      partnerId: string;
+      handoffId: string;
+      recipientId: string;
+      category: Category;
+      reason: string;
+    }
   | {
       type: 'complete';
       id: string;
@@ -64,4 +112,26 @@ export type Command =
       at: string;
       category: Category;
       programId?: string;
-    };
+    }
+  | { type: 'respond-handoff'; id: string; handoffId: string; response: 'decline' }
+  | {
+      type: 'respond-handoff';
+      id: string;
+      handoffId: string;
+      response: 'approve';
+      share: (keyof SharedDetails)[];
+      at: string;
+    }
+  | {
+      type: 'seek-provider';
+      id: string;
+      assignmentId: string;
+      recipientId: string;
+      category: Category;
+      message: string;
+      share: (keyof SharedDetails)[];
+      at: string;
+    }
+  | { type: 'withdraw-need'; id: string; category: Category };
+
+export type Command = CommunityCommand | ReferralCommand;

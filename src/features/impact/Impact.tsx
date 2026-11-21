@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { View } from 'react-native';
-import { impact } from '../../domain/model';
+import { deliveredServices, impact } from '../../domain/model';
 import { program } from '../../domain/seed';
 import { partnerName } from '../matching/directory';
 import { useDemo } from '../../state/Demo';
@@ -33,14 +33,8 @@ export default function Impact() {
   const programProvider = partnerName(program.providerId);
 
   // Find actual deliveries associated with this program.
-  const programServices = state.referrals
-    .filter((referral) => referral.service?.programId === program.id)
-    .map((referral) => ({
-      id: referral.id,
-      category: referral.service!.category,
-      provider: partnerName(referral.service!.providerId),
-      deliveredAt: referral.service!.deliveredAt,
-    }))
+  const programServices = deliveredServices(state)
+    .filter((service) => service.programId === program.id)
     .sort(
       (a, b) =>
         new Date(b.deliveredAt).getTime() -
@@ -189,7 +183,7 @@ export default function Impact() {
               ) : (
                 programServices.map((service) => (
                   <View
-                    key={service.id}
+                    key={service.assignmentId + ':' + service.category}
                     style={{ gap: 4, marginTop: 10 }}
                   >
                     <Copy kind="strong">
@@ -197,7 +191,7 @@ export default function Impact() {
                     </Copy>
 
                     <Copy kind="small">
-                      Delivered by {service.provider}
+                      Delivered by {partnerName(service.providerId)}
                     </Copy>
 
                     <Copy kind="small">

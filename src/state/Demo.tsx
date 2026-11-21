@@ -11,18 +11,19 @@ import {
 import { View } from 'react-native';
 import { applyCommand } from '../domain/model';
 import { seedState } from '../domain/seed';
-import type { Command, DemoState } from '../domain/types';
+import type { Command, DemoState, OfferReply } from '../domain/types';
 import { Btn, Copy } from '../ui/kit';
 import { decode, storageKey } from './persistence';
 
 type DemoContext = {
   state: DemoState;
   run: (cmd: Command) => Promise<void>;
-  reset: () => Promise<void>;
   partnerId: string;
   setPartnerId: (id: string) => void;
   role: 'Resident' | 'Partner';
   setRole: (role: 'Resident' | 'Partner') => void;
+  offerReplyFrom: OfferReply['from'];
+  setOfferReplyFrom: (from: OfferReply['from']) => void;
 };
 const Context = createContext<DemoContext | null>(null);
 export const newId = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
@@ -35,6 +36,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
   const [error, setError] = useState('');
   const [role, setRole] = useState<'Resident' | 'Partner'>('Resident');
   const [partnerId, setPartnerId] = useState('winter-team');
+  const [offerReplyFrom, setOfferReplyFrom] = useState<OfferReply['from']>('resident');
   useEffect(() => {
     let active = true;
     AsyncStorage.getItem(storageKey)
@@ -67,6 +69,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
     await save();
     setRole('Resident');
     setPartnerId('winter-team');
+    setOfferReplyFrom('resident');
   }
   if (!state)
     return (
@@ -76,7 +79,18 @@ export function DemoProvider({ children }: PropsWithChildren) {
       </View>
     );
   return (
-    <Context.Provider value={{ state, run: save, reset, role, setRole, partnerId, setPartnerId }}>
+    <Context.Provider
+      value={{
+        state,
+        run: save,
+        role,
+        setRole,
+        partnerId,
+        setPartnerId,
+        offerReplyFrom,
+        setOfferReplyFrom,
+      }}
+    >
       {children}
     </Context.Provider>
   );

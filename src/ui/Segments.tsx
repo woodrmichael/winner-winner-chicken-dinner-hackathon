@@ -6,17 +6,20 @@ export function Segments<T extends string>({
   value,
   onChange,
   label,
+  accessibilityLabel,
 }: {
   options: readonly T[];
   value: T;
   onChange: (next: T) => void;
   label: (option: T) => string;
+  accessibilityLabel?: string;
 }) {
   const { width, fontScale } = useWindowDimensions();
   const stacked = width < 360 || fontScale >= 1.3;
   return (
     <View
       accessibilityRole="radiogroup"
+      accessibilityLabel={accessibilityLabel}
       style={{
         flexDirection: 'row',
         flexWrap: 'wrap',

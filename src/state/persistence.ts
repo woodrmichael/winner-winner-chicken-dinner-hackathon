@@ -1,5 +1,16 @@
 import { emptyCommunity } from '../domain/seed';
-import type { CommunityState, DemoState, Post, Referral } from '../domain/types';
+import { validAppointment } from '../domain/referrals';
+import type {
+  Category,
+  CommunityState,
+  DemoState,
+  Handoff,
+  Post,
+  Referral,
+  ReferralAssignment,
+  Service,
+  SharedDetails,
+} from '../domain/types';
 import { categories, neighborhoods } from '../domain/types';
 import { directory } from '../features/matching/directory';
 
@@ -58,53 +69,183 @@ function isCommunity(value: unknown, posts: Post[]): value is StoredCommunity {
         new Set(value.savedPostIds).size === value.savedPostIds.length))
   );
 }
-function isReferral(r: unknown): r is Referral {
-  if (
-    !record(r) ||
-    ![r.id, r.residentId, r.partnerId, r.message].every(isText) ||
-    !directory.some((partner) => partner.id === r.partnerId) ||
-    !isDate(r.sentAt)
-  )
-    return false;
-  if (
-    !Array.isArray(r.needs) ||
-    !r.needs.every((n) => includes(categories, n)) ||
-    !record(r.shared)
-  )
-    return false;
-  if ([r.shared.firstName, r.shared.callback].some((v) => v !== undefined && !isText(v)))
-    return false;
-  if (r.shared.neighborhood !== undefined && !includes(neighborhoods, r.shared.neighborhood))
-    return false;
-  if (r.acceptedAt !== undefined && !isDate(r.acceptedAt)) return false;
-  if (Object.keys(r.shared).some((key) => !['firstName', 'callback', 'neighborhood'].includes(key)))
-    return false;
+const isCategory = (value: unknown): value is Category => includes(categories, value);
+const isPartner = (value: unknown) => directory.some(({ id }) => id === value);
+const unique = (values: unknown[]) => new Set(values).size === values.length;
+
+function isShared(value: unknown): value is SharedDetails {
   return (
-    r.service === undefined ||
-    (record(r.service) &&
-      isDate(r.acceptedAt) &&
-      isDate(r.service.deliveredAt) &&
-      includes(categories, r.service.category) &&
-      r.service.providerId === r.partnerId)
+    record(value) &&
+    [value.firstName, value.callback].every((item) => item === undefined || isText(item)) &&
+    (value.neighborhood === undefined || includes(neighborhoods, value.neighborhood)) &&
+    Object.keys(value).every((key) => ['firstName', 'callback', 'neighborhood'].includes(key))
   );
+}
+
+function isAssignment(value: unknown): value is ReferralAssignment {
+  if (!record(value)) return false;
+  const { id, partnerId, message, shared, sentAt, category, acceptedAt, appointment, declines } =
+    value;
+  return (
+    isText(id) &&
+    isPartner(partnerId) &&
+    isText(message) &&
+    isShared(shared) &&
+    isDate(sentAt) &&
+    (category === undefined || isCategory(category)) &&
+    (acceptedAt === undefined || isDate(acceptedAt)) &&
+    (appointment === undefined ||
+      (acceptedAt !== undefined &&
+        record(appointment) &&
+        typeof appointment.date === 'string' &&
+        typeof appointment.time === 'string' &&
+        typeof appointment.instructions === 'string' &&
+        validAppointment({
+          date: appointment.date,
+          time: appointment.time,
+          instructions: appointment.instructions,
+        }))) &&
+    record(declines) &&
+    Object.entries(declines).every(
+      ([need, decline]) =>
+        isCategory(need) && record(decline) && isText(decline.reason) && isDate(decline.at),
+    )
+  );
+}
+
+function isService(value: unknown): value is Omit<Service, 'assignmentId'> {
+  return (
+    record(value) &&
+    isCategory(value.category) &&
+    isPartner(value.providerId) &&
+    isDate(value.deliveredAt) &&
+    (value.programId === undefined || isText(value.programId))
+  );
+}
+
+function isHandoff(value: unknown): value is Handoff {
+  return (
+    record(value) &&
+    isText(value.id) &&
+    isText(value.fromAssignmentId) &&
+    isPartner(value.partnerId) &&
+    isCategory(value.category) &&
+    isText(value.reason) &&
+    includes(['pending', 'approved', 'declined'], value.status)
+  );
+}
+
+function isReferral(value: unknown): value is Referral {
+  if (!record(value)) return false;
+  const { id, residentId, sentAt, needs, assignments, services, withdrawn, handoffs } = value;
+  if (
+    !isText(id) ||
+    !isText(residentId) ||
+    !isDate(sentAt) ||
+    !Array.isArray(needs) ||
+    !needs.every(isCategory) ||
+    !unique(needs) ||
+    !Array.isArray(assignments) ||
+    !assignments.every(isAssignment) ||
+    !Array.isArray(services) ||
+    !Array.isArray(withdrawn) ||
+    !Array.isArray(handoffs) ||
+    !handoffs.every(isHandoff)
+  )
+    return false;
+
+  const [initial, ...additional] = assignments;
+  if (
+    !initial ||
+    initial.id !== id ||
+    initial.category !== undefined ||
+    initial.sentAt !== sentAt ||
+    !unique(assignments.map((assignment) => assignment.id))
+  )
+    return false;
+  const requested = needs.length ? needs : ['Other'];
+  const byId = new Map(assignments.map((assignment) => [assignment.id, assignment]));
+  return (
+    additional.every(
+      (assignment) => assignment.category && requested.includes(assignment.category),
+    ) &&
+    services.every((service: unknown): service is Service => {
+      if (!record(service) || typeof service.assignmentId !== 'string') return false;
+      const assignment = byId.get(service.assignmentId);
+      return (
+        isService(service) &&
+        Boolean(assignment?.acceptedAt && assignment.partnerId === service.providerId)
+      );
+    }) &&
+    unique(services.map((service) => service.category)) &&
+    withdrawn.every((category) => requested.includes(category)) &&
+    unique(withdrawn) &&
+    unique(handoffs.map((handoff) => handoff.id)) &&
+    handoffs.every(
+      (handoff) =>
+        requested.includes(handoff.category) &&
+        byId.has(handoff.fromAssignmentId) &&
+        (handoff.status !== 'approved' ||
+          (byId.get(handoff.id)?.partnerId === handoff.partnerId &&
+            byId.get(handoff.id)?.category === handoff.category)),
+    )
+  );
+}
+
+function migrateReferral(value: unknown): Referral | undefined {
+  if (!record(value)) return undefined;
+  const { id, residentId, partnerId, sentAt, message, shared, acceptedAt, needs, service } = value;
+  const initial = { id, partnerId, sentAt, message, shared, acceptedAt, declines: {} };
+  if (
+    typeof id !== 'string' ||
+    typeof residentId !== 'string' ||
+    typeof sentAt !== 'string' ||
+    !isAssignment(initial) ||
+    !Array.isArray(needs) ||
+    !needs.every(isCategory)
+  )
+    return undefined;
+  if (
+    service !== undefined &&
+    (!isService(service) || service.providerId !== partnerId || !acceptedAt)
+  ) {
+    return undefined;
+  }
+  return {
+    id,
+    residentId,
+    sentAt,
+    needs: [...new Set(needs)],
+    assignments: [initial],
+    services: service ? [{ ...service, assignmentId: id }] : [],
+    withdrawn: [],
+    handoffs: [],
+  };
 }
 
 export function decode(raw: string): DemoState {
   const state: unknown = JSON.parse(raw);
   if (
     record(state) &&
-    state.version === 1 &&
+    (state.version === 1 || state.version === 2) &&
     Array.isArray(state.posts) &&
     state.posts.every(isPost) &&
     Array.isArray(state.referrals) &&
-    state.referrals.every(isReferral) &&
     (state.community === undefined || isCommunity(state.community, state.posts))
-  )
-    return {
-      version: 1,
-      posts: state.posts,
-      referrals: state.referrals,
-      community: { ...emptyCommunity(), ...state.community },
-    };
+  ) {
+    const referrals: unknown[] =
+      state.version === 1 ? state.referrals.map(migrateReferral) : state.referrals;
+    if (
+      referrals.every(isReferral) &&
+      unique(referrals.flatMap(({ assignments }) => assignments.map(({ id }) => id)))
+    ) {
+      return {
+        version: 2,
+        posts: state.posts,
+        referrals,
+        community: { ...emptyCommunity(), ...state.community },
+      };
+    }
+  }
   throw new Error('Your workspace couldn’t be opened. Reset it to start again.');
 }
