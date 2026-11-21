@@ -7,7 +7,7 @@ The [demo directory](../src/features/matching/directory.ts) contains sample prov
 | Change | Start here |
 | --- | --- |
 | Screen or navigation | [Routes and layout](../app/) delegate to [feature screens](../src/features/). Reuse the [UI components](../src/ui/). |
-| Matching or directory coverage | [Matcher](../src/features/matching/match.ts) returns detected needs and partners ranked by number of needs covered. Directory order breaks ties. The resident reviews the result and can choose a partner manually. |
+| Matching or directory coverage | [LLM client](../src/features/matching/llm/) (demo hardcoding today) interprets request text, drafts a referral, and flags vague requests for a clarifying question. [modelMatch](../src/features/matching/modelMatch.ts) orchestrates that path, ranks partners by needs covered (directory order breaks ties), and falls back to the [keyword matcher](../src/features/matching/match.ts) plus manual partner selection when the model is unavailable. |
 | Referral lifecycle | [Types and commands](../src/domain/types.ts) define the contract. [Referral model](../src/domain/referrals.ts) implements transitions and private read functions. [Domain model](../src/domain/model.ts) exposes aggregate reads. |
 | Save, load or reset | [Provider](../src/state/Demo.tsx) queues writes. [Decoder](../src/state/persistence.ts) validates saved state. [Seed](../src/domain/seed.ts) defines the starting workspace. |
 

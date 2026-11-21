@@ -12,6 +12,15 @@ import { profile, program, residentId, seedState } from '../src/domain/seed';
 import { outstandingNeeds, pendingHandoffs } from '../src/domain/referrals';
 import type { Command } from '../src/domain/types';
 import { example, matchResources } from '../src/features/matching/match';
+import {
+  draftReferral,
+  findResources,
+  interpretNeeds,
+  isVagueRequest,
+  matchWithModel,
+  setModelAvailable,
+  withNeeds,
+} from '../src/features/matching/modelMatch';
 import { decode } from '../src/state/persistence';
 
 const at = '2026-11-21T18:00:00Z';
@@ -333,6 +342,66 @@ test('rules cover multi-need, paraphrase and manual selection', () => {
     message: 'Please advise',
   });
   assert.equal(partnerInbox(state, 'table')[0].assignment.message, 'Please advise');
+});
+
+test('model ranks Winter Care for clothing and a ride', async () => {
+  setModelAvailable(true);
+  const result = await matchWithModel(example, 0);
+  assert.equal(result.source, 'model');
+  assert.deepEqual(result.needs, ['Clothing', 'Transportation']);
+  assert.equal(result.matches[0].partner.name, 'Winter Care Collective');
+  assert.deepEqual(result.matches[0].covers, ['Clothing', 'Transportation']);
+  assert.match(result.matches[0].explanation, /both/i);
+  assert.match(result.matches[0].explanation, /clothing/i);
+  assert.match(result.matches[0].explanation, /transportation/i);
+});
+
+test('model drops satisfied clothing and suggests transportation alone', async () => {
+  setModelAvailable(true);
+  const text = 'We already have coats but can’t get to the pickup';
+  assert.deepEqual(interpretNeeds(text), ['Transportation']);
+  const result = await matchWithModel(text, 0);
+  assert.deepEqual(result.needs, ['Transportation']);
+  assert.ok(result.matches.every((m) => m.covers.includes('Transportation')));
+  assert.ok(!result.needs.includes('Clothing'));
+  assert.equal(result.matches[0].partner.categories.includes('Transportation'), true);
+});
+
+test('keyword fallback runs when the model is unavailable', async () => {
+  setModelAvailable(false);
+  try {
+    await assert.rejects(() => matchWithModel(example, 0));
+    const result = await findResources(example);
+    assert.equal(result.source, 'keywords');
+    assert.equal(result.matches[0].partner.name, 'Winter Care Collective');
+  } finally {
+    setModelAvailable(true);
+  }
+});
+
+test('house-fire draft mentions clothing and transportation', async () => {
+  setModelAvailable(true);
+  const draft = await draftReferral(example, ['Clothing', 'Transportation'], 0);
+  assert.match(draft, /cloth/i);
+  assert.match(draft, /ride|transport|pick/i);
+});
+
+test('vague fire help plus food clarification suggests Neighborhood Table', async () => {
+  setModelAvailable(true);
+  assert.equal(isVagueRequest('I need help after the fire'), true);
+  assert.equal(isVagueRequest(example), false);
+  const combined = 'I need help after the fire food for tonight';
+  const result = await matchWithModel(combined, 0);
+  assert.ok(result.needs.includes('Food'));
+  assert.equal(result.matches[0].partner.name, 'Neighborhood Table');
+});
+
+test('removing a need re-ranks partners for review', () => {
+  const both = withNeeds(['Clothing', 'Transportation']);
+  assert.equal(both.matches[0].partner.name, 'Winter Care Collective');
+  const rideOnly = withNeeds(['Transportation']);
+  assert.ok(rideOnly.matches.every((m) => m.covers.includes('Transportation')));
+  assert.ok(!rideOnly.needs.includes('Clothing'));
 });
 
 test('saved state validation and deterministic reset', () => {
