@@ -60,6 +60,8 @@ A screen supplies an ID and timestamp, then awaits `run(command)`. The provider 
 
 The shared server computes monthly and provider reports from its full workspace. Clients receive aggregates and program history with category, date and provider. Private referrals stay scoped to the signed-in account.
 
+Approved organization workers receive only their provider’s service-record projection. Each record preserves its original delivery fields and append-only correction history. Category corrections update the active category; void corrections mark the record voided and exclude it from delivery, program, map and Impact calculations. Voiding restores an outstanding need only when the category is still requested and no other active delivery satisfies it.
+
 The map's optional service category filters open needs and completed services in both the map labels and neighborhood list. The shared API provides the same per-category totals without sending private referral records to the map. Directory resources and historical observations keep their neighborhood totals.
 
 - For 4.3, use `outstandingNeeds(referral)` for the category breakdown. A provider decline or handoff leaves the category outstanding. Recording a service or withdrawing a category removes it. A request without detected categories counts as Other until resolved.

@@ -293,3 +293,67 @@ test('post reports stay private and only the moderator account can hide a post',
   assert.equal(hiddenToModerator.community.reports.length, 2);
   assert.equal(hiddenToModerator.community.moderation.length, 1);
 });
+
+test('worker service exports and corrections reconcile across the shared workspace', async (t) => {
+  const api = await fixture(t);
+  const winter = await api.login('winter-worker');
+  const table = await api.login('table-worker');
+  const resident = await api.login('alex');
+  const id = 'task12-correction';
+  assert.equal((await api.command(resident, {
+    type: 'send',
+    id,
+    partnerId: 'winter-team',
+    message: 'A coat for the correction check',
+    needs: ['Clothing'],
+    shared: { neighborhood: 'Harambee' },
+  })).status, 200);
+  assert.equal((await api.command(winter, {
+    type: 'accept', id, partnerId: 'winter-team',
+  })).status, 200);
+  assert.equal((await api.command(winter, {
+    type: 'complete', id, partnerId: 'winter-team', category: 'Clothing',
+  })).status, 200);
+  const beforeWinter = (await api.read(winter)).data;
+  const beforeDelivered = beforeWinter.reporting.impact.delivered;
+  const beforeRecord = beforeWinter.reporting.serviceRecords.find(
+    (record) => record.referralId === id,
+  );
+  assert(beforeRecord);
+  assert(beforeWinter.reporting.serviceRecords.every((record) => record.providerId === 'winter-team'));
+
+  const unauthorized = {
+    type: 'correct-service',
+    id,
+    partnerId: 'winter-team',
+    serviceId: beforeRecord.id,
+    void: true,
+    reason: 'Should be rejected.',
+  };
+  assert.equal((await api.command(table, unauthorized)).status, 403);
+
+  const correction = {
+    ...unauthorized,
+    workerId: 'forged-id',
+    workerName: 'Forged name',
+  };
+  assert.equal((await api.command(winter, correction)).status, 200);
+  assert.equal((await api.command(winter, correction)).status, 200);
+
+  const afterWinter = (await api.read(winter)).data;
+  assert.equal(afterWinter.reporting.impact.delivered, beforeDelivered - 1);
+  assert.equal(afterWinter.reporting.serviceRecords.find(
+    (record) => record.id === beforeRecord.id,
+  )?.voidedAt === undefined, false);
+  const residentAfter = (await api.read(resident)).data;
+  assert(residentAfter.referrals.some((referral) =>
+    referral.id === id &&
+    referral.services.every((service) => service.id !== beforeRecord.id || service.voidedAt),
+  ));
+  const correctionRecord = afterWinter.reporting.serviceRecords.find(
+    (record) => record.id === beforeRecord.id,
+  );
+  assert.equal(correctionRecord?.corrections[0].workerId, 'winter-worker');
+  assert.equal(correctionRecord?.corrections[0].workerName, 'Jamie Reed');
+  assert(correctionRecord?.corrections[0].reason);
+});

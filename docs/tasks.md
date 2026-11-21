@@ -115,7 +115,7 @@ Neighbors need to know whether an offer is still available. Authors can keep lis
 
 A partner may need the individual entries behind its monthly totals or discover that a worker recorded a delivery by mistake. Both workflows depend on using the same service records as Activity, Map and Impact.
 
-- [ ] **12.1 Export an organization’s service records.** After 9.1. An authorized worker chooses a period and exports delivery dates, categories, provider credit and program links. For a month with two winter partner deliveries and one from another provider, the winter partner’s export contains its two entries and reconciles with its Impact count.
-- [ ] **12.2 Correct a mistaken delivery.** After 9.1. An authorized worker fixes the category or voids a delivery and records why. If a ride was marked delivered by mistake, voiding it restores the outstanding ride and updates Activity, the shared neighborhood’s counts and Impact. The correction history identifies the worker and reason.
+- [x] **12.1 Export an organization’s service records.** After 9.1. An authorized worker chooses a period and exports delivery dates, categories, provider credit and program links. For a month with two winter partner deliveries and one from another provider, the winter partner’s export contains its two entries and reconciles with its Impact count.
+- [x] **12.2 Correct a mistaken delivery.** After 9.1. An authorized worker fixes the category or voids a delivery and records why. If a ride was marked delivered by mistake, voiding it restores the outstanding ride and updates Activity, the shared neighborhood’s counts and Impact. The correction history identifies the worker and reason.
 
 For the team demo, use the [presentation runbook](demo.md) to rehearse the referral and show how the delivery changes the map and Impact totals.

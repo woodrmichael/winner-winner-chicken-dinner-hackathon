@@ -433,3 +433,69 @@ test('saved state validation and deterministic reset', () => {
   ])
     assert.throws(() => decode(raw));
 });
+
+test('voiding a mistaken delivery restores the open need and changes totals once', () => {
+  const initial = seedState();
+  const sent = applyCommand(initial, send);
+  const accepted = applyCommand(sent, accept);
+  const delivered = applyCommand(accepted, complete);
+  const serviceId = delivered.referrals[0].services.find(({ category }) => category === 'Clothing')!.id;
+  const correction: Command = {
+    type: 'correct-service',
+    id: send.id,
+    partnerId: send.partnerId,
+    serviceId,
+    void: true,
+    reason: 'The coat was not picked up.',
+    workerId: 'winter-worker',
+    workerName: 'Jamie Reed',
+    at: '2026-11-21T19:00:00Z',
+  };
+  const voided = decode(JSON.stringify(applyCommand(delivered, correction)));
+  assert.deepEqual(outstandingNeeds(residentTimeline(voided)[0]), ['Clothing', 'Transportation']);
+  assert.equal(status(residentTimeline(voided)[0]), 'Accepted');
+  assert.equal(impact(voided).delivered, impact(delivered).delivered - 1);
+  assert.equal(mapRows(voided)[0].delivered, mapRows(delivered)[0].delivered - 1);
+  assert.equal(mapRows(voided)[0].open, mapRows(delivered)[0].open + 1);
+  assert.equal(applyCommand(voided, correction), voided);
+  const voidHistory = voided.referrals[0].services.find(({ id }) => id === serviceId)?.corrections;
+  assert.equal(voidHistory?.[0].workerId, 'winter-worker');
+  assert.equal(voidHistory?.[0].reason, 'The coat was not picked up.');
+});
+
+test('category correction updates Impact and preserves original service history', () => {
+  const initial = seedState();
+  const sent = applyCommand(initial, send);
+  const accepted = applyCommand(sent, accept);
+  const delivered = applyCommand(accepted, complete);
+  const deliveredRecord = delivered.referrals[0].services.find(({ category }) => category === 'Clothing')!;
+  const corrected = decode(JSON.stringify(applyCommand(delivered, {
+    type: 'correct-service',
+    id: send.id,
+    partnerId: send.partnerId,
+    serviceId: deliveredRecord.id,
+    category: 'Transportation',
+    void: false,
+    reason: 'This was a ride, not coat delivery.',
+    workerId: 'winter-worker',
+    workerName: 'Jamie Reed',
+    at: '2026-11-21T19:00:00Z',
+  })));
+  assert.deepEqual(outstandingNeeds(residentTimeline(corrected)[0]), ['Clothing']);
+  assert.equal(impact(corrected).delivered, impact(delivered).delivered);
+  assert.equal(
+    impact(corrected).byCategory.find(({ name }) => name === 'Clothing')?.count,
+    impact(delivered).byCategory.find(({ name }) => name === 'Clothing')!.count - 1,
+  );
+  assert.equal(
+    impact(corrected).byCategory.find(({ name }) => name === 'Transportation')?.count,
+    impact(delivered).byCategory.find(({ name }) => name === 'Transportation')!.count + 1,
+  );
+  const record = corrected.referrals[0].services.find(({ id }) => id === deliveredRecord.id);
+  assert.equal(record?.category, 'Transportation');
+  assert.equal(record?.corrections[0].kind, 'category');
+  assert.deepEqual(
+    [record?.corrections[0].fromCategory, record?.corrections[0].toCategory],
+    ['Clothing', 'Transportation'],
+  );
+});

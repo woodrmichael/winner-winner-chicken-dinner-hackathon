@@ -77,11 +77,13 @@ function sampleReferral({
       declines: {},
     }],
     services: accepted === undefined ? [] : deliveryDelays.map((hours, index) => ({
+      id: `${id}:${needs[index]}`,
       assignmentId: id,
       providerId: provider,
       category: needs[index],
       deliveredAt: new Date(accepted + hours * 3_600_000).toISOString(),
       ...(needs[index] === 'Clothing' && provider === program.providerId ? { programId: program.id } : {}),
+      corrections: [],
     })),
     withdrawn: [],
     handoffs: [],

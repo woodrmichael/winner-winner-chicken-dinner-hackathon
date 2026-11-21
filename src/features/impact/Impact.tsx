@@ -10,6 +10,7 @@ import { directory } from '../matching/directory';
 import { ReportShare } from './ReportShare';
 import { periodName, responseTime, type ImpactReport } from './report';
 import { useImpactReport } from './useImpactReport';
+import { ServiceRecords } from './ServiceRecords';
 
 const providerOptions = [
   { value: null, label: 'All providers' },
@@ -55,6 +56,7 @@ export default function Impact() {
         main={
           <>
             <Overview report={report} wide={wide && fontScale < 1.3} />
+            <ServiceRecords />
             <Card style={styles.assistance}>
               <View style={[wrap, styles.between]}>
                 <Copy kind="title" style={styles.sectionTitle}>Assistance by type</Copy>

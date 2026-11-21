@@ -104,7 +104,10 @@ export function impactReport(state: ReferralSource, month: number | null, provid
 
   for (const referral of state.referrals) {
     const deliveries = referral.services.filter(
-      (service) => inPeriod(service.deliveredAt) && (providerId === null || service.providerId === providerId),
+      (service) =>
+        !service.voidedAt &&
+        inPeriod(service.deliveredAt) &&
+        (providerId === null || service.providerId === providerId),
     );
     if (deliveries.length) {
       services.push(...deliveries);
@@ -149,6 +152,31 @@ export function impactReport(state: ReferralSource, month: number | null, provid
 }
 
 export type ImpactReport = ReturnType<typeof impactReport>;
+
+export function organizationServiceRecords(
+  state: ReferralSource,
+  providerId: string,
+  month: number | null,
+) {
+  return deliveredServices(state)
+    .filter((service) =>
+      service.providerId === providerId &&
+      (month === null || reportingMonth(service.deliveredAt) === month),
+    )
+    .sort((left, right) => Date.parse(right.deliveredAt) - Date.parse(left.deliveredAt));
+}
+
+export function serviceRecordsCsv(records: ReturnType<typeof organizationServiceRecords>) {
+  const escape = (value: string) => `"${value.replaceAll('"', '""')}"`;
+  const header = ['Delivery date', 'Category', 'Provider', 'Program'];
+  const rows = records.map((record) => [
+    record.deliveredAt,
+    record.category,
+    partnerName(record.providerId),
+    record.programId ?? '',
+  ]);
+  return [header, ...rows].map((row) => row.map(escape).join(',')).join('\n');
+}
 
 export const reportKey = (month: number | null) => String(month ?? 'all');
 
