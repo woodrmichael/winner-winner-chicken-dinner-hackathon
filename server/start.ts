@@ -1,10 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { seedState } from '../src/domain/seed';
+import { seedState, withDemoReferrals } from '../src/domain/seed';
 import { decode } from '../src/state/persistence';
 import { createApi, withPassword } from './api';
-import { createWorkspace, demoAccounts, restoreCommunication, type StoredWorkspace, type Workspace } from './workspace';
+import { createWorkspace, demoAccounts, restoreCommunication, sampleResidentAccount, type StoredWorkspace, type Workspace } from './workspace';
 
 const path = resolve(process.env.COMFORCE_API_DATA ?? '.comforce/workspace.json');
 const host = process.env.COMFORCE_API_HOST ?? '127.0.0.1';
@@ -20,7 +20,7 @@ function load(): Workspace {
   if (existsSync(path)) {
     const stored = JSON.parse(readFileSync(path, 'utf8')) as StoredWorkspace;
     const { referrals } = decode(JSON.stringify({ ...seedState(), referrals: stored.referrals }));
-    return restoreCommunication({ ...stored, referrals });
+    return restoreCommunication({ ...stored, referrals: withDemoReferrals(referrals, sampleResidentAccount) });
   }
   const credentials = demoAccounts.map((account) => ({ account, password: randomBytes(12).toString('base64url') }));
   const workspace = createWorkspace(credentials.map(({ account, password }) => withPassword(account, password)));

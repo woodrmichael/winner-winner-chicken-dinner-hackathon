@@ -2,6 +2,7 @@ import { deliveredServices, impact, mapRows } from '../src/domain/model';
 import { applyReferralCommand, partnerInbox, residentTimeline } from '../src/domain/referrals';
 import { profile, program, seedState } from '../src/domain/seed';
 import { categories, type Referral, type ReferralCommand, type WorkspaceCommand } from '../src/domain/types';
+import { impactReports, reportingMonth, type ImpactReports } from '../src/features/impact/report';
 import { directory } from '../src/features/matching/directory';
 import type { Account, SharedSnapshot, VolunteerRole, VolunteerSignup } from '../src/shared/workspace';
 import { applyCommunicationCommand, communicationFor, emptyCommunication, notifyReferralChange, type Communication } from './communication';
@@ -17,13 +18,15 @@ export type Workspace = {
 };
 
 export type StoredWorkspace = Omit<Workspace, 'communication'> & { communication?: Communication };
+export const sampleResidentAccount = 'alex';
+const reportCache = new WeakMap<Referral[], { month: number; reports: ImpactReports }>();
 
 export function restoreCommunication(stored: StoredWorkspace): Workspace {
   return { ...stored, communication: stored.communication ?? emptyCommunication() };
 }
 
 export const demoAccounts: Account[] = [
-  { id: 'alex', name: 'Alex Rivera', kind: 'resident', details: { ...profile } },
+  { id: sampleResidentAccount, name: 'Alex Rivera', kind: 'resident', details: { ...profile } },
   { id: 'jordan', name: 'Jordan Brooks', kind: 'resident', details: { firstName: 'Jordan', neighborhood: 'Riverwest' } },
   { id: 'sam', name: 'Sam Carter', kind: 'resident', details: { firstName: 'Sam', neighborhood: 'Brewers Hill' } },
   { id: 'winter-worker', name: 'Jamie Reed', kind: 'worker', details: { firstName: 'Jamie' },
@@ -37,7 +40,7 @@ export const demoAccounts: Account[] = [
 
 export function createWorkspace(accounts: StoredAccount[]): Workspace {
   return {
-    referrals: seedState().referrals,
+    referrals: seedState(sampleResidentAccount).referrals,
     accounts,
     roles: [
       { id: 'sorting', name: 'Coat sorting', capacity: 4, instructions: 'Check in at the coat sorting table at Moody Park at 9:30 am.' },
@@ -54,6 +57,16 @@ function adminPartner(account: Account) {
 
 function isOrganizer(account: Account) {
   return adminPartner(account) === program.providerId;
+}
+
+function sharedImpactReports(workspace: Workspace) {
+  const now = new Date();
+  const month = reportingMonth(now);
+  const cached = reportCache.get(workspace.referrals);
+  if (cached?.month === month) return cached.reports;
+  const reports = impactReports(workspace, now);
+  reportCache.set(workspace.referrals, { month, reports });
+  return reports;
 }
 
 export function snapshot(workspace: Workspace, account: StoredAccount, revision: number): SharedSnapshot {
@@ -86,6 +99,7 @@ export function snapshot(workspace: Workspace, account: StoredAccount, revision:
     },
     reporting: {
       impact: impact(workspace),
+      impactReports: sharedImpactReports(workspace),
       map: mapRows(workspace),
       mapByCategory: categories.map((category) => ({ category, rows: mapRows(workspace, category) })),
       programServices: deliveredServices(workspace).flatMap(({ category, providerId, deliveredAt, programId }) =>

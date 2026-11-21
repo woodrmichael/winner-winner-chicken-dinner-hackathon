@@ -70,7 +70,14 @@ export function Page({
   children,
   title,
   right,
-}: PropsWithChildren<{ title: string; right?: ReactNode }>) {
+  titleAccessory,
+  back,
+}: PropsWithChildren<{
+  title: string;
+  right?: ReactNode;
+  titleAccessory?: ReactNode;
+  back?: ReactNode;
+}>) {
   const wide = useWindowDimensions().width >= 900;
   return (
     <ScrollView
@@ -89,21 +96,25 @@ export function Page({
           paddingBottom: 48,
         }}
       >
-        <View style={[wrap, { justifyContent: 'space-between', columnGap: 18 }]}>
-          <Text
-            accessibilityRole="header"
-            style={{
-              color: color.ink,
-              fontFamily: systemFont,
-              fontWeight: '700',
-              letterSpacing: -0.9,
-              fontSize: wide ? 42 : 34,
-              lineHeight: wide ? 52 : 42,
-              flexShrink: 1,
-            }}
-          >
-            {title}
-          </Text>
+        {back && <View style={{ marginBottom: -14 }}>{back}</View>}
+        <View style={[wrap, { justifyContent: 'space-between', columnGap: 12 }]}>
+          <View style={[wrap, { flexShrink: 1, rowGap: 4, columnGap: wide ? 16 : 12 }]}>
+            <Text
+              accessibilityRole="header"
+              style={{
+                color: color.ink,
+                fontFamily: systemFont,
+                fontWeight: '700',
+                letterSpacing: -0.9,
+                fontSize: wide ? 42 : 34,
+                lineHeight: wide ? 52 : 42,
+                flexShrink: 1,
+              }}
+            >
+              {title}
+            </Text>
+            {titleAccessory}
+          </View>
           {wide && right}
         </View>
         {!wide && right}

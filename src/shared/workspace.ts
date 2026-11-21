@@ -1,6 +1,7 @@
 import type { deliveredServices, impact, mapRows } from '../domain/model';
 import type { partnerInbox } from '../domain/referrals';
 import type { Category, Referral, SharedDetails, VolunteerRoleId, WorkspaceCommand } from '../domain/types';
+import type { ImpactReports } from '../features/impact/report';
 
 export type Membership = { partnerId: string; status: 'pending' | 'approved'; admin: boolean };
 export type Account = {
@@ -49,6 +50,7 @@ export type SharedSnapshot = {
   volunteers: VolunteerView;
   reporting: {
     impact: ReturnType<typeof impact>;
+    impactReports: ImpactReports;
     map: ReturnType<typeof mapRows>;
     mapByCategory: { category: Category; rows: ReturnType<typeof mapRows> }[];
     programServices: Pick<ReturnType<typeof deliveredServices>[number], 'category' | 'providerId' | 'deliveredAt'>[];

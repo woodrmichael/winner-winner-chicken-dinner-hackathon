@@ -1,211 +1,196 @@
-
-import { useState } from 'react';
-import { View } from 'react-native';
-import { deliveredServices, impact } from '../../domain/model';
+import { useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Check, ChevronRight, Share } from 'lucide-react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { program } from '../../domain/seed';
-import { partnerName } from '../matching/directory';
-import { useDemo } from '../../state/Demo';
-import { Segments } from '../../ui/Segments';
-import {
-  Card,
-  Columns,
-  Copy,
-  Page,
-  ProgressBar,
-  color,
-  row,
-} from '../../ui/kit';
+import { useMobileHeaderAction } from '../../ui/MobileHeaderAction';
+import { SelectMenu } from '../../ui/SelectMenu';
+import { Btn, Card, Columns, Copy, Page, ProgressBar, color, row, wrap } from '../../ui/kit';
+import { directory } from '../matching/directory';
+import { ReportShare } from './ReportShare';
+import { periodName, responseTime, type ImpactReport } from './report';
+import { useImpactReport } from './useImpactReport';
+
+const providerOptions = [
+  { value: null, label: 'All providers' },
+  ...directory.map(({ id, name }) => ({ value: id, label: name })),
+];
 
 export default function Impact() {
-  const { state, shared } = useDemo();
-  const data = shared.data?.reporting.impact ?? impact(state);
-
-  const [by, setBy] = useState<'Service' | 'Provider'>('Service');
-
-  const counts = by === 'Service'
-    ? data.byCategory
-    : data.byProvider;
-
-  const money = (value: number) =>
-    '$' + value.toLocaleString('en-US');
-
-  // Find the provider responsible for delivering the program.
-  const programProvider = partnerName(program.providerId);
-
-  // Find actual deliveries associated with this program.
-  const programServices = (shared.data?.reporting.programServices ?? deliveredServices(state)
-    .filter((service) => service.programId === program.id)).slice()
-    .sort(
-      (a, b) =>
-        new Date(b.deliveredAt).getTime() -
-        new Date(a.deliveredAt).getTime()
-    );
+  const router = useRouter();
+  const { period } = useLocalSearchParams<{ period?: string }>();
+  const [provider, setProvider] = useState<string | null>(null);
+  const [showShare, setShowShare] = useState(false);
+  const { month, months, completeReport, report } = useImpactReport(period, provider);
+  const periods = useMemo(
+    () => [...months, null].map((value) => ({ value, label: periodName(value) })),
+    [months],
+  );
+  const { width, fontScale } = useWindowDimensions();
+  const wide = width >= 1024;
+  const programCount = completeReport.programDeliveries.length;
+  const shareAction = useMemo(() => (
+    <Btn label="Share report" icon={Share} iconOnly quiet onPress={() => setShowShare(true)} />
+  ), []);
+  useMobileHeaderAction(shareAction);
 
   return (
-    <Page title="Community impact">
-      {/* Overall impact statistics */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-        {[
-          ['Requests received', data.received],
-          ['Open referrals', data.open],
-          ['Services delivered', data.delivered],
-        ].map(([label, value]) => (
-          <Card
-            key={label}
-            style={{
-              flexGrow: 1,
-              flexBasis: 135,
-              backgroundColor:
-                label === 'Services delivered'
-                  ? color.pale
-                  : color.paper,
-            }}
-          >
-            <Copy kind="title" style={{ fontSize: 40, lineHeight: 46 }}>
-              {value}
-            </Copy>
-            <Copy kind="strong">{label}</Copy>
-          </Card>
-        ))}
-      </View>
-
+    <Page
+      title="Our impact"
+      right={width >= 900 ? (
+        <Btn label="Share report" icon={Share} secondary onPress={() => setShowShare(true)} />
+      ) : undefined}
+      titleAccessory={
+        <SelectMenu
+          label="Reporting period"
+          value={month}
+          options={periods}
+          appearance="pill"
+          align="start"
+          onChange={(value) => router.setParams({ period: value === null ? 'all' : String(value) })}
+        />
+      }
+    >
       <Columns
         main={
-          <View style={{ gap: 12 }}>
-            {/* Delivery attribution */}
-            <Card>
-              <Copy kind="title">Delivery attribution</Copy>
-
-              <Copy kind="label" tint={color.pine}>
-                SPONSORED PROGRAM
-              </Copy>
-
-              <Copy kind="title">{program.name}</Copy>
-
-              <Copy>
-                Delivered by {programProvider}
-              </Copy>
-
-              <Copy kind="small">
-                Sponsored by {program.sponsor}
-              </Copy>
-
-              <View style={{ marginTop: 10 }}>
-                <Copy kind="title">
-                  {data.programDeliveries}
-                </Copy>
-                <Copy kind="strong">
-                  Program deliveries
-                </Copy>
+          <>
+            <Overview report={report} wide={wide && fontScale < 1.3} />
+            <Card style={styles.assistance}>
+              <View style={[wrap, styles.between]}>
+                <Copy kind="title" style={styles.sectionTitle}>Assistance by type</Copy>
+                <SelectMenu
+                  label="Delivery provider"
+                  value={provider}
+                  options={providerOptions}
+                  onChange={setProvider}
+                />
               </View>
-
-              <ProgressBar
-                value={data.programDeliveries}
-                total={Math.max(data.delivered, 1)}
-              />
-            </Card>
-
-            {/* Service and provider breakdown */}
-            <Card>
-              <Copy kind="title">Assistance delivered</Copy>
-
-              <Segments
-                options={['Service', 'Provider'] as const}
-                value={by}
-                onChange={setBy}
-                label={(item) => 'By ' + item.toLowerCase()}
-              />
-
-              {counts.map((item) => (
-                <View key={item.name} style={{ gap: 5 }}>
-                  <View
-                    style={[
-                      row,
-                      { justifyContent: 'space-between' },
-                    ]}
-                  >
-                    <Copy>{item.name}</Copy>
-                    <Copy kind="strong">{item.count}</Copy>
-                  </View>
-
-                  <ProgressBar
-                    value={item.count}
-                    total={Math.max(data.delivered, 1)}
-                  />
+              {report.byCategory.length ? report.byCategory.map(({ name, count }) => (
+                <View key={name} style={row}>
+                  <Copy style={styles.category}>{name === 'Transportation' ? 'Transport' : name}</Copy>
+                  <View style={styles.fill}><ProgressBar value={count} total={report.delivered} /></View>
+                  <Copy kind="strong" style={styles.chartCount}>{count}</Copy>
                 </View>
-              ))}
+              )) : <Copy tint={color.muted}>No deliveries in this selection.</Copy>}
             </Card>
-          </View>
+            {wide && <ResponseMetrics report={completeReport} />}
+          </>
         }
         side={
-          <View style={{ gap: 12 }}>
-            {/* Program funding */}
-            <Card>
-              <Copy kind="label" tint={color.pine}>
-                PROGRAM FUNDING
-              </Copy>
-
-              <Copy kind="title">{program.name}</Copy>
-
-              <Copy>
-                Supported by {program.sponsor}.
-              </Copy>
-
-              <Copy kind="strong">
-                {money(program.received)} received
-              </Copy>
-
-              <Copy kind="small">
-                of {money(program.goal)} goal ·{' '}
-                {money(program.pledged)} pledged separately
-              </Copy>
-
-              <ProgressBar
-                value={program.received}
-                total={program.goal}
-              />
-            </Card>
-
-            {/* Actual program delivery records */}
-            <Card>
-              <Copy kind="title">
-                Program delivery records
-              </Copy>
-
-              <Copy kind="small">
-                Services recorded under {program.name}.
-              </Copy>
-
-              {programServices.length === 0 ? (
-                <Copy kind="small">
-                  No program deliveries recorded yet.
-                </Copy>
-              ) : (
-                programServices.map((service, index) => (
-                  <View
-                    key={`${service.deliveredAt}:${service.category}:${index}`}
-                    style={{ gap: 4, marginTop: 10 }}
-                  >
+          <>
+            <View style={styles.recent}>
+              <Copy kind="title" style={styles.sectionTitle}>Recent work</Copy>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`View ${program.name}, ${programCount} ${programCount === 1 ? 'delivery' : 'deliveries'}`}
+                onPress={() => router.push({
+                  pathname: '/impact-program',
+                  params: { period: month === null ? 'all' : String(month) },
+                })}
+                style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+              >
+                <Card style={styles.workCard}>
+                  <View style={styles.workIcon}><Check color={color.pine} size={22} /></View>
+                  <View style={styles.fill}>
                     <Copy kind="strong">
-                      {service.category}
+                      {programCount} winter program {programCount === 1 ? 'delivery' : 'deliveries'}
                     </Copy>
-
-                    <Copy kind="small">
-                      Delivered by {partnerName(service.providerId)}
-                    </Copy>
-
-                    <Copy kind="small">
-                      {new Date(
-                        service.deliveredAt
-                      ).toLocaleDateString()}
-                    </Copy>
+                    <Copy kind="small" tint={color.muted}>{program.name}</Copy>
                   </View>
-                ))
-              )}
-            </Card>
-          </View>
+                  <ChevronRight size={20} color={color.pine} />
+                </Card>
+              </Pressable>
+            </View>
+            <CommunityPartners report={completeReport} />
+            {!wide && <ResponseMetrics report={completeReport} />}
+          </>
         }
       />
+      {showShare && (
+        <ReportShare report={report} programDeliveries={programCount} onClose={() => setShowShare(false)} />
+      )}
     </Page>
   );
 }
+
+function Overview({ report, wide }: { report: ImpactReport; wide: boolean }) {
+  const stats = [
+    ['Requests received', report.received],
+    ['Services delivered', report.delivered],
+    ['Residents assisted', report.assisted],
+    ['Open referrals', report.open],
+  ] as const;
+  const pairs = [stats.slice(0, 2), stats.slice(2)];
+
+  return (
+    <View style={styles.statGrid}>
+      {(wide ? [stats] : pairs).map((items) => (
+        <View key={items[0][0]} style={styles.statRow}>
+          {items.map(([label, value]) => (
+            <Card key={label} style={styles.stat}>
+              <Copy kind="title" style={styles.total}>{value}</Copy>
+              <Copy kind="small" tint={color.muted}>{label}</Copy>
+            </Card>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function CommunityPartners({ report }: { report: ImpactReport }) {
+  return (
+    <Card>
+      <Copy kind="title" style={styles.sectionTitle}>Community partners</Copy>
+      {directory.map(({ id, name }) => {
+        const count = report.byProvider.find((provider) => provider.name === name)?.count ?? 0;
+        return (
+          <View key={id} style={row}>
+            <View style={styles.initialsBox}>
+              <Copy kind="label" tint={color.pine}>{name.split(' ').map((word) => word[0]).join('')}</Copy>
+            </View>
+            <Copy style={styles.fill}>{name}</Copy>
+            <Copy kind="small" tint={color.muted}>{count} {count === 1 ? 'delivery' : 'deliveries'}</Copy>
+          </View>
+        );
+      })}
+    </Card>
+  );
+}
+
+function ResponseMetrics({ report }: { report: ImpactReport }) {
+  return (
+    <Card>
+      <Copy kind="title" style={styles.sectionTitle}>Referral response</Copy>
+      <View style={styles.statRow}>
+        <View style={styles.response}>
+          <Copy kind="title">{responseTime(report.medianResponse)}</Copy>
+          <Copy kind="small" tint={color.muted}>Median to first acceptance</Copy>
+          {report.answered > 0 && <Copy kind="small" tint={color.muted}>{report.answered} answered</Copy>}
+        </View>
+        <View style={styles.response}>
+          <Copy kind="title">{report.awaiting}</Copy>
+          <Copy kind="small" tint={color.muted}>Awaiting acceptance</Copy>
+        </View>
+      </View>
+    </Card>
+  );
+}
+
+const styles = StyleSheet.create({
+  sectionTitle: { fontSize: 21, lineHeight: 27, letterSpacing: -0.5 },
+  between: { justifyContent: 'space-between' },
+  statGrid: { gap: 9 },
+  statRow: { flexDirection: 'row', gap: 9, alignItems: 'stretch' },
+  stat: { flex: 1, minWidth: 0, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, gap: 2 },
+  total: { fontSize: 32, lineHeight: 36, fontVariant: ['tabular-nums'] },
+  assistance: { gap: 8 },
+  category: { flexBasis: 85, flexShrink: 1 },
+  chartCount: { minWidth: 30, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  fill: { flex: 1, minWidth: 0 },
+  recent: { gap: 7 },
+  workCard: { ...row, paddingVertical: 12 },
+  workIcon: { width: 39, height: 39, borderRadius: 20, backgroundColor: color.pale, alignItems: 'center', justifyContent: 'center' },
+  initialsBox: { minWidth: 39, paddingVertical: 5, borderRadius: 8, backgroundColor: color.pale, alignItems: 'center' },
+  response: { flex: 1, gap: 3, minWidth: 0, backgroundColor: color.sand, borderRadius: 12, padding: 10 },
+});

@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { View } from 'react-native';
 import { applyCommand, isCommunityCommand } from '../domain/model';
-import { seedState } from '../domain/seed';
+import { seedState, withDemoSamples } from '../domain/seed';
 import type { Command, DemoState, OfferReply } from '../domain/types';
 import { Btn, Copy } from '../ui/kit';
 import { decode, storageKey } from './persistence';
@@ -45,7 +45,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
     let active = true;
     AsyncStorage.getItem(storageKey)
       .then((raw) => {
-        const value = raw === null ? seedState() : decode(raw);
+        const value = raw === null ? seedState() : withDemoSamples(decode(raw));
         if (active) {
           current.current = value;
           setState(value);

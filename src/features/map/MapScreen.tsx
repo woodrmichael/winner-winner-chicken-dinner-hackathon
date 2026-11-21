@@ -11,10 +11,10 @@ import Svg, {
   Text as MapText,
 } from 'react-native-svg';
 
-import { SelectionRow, ToggleRow } from '../../ui/SelectionRows';
+import { SelectMenu } from '../../ui/SelectMenu';
+import { ToggleRow } from '../../ui/SelectionRows';
 import { mapRows } from '../../domain/model';
 import { categories, type Category, type Neighborhood } from '../../domain/types';
-import { Disclosure } from '../../ui/Disclosure';
 import { useDemo } from '../../state/Demo';
 import { Btn, Card, Columns, Copy, Page, color, wrap } from '../../ui/kit';
 import boundaries from './boundaries.json';
@@ -29,6 +29,10 @@ const layers = [
 ] as const;
 
 type Layer = (typeof layers)[number]['key'];
+const serviceOptions = (['All', ...categories] as const).map((value) => ({
+  value,
+  label: value === 'All' ? 'All services' : value,
+}));
 
 // Label anchors are offset from neighborhood interiors for legibility.
 const pins: Record<
@@ -56,7 +60,6 @@ export default function MapScreen() {
 
   // Calculate neighborhood counts from shared application state.
   const [category, setCategory] = useState<Category | 'All'>('All');
-  const [filterOpen, setFilterOpen] = useState(false);
   const reporting = shared.data?.reporting;
   const sharedRows = category === 'All'
     ? reporting?.map
@@ -284,18 +287,15 @@ export default function MapScreen() {
         }
         side={
           <Card>
-            <Copy kind="strong">Map layers</Copy>
-
-            <Disclosure label={`Service category · ${category}`}
-              detail="Filters open needs and assistance delivered."
-              expanded={filterOpen} onToggle={() => setFilterOpen(!filterOpen)}>
-              <View accessibilityRole="radiogroup" accessibilityLabel="Service category">
-                {(['All', ...categories] as const).map((option) => (
-                  <SelectionRow key={option} label={option} selected={option === category}
-                    onPress={() => { setCategory(option); setFilterOpen(false); }} />
-                ))}
-              </View>
-            </Disclosure>
+            <View style={[wrap, { justifyContent: 'space-between' }]}>
+              <Copy kind="strong">Map layers</Copy>
+              <SelectMenu
+                label="Service category"
+                value={category}
+                options={serviceOptions}
+                onChange={setCategory}
+              />
+            </View>
 
             <View>
               {layers.map((layer) => (
