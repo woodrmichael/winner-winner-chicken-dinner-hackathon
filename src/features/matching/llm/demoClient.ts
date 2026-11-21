@@ -32,11 +32,11 @@ function delay(ms: number) {
 }
 
 export function interpretNeeds(text: string): Category[] {
-  const mentioned = vocabulary.filter(([, pattern]) => pattern.test(text)).map(([need]) => need);
-  const met = new Set(
-    satisfied.filter(([, pattern]) => pattern.test(text)).map(([need]) => need),
-  );
-  return mentioned.filter((need) => !met.has(need));
+  const clauses = text.split(/[.!?;]|\bbut\b/i);
+  return vocabulary.filter(([need, pattern]) =>
+    clauses.some((clause) => pattern.test(clause) &&
+      !satisfied.some(([category, rule]) => category === need && rule.test(clause))),
+  ).map(([need]) => need);
 }
 
 function explain(covers: Category[]): string {
