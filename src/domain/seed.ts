@@ -1,4 +1,4 @@
-import type { DemoState, Referral } from './types';
+import type { CommunityState, DemoState, Referral } from './types';
 
 export const residentId = 'demo-resident';
 export const profile = {
@@ -21,6 +21,8 @@ export const historicalIncidents = {
   Riverwest: { fatal: 2, nonfatal: 16 },
   'Brewers Hill': { fatal: 1, nonfatal: 3 },
 };
+
+export const emptyCommunity = (): CommunityState => ({ replies: [], joinedEvents: [], groups: [] });
 
 export function seedState(): DemoState {
   const sentAt = '2026-11-18T15:00:00.000Z';
@@ -76,6 +78,7 @@ export function seedState(): DemoState {
   ];
   return {
     version: 1,
+    community: emptyCommunity(),
     referrals,
     posts: [
       {

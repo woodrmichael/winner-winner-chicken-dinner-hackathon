@@ -11,6 +11,19 @@ export type Post = {
   title: string;
   body: string;
   date: string;
+  group?: Neighborhood;
+};
+export type OfferReply = {
+  id: string;
+  postId: string;
+  from: 'resident' | 'author';
+  body: string;
+  at: string;
+};
+export type CommunityState = {
+  replies: OfferReply[];
+  joinedEvents: string[];
+  groups: Neighborhood[];
 };
 export type SharedDetails = { firstName?: string; callback?: string; neighborhood?: Neighborhood };
 export type Referral = {
@@ -24,9 +37,14 @@ export type Referral = {
   acceptedAt?: string;
   service?: { category: Category; providerId: string; deliveredAt: string; programId?: string };
 };
-export type DemoState = { version: 1; posts: Post[]; referrals: Referral[] };
+export type DemoState = { version: 1; posts: Post[]; referrals: Referral[]; community: CommunityState };
+export type CommunityCommand =
+  | { type: 'post'; id: string; title: string; body: string; at: string; group?: Neighborhood }
+  | ({ type: 'reply' } & OfferReply)
+  | { type: 'event-rsvp'; postId: string; joined: boolean }
+  | { type: 'group-membership'; group: Neighborhood; joined: boolean };
 export type Command =
-  | { type: 'post'; id: string; title: string; body: string; at: string }
+  | CommunityCommand
   | {
       type: 'send';
       id: string;

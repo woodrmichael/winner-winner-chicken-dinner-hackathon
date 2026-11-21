@@ -24,15 +24,16 @@ Use system typography, neutral surfaces and one teal accent. Give each screen a 
 
 A screen supplies an ID and timestamp, then awaits `run(command)`. The provider applies the command to the latest committed state, saves the resulting snapshot, then publishes it to subscribers. If saving fails, the caller receives the error and the previous state remains visible.
 
-- `post` adds a public offer. `send` creates a private referral containing the reviewed message, selected partner and chosen contact fields.
+- `post` adds a public offer or posts an update to a neighborhood group the resident has joined. `reply` saves a public offer reply. `event-rsvp` and `group-membership` set the resident’s signup and membership. The offer thread lets the demo switch between the resident and the offer author on one device.
+- `send` creates a private referral containing the reviewed message, selected partner and chosen contact fields.
 - `accept` records the assigned partner’s acceptance. `complete` requires that acceptance and a category the partner delivers. Repeating either transition preserves the original timestamp and service.
-- AsyncStorage holds a versioned snapshot at `comforce-connect/demo/v1`. Role, partner selection and unsent drafts are session state. When changing the persisted shape, update the decoder and test loading a snapshot written by the previous version.
+- AsyncStorage holds a versioned snapshot at `comforce-connect/demo/v1`. Earlier v1 snapshots load with empty replies, event signups and group memberships. Role, partner selection and unsent drafts are session state. When changing the persisted shape, update the decoder and test loading a snapshot written by the previous version.
 
 ## Read from the same records
 
 | View | Contract |
 | --- | --- |
-| Community | Reads `state.posts`. A private referral never creates a board post. |
+| Community | The public board shows public posts. My groups shows posts from joined neighborhoods. Leaving a group hides its posts from that feed until the resident rejoins. A private referral appears in Activity. |
 | Activity | `residentTimeline` selects the resident’s referrals. `partnerInbox` selects the receiving partner’s referrals and omits the internal resident ID. |
 | Impact | `impact` counts received referrals, open referrals without a service, and delivered services by category and provider. The winter program counts eligible clothing deliveries explicitly linked to it. Received funds and pledges are independent amounts. |
 | Map | `mapRows` groups open needs and deliveries by shared neighborhood. A referral without a shared neighborhood still contributes to overall impact. Resources come from the directory. Incident layers use a separately dated [historical series](sources.md). |

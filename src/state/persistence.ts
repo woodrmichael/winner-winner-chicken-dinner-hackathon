@@ -1,4 +1,5 @@
-import type { DemoState, Post, Referral } from '../domain/types';
+import { emptyCommunity } from '../domain/seed';
+import type { CommunityState, DemoState, Post, Referral } from '../domain/types';
 import { categories, neighborhoods } from '../domain/types';
 import { directory } from '../features/matching/directory';
 
@@ -16,7 +17,39 @@ function isPost(p: unknown): p is Post {
     record(p) &&
     [p.id, p.author, p.title, p.body].every(isText) &&
     isDate(p.date) &&
-    includes(['Offer', 'Event', 'Update'], p.kind)
+    includes(['Offer', 'Event', 'Update'], p.kind) &&
+    (p.group === undefined || (p.kind === 'Update' && includes(neighborhoods, p.group)))
+  );
+}
+
+function isCommunity(value: unknown, posts: Post[]): value is CommunityState {
+  if (
+    !record(value) ||
+    !Array.isArray(value.replies) ||
+    !Array.isArray(value.joinedEvents) ||
+    !Array.isArray(value.groups)
+  ) {
+    return false;
+  }
+
+  const postKinds = new Map(posts.map((post) => [post.id, post.kind]));
+  return (
+    value.replies.every(
+      (reply: unknown) =>
+        record(reply) &&
+        isText(reply.id) &&
+        typeof reply.postId === 'string' &&
+        postKinds.get(reply.postId) === 'Offer' &&
+        includes(['resident', 'author'], reply.from) &&
+        typeof reply.body === 'string' &&
+        !!reply.body.trim() &&
+        isDate(reply.at),
+    ) &&
+    new Set(value.replies.map((reply) => reply.id)).size === value.replies.length &&
+    value.joinedEvents.every((id) => postKinds.get(id) === 'Event') &&
+    new Set(value.joinedEvents).size === value.joinedEvents.length &&
+    value.groups.every((group) => includes(neighborhoods, group)) &&
+    new Set(value.groups).size === value.groups.length
   );
 }
 function isReferral(r: unknown): r is Referral {
@@ -58,8 +91,14 @@ export function decode(raw: string): DemoState {
     Array.isArray(state.posts) &&
     state.posts.every(isPost) &&
     Array.isArray(state.referrals) &&
-    state.referrals.every(isReferral)
+    state.referrals.every(isReferral) &&
+    (state.community === undefined || isCommunity(state.community, state.posts))
   )
-    return { version: 1, posts: state.posts, referrals: state.referrals };
+    return {
+      version: 1,
+      posts: state.posts,
+      referrals: state.referrals,
+      community: state.community ?? emptyCommunity(),
+    };
   throw new Error('Your workspace couldn’t be opened. Reset it to start again.');
 }

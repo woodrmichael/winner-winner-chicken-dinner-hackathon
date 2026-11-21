@@ -1,4 +1,5 @@
 import { directory } from '../features/matching/directory';
+import { applyCommunityCommand } from '../features/community/model';
 import { historicalIncidents, program, residentId } from './seed';
 import { categories, neighborhoods, type Command, type DemoState, type Referral } from './types';
 
@@ -8,24 +9,7 @@ export function status(referral: Pick<Referral, 'service' | 'acceptedAt'>) {
 }
 
 export function applyCommand(state: DemoState, cmd: Command): DemoState {
-  if (cmd.type === 'post') {
-    if (!cmd.title.trim() || !cmd.body.trim()) throw new Error('Add a title and a description.');
-    if (state.posts.some((post) => post.id === cmd.id)) return state;
-    return {
-      ...state,
-      posts: [
-        {
-          id: cmd.id,
-          kind: 'Offer',
-          author: 'Alex (you)',
-          title: cmd.title.trim(),
-          body: cmd.body.trim(),
-          date: cmd.at,
-        },
-        ...state.posts,
-      ],
-    };
-  }
+  if (!('partnerId' in cmd)) return applyCommunityCommand(state, cmd);
   const partner = directory.find((entry) => entry.id === cmd.partnerId);
   if (!partner) throw new Error('Choose a partner from the directory.');
   const referral = state.referrals.find((item) => item.id === cmd.id);

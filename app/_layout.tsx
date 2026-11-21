@@ -66,7 +66,9 @@ function Shell() {
     >
       {tabs.map(({ name, path, icon: Icon }) => {
         const selected =
-          pathname === path || (path === '/' && ['/ask', '/offer'].includes(pathname));
+          pathname === path ||
+          (path === '/' &&
+            (['/ask', '/offer'].includes(pathname) || pathname.startsWith('/community-post/')));
         return (
           <Pressable
             key={path}

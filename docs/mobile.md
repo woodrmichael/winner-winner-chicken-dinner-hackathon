@@ -46,6 +46,14 @@ the native keyboard and system-text checks.
    multiline fields and long action labels for clipping or unreachable controls.
    Restore your preferred setting afterward.
 
+## Check offer replies, event signups and groups
+
+| On the phone | Expected result |
+| --- | --- |
+| Open **Offers → Kids’ coats available → View offer and replies**. Ask about size 8, switch to **Offer author**, and reply. Reload and reopen the offer. | Both messages appear in order with their authors. |
+| Open **Winter essentials drive → View event**. Read when and where it takes place and what to bring. Tap **Join event**, reload and reopen the event, then tap **Cancel signup**. | The count increases by one, the signup survives reload, and cancellation restores the original count. |
+| Open **Community → My groups → Join Harambee → Post to Harambee**. Publish a post, reload and reopen **My groups**. Tap **Leave Harambee**, then rejoin. | The post appears under My groups and stays out of the public board. Leaving hides it and rejoining brings it back. |
+
 ## If it won’t open
 
 | Symptom | Try |
