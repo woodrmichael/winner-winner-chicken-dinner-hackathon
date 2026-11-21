@@ -386,3 +386,40 @@ test('worker service exports and corrections reconcile across the shared workspa
   assert.equal(correctionRecord?.corrections[0].workerName, 'Jamie Reed');
   assert(correctionRecord?.corrections[0].reason);
 });
+
+test('approved colleagues assign and reassign accepted referrals without changing totals', async (t) => {
+  const api = await fixture(t);
+  const resident = await api.login('alex');
+  const worker = await api.login('winter-worker');
+  const admin = await api.login('organizer');
+  const candidate = await api.login('candidate');
+  const outsider = await api.login('table-worker');
+  const id = 'worker-responsibility';
+  await api.command(resident, { type: 'send', id, partnerId: 'winter-team', message: 'Need a ride',
+    needs: ['Transportation'], shared: {} });
+  const assign = (token: string, workerId: string | null) =>
+    api.command(token, { type: 'assign-worker', assignmentId: id, workerId });
+  assert.equal((await assign(worker, 'winter-worker')).status, 409);
+  await api.command(worker, { type: 'accept', id, partnerId: 'winter-team' });
+  const before = (await api.read(worker)).data;
+  assert.equal((await assign(resident, 'winter-worker')).status, 403);
+  assert.equal((await assign(outsider, 'winter-worker')).status, 403);
+  assert.equal((await assign(worker, 'candidate')).status, 409);
+  assert.equal((await assign(worker, 'table-worker')).status, 409);
+  assert.equal((await assign(worker, 'winter-worker')).status, 200);
+  const assigned = (await api.read(worker)).data;
+  assert.equal(assigned.inbox.find((r) => r.assignment.id === id)?.assignment.assignedWorker?.id, 'winter-worker');
+  assert(!assigned.workers.some((w) => w.id === 'table-worker'));
+  assert.deepEqual((await api.read(resident)).data.workers, []);
+  await api.command(candidate, { type: 'request-membership', partnerId: 'winter-team' });
+  await api.command(admin, { type: 'approve-membership', accountId: 'candidate' });
+  assert.equal((await assign(worker, 'candidate')).status, 200);
+  const loginAgain = await api.login('candidate');
+  const after = (await api.read(loginAgain)).data;
+  assert.equal(after.inbox.find((r) => r.assignment.id === id)?.assignment.assignedWorker?.name, 'Riley Jones');
+  assert.equal(api.stored().referrals.find((r) => r.id === id)?.assignments[0].assignedWorker?.id, 'candidate');
+  assert.deepEqual(after.reporting, before.reporting);
+  assert.equal((await assign(worker, null)).status, 200);
+  assert.equal((await assign(worker, null)).status, 200);
+  assert.equal((await api.read(worker)).data.inbox.find((r) => r.assignment.id === id)?.assignment.assignedWorker, undefined);
+});

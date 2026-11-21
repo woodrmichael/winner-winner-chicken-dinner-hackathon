@@ -1,3 +1,5 @@
+import { WorkerAssignment } from './WorkerAssignment';
+import { suggestService } from './serviceNote';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { ClipboardCheck } from 'lucide-react-native';
@@ -33,11 +35,29 @@ function Delivery({
 }) {
   const { run } = useDemo();
   const [selected, setSelected] = useState(categories[0]);
+  const [note, setNote] = useState('');
+  const [reviewed, setReviewed] = useState(false);
+  const [suggestion, setSuggestion] = useState('');
   const [link, setLink] = useState(assignment.partnerId === 'winter-team');
   const category = categories.includes(selected) ? selected : categories[0];
   const eligible = projects.find((p) => p.providerId === assignment.partnerId && p.category === category);
   return (
     <View style={{ gap: 6 }}>
+      <Field label="Worker note (optional)" multiline value={note} change={(value) => { setNote(value); setReviewed(false); setSuggestion(''); }} placeholder="Dropped off the coats today. Ride still needed." />
+      {!!note.trim() && <>
+        <Btn label="Suggest service from note" secondary onPress={() => {
+          const matches = suggestService(note, categories);
+          if (matches.length !== 1) {
+            setSuggestion('Choose one completed service below, then confirm your selection.');
+          } else {
+            setSelected(matches[0]);
+            setSuggestion('Suggested ' + needName(matches[0]) + '. Review the service and program before confirming.');
+          }
+          setReviewed(true);
+        }} />
+        {!!suggestion && <Copy>{suggestion}</Copy>}
+      </>}
+      <Copy kind="small">Provider · {partnerName(assignment.partnerId)}</Copy>
       <Copy kind="strong">Service delivered{categories.length === 1 ? ' · ' + category : ''}</Copy>
       {categories.length > 1 && (
         <Segments options={categories} value={category} onChange={setSelected} label={needName} />
@@ -48,6 +68,7 @@ function Delivery({
       <View style={wrap}>
         <Btn
           label="Record completed service"
+          disabled={!!note.trim() && !reviewed}
           onPress={async () => {
             await run({
               type: 'complete',
@@ -226,6 +247,7 @@ export function PartnerReferralDetails({ ticket }: { ticket: Ticket }) {
         </Copy>
       ))}
       <AssignmentHistory assignment={assignment} />
+      {ticket.status === 'Accepted' && <WorkerAssignment key={assignment.assignedWorker?.id ?? 'unassigned'} assignment={assignment} />}
       {assignment.appointment && ticket.actionable.length > 0 && (
         <AppointmentDetails appointment={assignment.appointment} />
       )}
@@ -318,7 +340,7 @@ export function PartnerReferral({
     <Card style={{ paddingVertical: 10 }}>
       <Disclosure
         label={title}
-        detail={expanded ? undefined : ticket.assignment.message}
+        detail={[ticket.assignment.assignedWorker && 'Assigned to ' + ticket.assignment.assignedWorker.name, expanded ? undefined : ticket.assignment.message].filter(Boolean).join(' · ') || undefined}
         expanded={expanded}
         onToggle={onToggle}
       >

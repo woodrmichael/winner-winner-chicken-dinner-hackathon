@@ -99,6 +99,7 @@ export function snapshot(workspace: Workspace, account: StoredAccount, revision:
   const book = supportBook(workspace.supportEntries);
   return {
     revision,
+    workers: partner ? workspace.accounts.filter((entry) => approvedPartner(entry) === partner).map(({ id, name }) => ({ id, name })) : [],
     support: isOrganizer(account) ? book : { pledges: book.pledges, inquiries: [], offers: [] },
     account: publicAccount,
     posts: account.moderator ? workspace.posts : workspace.posts.filter((post) => post.status !== 'hidden'),
@@ -204,6 +205,23 @@ export function applySharedCommunity(
 export function applyWorkspaceCommand(workspace: Workspace, account: StoredAccount, cmd: WorkspaceCommand): Workspace {
   const { accounts, roles, signups } = workspace;
   switch (cmd.type) {
+    case 'assign-worker': {
+      const partner = approvedPartner(account);
+      const scope = assignmentScope(workspace.referrals, cmd.assignmentId);
+      if (!partner || scope?.assignment.partnerId !== partner)
+        throw new WorkspaceError(403, 'An approved organization membership is required.');
+      const ticket = partnerInbox(workspace, partner).find((t) => t.assignment.id === cmd.assignmentId);
+      if (ticket?.status !== 'Accepted') throw new WorkspaceError(409, 'Choose an accepted open referral.');
+      const worker = cmd.workerId === null ? undefined : accounts.find((entry) => entry.id === cmd.workerId);
+      if (cmd.workerId !== null && (!worker || approvedPartner(worker) !== partner))
+        throw new WorkspaceError(409, 'Choose an approved worker from your organization.');
+      if (scope.assignment.assignedWorker?.id === worker?.id) return workspace;
+      return { ...workspace, referrals: workspace.referrals.map((referral) => referral.id === scope.referral.id ? {
+        ...referral, assignments: referral.assignments.map((assignment) => assignment.id === cmd.assignmentId ? {
+          ...assignment, assignedWorker: worker ? { id: worker.id, name: worker.name } : undefined,
+        } : assignment) as Referral['assignments'],
+      } : referral) };
+    }
     case 'send-referral-message':
     case 'mark-activity-read':
       return applyCommunicationCommand(workspace, account, cmd);
