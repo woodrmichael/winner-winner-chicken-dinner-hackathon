@@ -359,6 +359,7 @@ test('model ranks Winter Care for clothing and a ride', async () => {
 test('model drops satisfied clothing and suggests transportation alone', async () => {
   setModelAvailable(true);
   const text = 'We already have coats but can’t get to the pickup';
+  assert.deepEqual(interpretNeeds('I already have coats but need a ride'), ['Transportation']);
   assert.deepEqual(interpretNeeds(text), ['Transportation']);
   const result = await matchWithModel(text, 0);
   assert.deepEqual(result.needs, ['Transportation']);
