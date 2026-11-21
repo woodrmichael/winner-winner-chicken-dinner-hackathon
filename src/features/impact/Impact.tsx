@@ -1,19 +1,55 @@
+
 import { useState } from 'react';
 import { View } from 'react-native';
 import { impact } from '../../domain/model';
 import { program } from '../../domain/seed';
+import { partnerName } from '../matching/directory';
 import { useDemo } from '../../state/Demo';
 import { Segments } from '../../ui/Segments';
-import { Card, Columns, Copy, Page, ProgressBar, color, row } from '../../ui/kit';
+import {
+  Card,
+  Columns,
+  Copy,
+  Page,
+  ProgressBar,
+  color,
+  row,
+} from '../../ui/kit';
 
 export default function Impact() {
   const { state } = useDemo();
   const data = impact(state);
+
   const [by, setBy] = useState<'Service' | 'Provider'>('Service');
-  const counts = by === 'Service' ? data.byCategory : data.byProvider;
-  const money = (value: number) => '$' + value.toLocaleString('en-US');
+
+  const counts = by === 'Service'
+    ? data.byCategory
+    : data.byProvider;
+
+  const money = (value: number) =>
+    '$' + value.toLocaleString('en-US');
+
+  // Find the provider responsible for delivering the program.
+  const programProvider = partnerName(program.providerId);
+
+  // Find actual deliveries associated with this program.
+  const programServices = state.referrals
+    .filter((referral) => referral.service?.programId === program.id)
+    .map((referral) => ({
+      id: referral.id,
+      category: referral.service!.category,
+      provider: partnerName(referral.service!.providerId),
+      deliveredAt: referral.service!.deliveredAt,
+    }))
+    .sort(
+      (a, b) =>
+        new Date(b.deliveredAt).getTime() -
+        new Date(a.deliveredAt).getTime()
+    );
+
   return (
     <Page title="Community impact">
+      {/* Overall impact statistics */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         {[
           ['Requests received', data.received],
@@ -25,7 +61,10 @@ export default function Impact() {
             style={{
               flexGrow: 1,
               flexBasis: 135,
-              backgroundColor: label === 'Services delivered' ? color.pale : color.paper,
+              backgroundColor:
+                label === 'Services delivered'
+                  ? color.pale
+                  : color.paper,
             }}
           >
             <Copy kind="title" style={{ fontSize: 40, lineHeight: 46 }}>
@@ -35,44 +74,142 @@ export default function Impact() {
           </Card>
         ))}
       </View>
+
       <Columns
         main={
-          <Card>
-            <Copy kind="title">Assistance delivered</Copy>
-            <Segments
-              options={['Service', 'Provider'] as const}
-              value={by}
-              onChange={setBy}
-              label={(item) => 'By ' + item.toLowerCase()}
-            />
-            {counts.map((item) => (
-              <View key={item.name} style={{ gap: 5 }}>
-                <View style={[row, { justifyContent: 'space-between' }]}>
-                  <Copy>{item.name}</Copy>
-                  <Copy kind="strong">{item.count}</Copy>
-                </View>
-                <ProgressBar value={item.count} total={data.delivered} />
+          <View style={{ gap: 12 }}>
+            {/* Delivery attribution */}
+            <Card>
+              <Copy kind="title">Delivery attribution</Copy>
+
+              <Copy kind="label" tint={color.pine}>
+                SPONSORED PROGRAM
+              </Copy>
+
+              <Copy kind="title">{program.name}</Copy>
+
+              <Copy>
+                Delivered by {programProvider}
+              </Copy>
+
+              <Copy kind="small">
+                Sponsored by {program.sponsor}
+              </Copy>
+
+              <View style={{ marginTop: 10 }}>
+                <Copy kind="title">
+                  {data.programDeliveries}
+                </Copy>
+                <Copy kind="strong">
+                  Program deliveries
+                </Copy>
               </View>
-            ))}
-          </Card>
+
+              <ProgressBar
+                value={data.programDeliveries}
+                total={Math.max(data.delivered, 1)}
+              />
+            </Card>
+
+            {/* Service and provider breakdown */}
+            <Card>
+              <Copy kind="title">Assistance delivered</Copy>
+
+              <Segments
+                options={['Service', 'Provider'] as const}
+                value={by}
+                onChange={setBy}
+                label={(item) => 'By ' + item.toLowerCase()}
+              />
+
+              {counts.map((item) => (
+                <View key={item.name} style={{ gap: 5 }}>
+                  <View
+                    style={[
+                      row,
+                      { justifyContent: 'space-between' },
+                    ]}
+                  >
+                    <Copy>{item.name}</Copy>
+                    <Copy kind="strong">{item.count}</Copy>
+                  </View>
+
+                  <ProgressBar
+                    value={item.count}
+                    total={Math.max(data.delivered, 1)}
+                  />
+                </View>
+              ))}
+            </Card>
+          </View>
         }
         side={
-          <Card>
-            <Copy kind="label" tint={color.pine}>
-              SPONSORED PROGRAM
-            </Copy>
-            <Copy kind="title">{program.name}</Copy>
-            <Copy>Supported by {program.sponsor}.</Copy>
-            <Copy kind="strong">{money(program.received)} received</Copy>
-            <Copy kind="small">
-              of {money(program.goal)} goal · {money(program.pledged)} pledged separately
-            </Copy>
-            <ProgressBar value={program.received} total={program.goal} />
-            <Copy kind="strong">
-              {data.programDeliveries} program{' '}
-              {data.programDeliveries === 1 ? 'delivery' : 'deliveries'}
-            </Copy>
-          </Card>
+          <View style={{ gap: 12 }}>
+            {/* Program funding */}
+            <Card>
+              <Copy kind="label" tint={color.pine}>
+                PROGRAM FUNDING
+              </Copy>
+
+              <Copy kind="title">{program.name}</Copy>
+
+              <Copy>
+                Supported by {program.sponsor}.
+              </Copy>
+
+              <Copy kind="strong">
+                {money(program.received)} received
+              </Copy>
+
+              <Copy kind="small">
+                of {money(program.goal)} goal ·{' '}
+                {money(program.pledged)} pledged separately
+              </Copy>
+
+              <ProgressBar
+                value={program.received}
+                total={program.goal}
+              />
+            </Card>
+
+            {/* Actual program delivery records */}
+            <Card>
+              <Copy kind="title">
+                Program delivery records
+              </Copy>
+
+              <Copy kind="small">
+                Services recorded under {program.name}.
+              </Copy>
+
+              {programServices.length === 0 ? (
+                <Copy kind="small">
+                  No program deliveries recorded yet.
+                </Copy>
+              ) : (
+                programServices.map((service) => (
+                  <View
+                    key={service.id}
+                    style={{ gap: 4, marginTop: 10 }}
+                  >
+                    <Copy kind="strong">
+                      {service.category}
+                    </Copy>
+
+                    <Copy kind="small">
+                      Delivered by {service.provider}
+                    </Copy>
+
+                    <Copy kind="small">
+                      {new Date(
+                        service.deliveredAt
+                      ).toLocaleDateString()}
+                    </Copy>
+                  </View>
+                ))
+              )}
+            </Card>
+          </View>
         }
       />
     </Page>
