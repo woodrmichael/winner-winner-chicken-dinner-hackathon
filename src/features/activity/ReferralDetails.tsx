@@ -1,6 +1,7 @@
+import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { Appointment, Category, ReferralAssignment, Service } from '../../domain/types';
-import { Copy, color } from '../../ui/kit';
+import { Btn, Copy, color } from '../../ui/kit';
 import { partnerName } from '../matching/directory';
 
 const localStamp = new Intl.DateTimeFormat('en-US', {
@@ -22,6 +23,21 @@ const appointmentStamp = new Intl.DateTimeFormat('en-US', {
 
 export function needName(category: Category) {
   return category === 'Other' ? 'Other help' : category;
+}
+
+export function formatActivityTime(at: string) {
+  return localStamp.format(new Date(at));
+}
+
+export function ConversationLink({ assignment }: { assignment: ReferralAssignment }) {
+  const router = useRouter();
+  return (
+    <Btn
+      label={`Open private conversation · ${partnerName(assignment.partnerId)}`}
+      secondary
+      onPress={() => router.push({ pathname: '/activity/referral/[id]', params: { id: assignment.id, focus: 'messages' } })}
+    />
+  );
 }
 
 export function SharedWith({ assignment }: { assignment: ReferralAssignment }) {

@@ -4,37 +4,42 @@ import { useDemo } from '../../state/Demo';
 import { SelectionRow } from '../../ui/SelectionRows';
 import { Segments } from '../../ui/Segments';
 import { Card, Copy, Page } from '../../ui/kit';
+import { SharedAccount } from './SharedAccount';
 
 export default function Settings() {
-  const { role, setRole, partnerId, setPartnerId, offerReplyFrom, setOfferReplyFrom } = useDemo();
+  const { shared, role, setRole, partnerId, setPartnerId, offerReplyFrom, setOfferReplyFrom } = useDemo();
 
   return (
     <Page title="Settings">
-      <Card>
-        <Copy kind="strong">Referral view</Copy>
-        <Segments
-          accessibilityLabel="Referral view"
-          options={['Resident', 'Partner'] as const}
-          value={role}
-          onChange={setRole}
-          label={(item) => item}
-        />
-        {role === 'Partner' && (
-          <View style={{ gap: 6 }}>
-            <Copy kind="strong">Partner inbox</Copy>
-            <View accessibilityRole="radiogroup" accessibilityLabel="Partner inbox">
-              {directory.map(({ id, name }) => (
-                <SelectionRow
-                  key={id}
-                  label={name}
-                  selected={partnerId === id}
-                  onPress={() => setPartnerId(id)}
-                />
-              ))}
+      {shared.enabled ? (
+        <SharedAccount />
+      ) : (
+        <Card>
+          <Copy kind="strong">Referral view</Copy>
+          <Segments
+            accessibilityLabel="Referral view"
+            options={['Resident', 'Partner'] as const}
+            value={role}
+            onChange={setRole}
+            label={(item) => item}
+          />
+          {role === 'Partner' && (
+            <View style={{ gap: 6 }}>
+              <Copy kind="strong">Partner inbox</Copy>
+              <View accessibilityRole="radiogroup" accessibilityLabel="Partner inbox">
+                {directory.map(({ id, name }) => (
+                  <SelectionRow
+                    key={id}
+                    label={name}
+                    selected={partnerId === id}
+                    onPress={() => setPartnerId(id)}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
-        )}
-      </Card>
+          )}
+        </Card>
+      )}
       <Card>
         <Copy kind="strong">Reply to offers as</Copy>
         <Segments

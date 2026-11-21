@@ -126,10 +126,10 @@ function partnerTicket(referral: Referral, assignment: ReferralAssignment) {
   };
 }
 
-export const residentTimeline = (state: DemoState) =>
-  state.referrals.filter((referral) => referral.residentId === residentId);
+export const residentTimeline = (state: Pick<DemoState, 'referrals'>, ownerId: string = residentId) =>
+  state.referrals.filter((referral) => referral.residentId === ownerId);
 
-export const partnerInbox = (state: DemoState, partnerId: string) =>
+export const partnerInbox = (state: Pick<DemoState, 'referrals'>, partnerId: string) =>
   state.referrals
     .flatMap((referral) =>
       referral.assignments
@@ -154,13 +154,19 @@ function requiredText(value: string, error: string) {
   return text;
 }
 
-export function detailsToShare(keys: readonly (keyof SharedDetails)[]): SharedDetails {
-  return {
-    ...(keys.includes('firstName') && { firstName: profile.firstName }),
-    ...(keys.includes('callback') && { callback: profile.callback }),
-    ...(keys.includes('neighborhood') && { neighborhood: profile.neighborhood }),
-  };
+export const shareFields = ['firstName', 'callback', 'neighborhood'] as const;
+
+export function detailsToShare(
+  keys: readonly (keyof SharedDetails)[],
+  details: SharedDetails = profile,
+): SharedDetails {
+  return Object.fromEntries(
+    shareFields.filter((key) => keys.includes(key) && details[key]).map((key) => [key, details[key]]),
+  );
 }
+
+type ResidentIdentity = { id: string; details: SharedDetails };
+const demoResident = { id: residentId, details: profile };
 
 function withAssignment(referral: Referral, assignment: ReferralAssignment): Referral {
   const [initial, ...handoffs] = referral.assignments;
@@ -176,8 +182,9 @@ function withAssignment(referral: Referral, assignment: ReferralAssignment): Ref
 function applyResidentCommand(
   referral: Referral,
   cmd: Extract<ReferralCommand, { type: 'respond-handoff' | 'seek-provider' | 'withdraw-need' }>,
+  resident: ResidentIdentity,
 ): Referral {
-  if (referral.residentId !== residentId)
+  if (referral.residentId !== resident.id)
     throw new Error('This referral belongs to another resident.');
   if (cmd.type === 'respond-handoff') {
     const handoff = referral.handoffs.find((entry) => entry.id === cmd.handoffId);
@@ -205,7 +212,7 @@ function applyResidentCommand(
           partnerId: handoff.partnerId,
           category: handoff.category,
           message: handoff.reason,
-          shared: detailsToShare(cmd.share),
+          shared: detailsToShare(cmd.share, resident.details),
           sentAt: cmd.at,
           declines: {},
         },
@@ -239,7 +246,7 @@ function applyResidentCommand(
         partnerId: cmd.recipientId,
         category: cmd.category,
         message: requiredText(cmd.message, 'Add a message before sending.'),
-        shared: detailsToShare(cmd.share),
+        shared: detailsToShare(cmd.share, resident.details),
         sentAt: cmd.at,
         declines: {},
       },
@@ -342,7 +349,11 @@ function applyPartnerCommand(
   };
 }
 
-export function applyReferralCommand(state: DemoState, cmd: ReferralCommand): DemoState {
+export function applyReferralCommand<T extends Pick<DemoState, 'referrals'>>(
+  state: T,
+  cmd: ReferralCommand,
+  resident: ResidentIdentity = demoResident,
+): T {
   const assignmentIdInUse = (id: string) =>
     state.referrals.some(
       (referral) =>
@@ -350,7 +361,11 @@ export function applyReferralCommand(state: DemoState, cmd: ReferralCommand): De
         referral.handoffs.some((handoff) => handoff.id === id),
     );
   if (cmd.type === 'send') {
-    if (state.referrals.some(({ id }) => id === cmd.id)) return state;
+    const prior = state.referrals.find(({ id }) => id === cmd.id);
+    if (prior) {
+      if (prior.residentId !== resident.id) throw new Error('This request ID is already in use.');
+      return state;
+    }
     if (assignmentIdInUse(cmd.id)) throw new Error('This request ID is already in use.');
     if (!directory.some(({ id }) => id === cmd.partnerId)) {
       throw new Error('Choose a partner from the directory.');
@@ -360,7 +375,7 @@ export function applyReferralCommand(state: DemoState, cmd: ReferralCommand): De
       referrals: [
         {
           id: cmd.id,
-          residentId,
+          residentId: resident.id,
           needs: [...new Set(cmd.needs)],
           sentAt: cmd.at,
           assignments: [
@@ -406,7 +421,7 @@ export function applyReferralCommand(state: DemoState, cmd: ReferralCommand): De
       assignmentIdInUse(cmd.assignmentId)
     )
       throw new Error('This request ID is already in use.');
-    updated = applyResidentCommand(referral, cmd);
+    updated = applyResidentCommand(referral, cmd, resident);
   }
   if (updated === referral) return state;
   return {

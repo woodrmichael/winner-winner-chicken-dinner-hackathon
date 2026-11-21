@@ -4,9 +4,11 @@ import { View } from 'react-native';
 import { partnerInbox, residentTimeline } from '../../domain/referrals';
 import { useDemo } from '../../state/Demo';
 import { Btn, Card, Copy, Page, color } from '../../ui/kit';
+import { ActivityUpdates } from './ActivityUpdates';
 import { partnerName } from '../matching/directory';
 import { PartnerReferral } from './PartnerReferral';
 import { ResidentReferral } from './ResidentReferral';
+import { VolunteerActivity } from '../volunteer/Volunteer';
 
 const inboxSections = [
   { title: 'Awaiting response', statuses: ['Sent'] },
@@ -49,20 +51,44 @@ function PartnerTickets({ tickets }: { tickets: ReturnType<typeof partnerInbox> 
 }
 
 export default function Activity() {
-  const { state, role, partnerId } = useDemo();
+  const { state, role, partnerId, shared } = useDemo();
   const router = useRouter();
-  const residentTickets = role === 'Resident' ? residentTimeline(state) : [];
+  const account = shared.data?.account;
+  const residentTickets = shared.enabled ? shared.data?.referrals ?? [] : residentTimeline(state);
+  const workerWaiting = account?.kind === 'worker' && account.membership?.status !== 'approved';
+  const organization = role === 'Partner' && partnerId ? partnerName(partnerId) : undefined;
+  const identity = [account?.name, organization].filter(Boolean).join(' · ');
+  if (shared.enabled && !account) {
+    return (
+      <Page title="Activity">
+        <Card>
+          <Copy>Sign in to see your referrals and volunteer signups.</Copy>
+          <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />
+        </Card>
+      </Page>
+    );
+  }
   return (
-    <Page title={role === 'Partner' ? 'Partner inbox' : 'Referral activity'}>
-      {role === 'Partner' && (
+    <Page title={role === 'Partner' ? (workerWaiting ? 'Activity' : 'Partner inbox') : 'Referral activity'}>
+      {identity ? (
         <Copy kind="strong" tint={color.muted}>
-          {partnerName(partnerId)}
+          {identity}
         </Copy>
-      )}
-      {role === 'Partner' ? (
-        <PartnerTickets key={partnerId} tickets={partnerInbox(state, partnerId)} />
+      ) : null}
+      <VolunteerActivity />
+      {shared.connectionError ? <Copy>{shared.connectionError}</Copy> : null}
+      {shared.data && !workerWaiting && <ActivityUpdates updates={shared.data.updates ?? []} />}
+      {workerWaiting ? (
+        <Card>
+          <Copy>{account.membership ? 'Your organization membership is awaiting approval.' : 'Request an organization membership to open its inbox.'}</Copy>
+          <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />
+        </Card>
+      ) : role === 'Partner' ? (
+        <PartnerTickets key={partnerId} tickets={shared.enabled ? shared.data?.inbox ?? [] : partnerInbox(state, partnerId)} />
       ) : residentTickets.length ? (
-        residentTickets.map((ticket) => <ResidentReferral key={ticket.id} referral={ticket} />)
+        residentTickets.map((ticket) => (
+          <ResidentReferral key={ticket.id} referral={ticket} showConversationLinks={shared.enabled} />
+        ))
       ) : (
         <Card>
           <Copy kind="title">Your requests will appear here</Copy>

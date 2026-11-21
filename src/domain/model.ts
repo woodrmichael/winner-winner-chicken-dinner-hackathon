@@ -2,11 +2,22 @@ import { directory } from '../features/matching/directory';
 import { applyCommunityCommand } from '../features/community/model';
 import { applyReferralCommand, outstandingNeeds } from './referrals';
 import { historicalIncidents, program } from './seed';
-import { categories, neighborhoods, type Category, type Command, type DemoState } from './types';
+import {
+  categories,
+  neighborhoods,
+  type Category,
+  type CommunityCommand,
+  type DemoState,
+  type ReferralCommand,
+} from './types';
 
 export { partnerInbox, residentTimeline, status } from './referrals';
 
-export function applyCommand(state: DemoState, cmd: Command): DemoState {
+export function isCommunityCommand(cmd: { type: string }): cmd is CommunityCommand {
+  return ['post', 'reply', 'event-rsvp', 'group-membership', 'save-post'].includes(cmd.type);
+}
+
+export function applyCommand(state: DemoState, cmd: CommunityCommand | ReferralCommand): DemoState {
   switch (cmd.type) {
     case 'post':
     case 'reply':
@@ -19,10 +30,10 @@ export function applyCommand(state: DemoState, cmd: Command): DemoState {
   }
 }
 
-export const deliveredServices = (state: DemoState) =>
+export const deliveredServices = (state: Pick<DemoState, 'referrals'>) =>
   state.referrals.flatMap((referral) => referral.services);
 
-export function impact(state: DemoState) {
+export function impact(state: Pick<DemoState, 'referrals'>) {
   const services = deliveredServices(state);
   return {
     received: state.referrals.length,
@@ -40,7 +51,7 @@ export function impact(state: DemoState) {
   };
 }
 
-export function mapRows(state: DemoState, category?: Category) {
+export function mapRows(state: Pick<DemoState, 'referrals'>, category?: Category) {
   const referralsWithNeighborhood = state.referrals.map((referral) => ({
     referral,
     neighborhood: referral.assignments.find(({ shared }) => shared.neighborhood)?.shared

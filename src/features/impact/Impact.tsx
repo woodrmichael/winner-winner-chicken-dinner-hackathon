@@ -17,8 +17,8 @@ import {
 } from '../../ui/kit';
 
 export default function Impact() {
-  const { state } = useDemo();
-  const data = impact(state);
+  const { state, shared } = useDemo();
+  const data = shared.data?.reporting.impact ?? impact(state);
 
   const [by, setBy] = useState<'Service' | 'Provider'>('Service');
 
@@ -33,8 +33,8 @@ export default function Impact() {
   const programProvider = partnerName(program.providerId);
 
   // Find actual deliveries associated with this program.
-  const programServices = deliveredServices(state)
-    .filter((service) => service.programId === program.id)
+  const programServices = (shared.data?.reporting.programServices ?? deliveredServices(state)
+    .filter((service) => service.programId === program.id)).slice()
     .sort(
       (a, b) =>
         new Date(b.deliveredAt).getTime() -
@@ -181,9 +181,9 @@ export default function Impact() {
                   No program deliveries recorded yet.
                 </Copy>
               ) : (
-                programServices.map((service) => (
+                programServices.map((service, index) => (
                   <View
-                    key={service.assignmentId + ':' + service.category}
+                    key={`${service.deliveredAt}:${service.category}:${index}`}
                     style={{ gap: 4, marginTop: 10 }}
                   >
                     <Copy kind="strong">

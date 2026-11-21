@@ -42,7 +42,7 @@ const pins: Record<
 
 export default function MapScreen() {
   const router = useRouter();
-  const { state } = useDemo();
+  const { state, shared } = useDemo();
 
   // Map layer visibility.
   const [visible, setVisible] = useState<Layer[]>([
@@ -57,7 +57,11 @@ export default function MapScreen() {
   // Calculate neighborhood counts from shared application state.
   const [category, setCategory] = useState<Category | 'All'>('All');
   const [filterOpen, setFilterOpen] = useState(false);
-  const rows = mapRows(state, category === 'All' ? undefined : category);
+  const reporting = shared.data?.reporting;
+  const sharedRows = category === 'All'
+    ? reporting?.map
+    : reporting?.mapByCategory?.find((entry) => entry.category === category)?.rows;
+  const rows = sharedRows ?? mapRows(state, category === 'All' ? undefined : category);
 
   const active = layers.filter((layer) =>
     visible.includes(layer.key)

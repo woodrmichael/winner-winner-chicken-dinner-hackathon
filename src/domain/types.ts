@@ -134,4 +134,15 @@ export type ReferralCommand =
     }
   | { type: 'withdraw-need'; id: string; category: Category };
 
-export type Command = CommunityCommand | ReferralCommand;
+export type VolunteerRoleId = 'sorting' | 'distribution';
+export type WorkspaceCommand =
+  | { type: 'request-membership'; partnerId: string }
+  | { type: 'approve-membership'; accountId: string }
+  | { type: 'send-referral-message'; assignmentId: string; messageId: string; body: string }
+  | { type: 'mark-activity-read'; updateId: string }
+  | { type: 'reserve-volunteer'; roleId: VolunteerRoleId }
+  | { type: 'cancel-volunteer' }
+  | { type: 'update-volunteer-role'; roleId: VolunteerRoleId; capacity: number; instructions: string }
+  | { type: 'record-attendance'; accountId: string; minutes: number };
+
+export type Command = CommunityCommand | ReferralCommand | WorkspaceCommand;

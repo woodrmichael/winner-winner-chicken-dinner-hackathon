@@ -135,7 +135,7 @@ function GroupDirectory() {
 export default function Community() {
   const router = useRouter();
   const { view } = useLocalSearchParams<{ view?: string }>();
-  const { state } = useDemo();
+  const { state, shared } = useDemo();
   const activeView = view === 'groups' || view === 'saved' ? view : 'board';
   const [filter, setFilter] = useState<'All' | Post['kind']>('All');
   const [query, setQuery] = useState('');
@@ -150,14 +150,15 @@ export default function Community() {
       : 'Join a neighborhood group to see its posts here.',
     saved: 'Save a post to find it here later.',
   };
-  const active = residentTimeline(state).filter((ticket) => outstandingNeeds(ticket).length > 0).length;
+  const active = (shared.data?.referrals ?? residentTimeline(state))
+    .filter((ticket) => outstandingNeeds(ticket).length > 0).length;
   const actions = (
     <View style={wrap}>
       <Btn label="Ask for help" icon={HandHeart} onPress={() => router.push('/ask')} />
       <Btn label="Post an offer" secondary icon={Plus} onPress={() => router.push('/offer')} />
     </View>
   );
-  const stats = impact(state);
+  const stats = shared.data?.reporting.impact ?? impact(state);
   return (
     <Page title="Community" right={actions}>
       <Columns

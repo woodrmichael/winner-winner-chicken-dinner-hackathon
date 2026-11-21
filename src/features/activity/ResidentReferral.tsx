@@ -17,6 +17,7 @@ import { ShareDetails, type ShareKey } from '../matching/ShareDetails';
 import {
   AppointmentDetails,
   AssignmentHistory,
+  ConversationLink,
   ReferralDetails,
   SharedWith,
   needName,
@@ -145,7 +146,13 @@ function DeclinedNeed({
 
 const detailSection = { borderTopWidth: 1, borderColor: color.line, paddingTop: 12, gap: 8 };
 
-export function ResidentReferral({ referral }: { referral: Referral }) {
+export function ResidentReferral({
+  referral,
+  showConversationLinks = false,
+}: {
+  referral: Referral;
+  showConversationLinks?: boolean;
+}) {
   const [initial, ...additional] = referral.assignments;
   const outstanding = outstandingNeeds(referral);
   const proposals = pendingHandoffs(referral);
@@ -168,6 +175,7 @@ export function ResidentReferral({ referral }: { referral: Referral }) {
       {initial.appointment && actionableNeeds(referral, initial).length > 0 && (
         <AppointmentDetails appointment={initial.appointment} />
       )}
+      {showConversationLinks && <ConversationLink assignment={initial} />}
       {additional.map((assignment) => (
         <View key={assignment.id} style={detailSection}>
           <Copy kind="strong">
@@ -179,6 +187,7 @@ export function ResidentReferral({ referral }: { referral: Referral }) {
           {assignment.appointment && actionableNeeds(referral, assignment).length > 0 && (
             <AppointmentDetails appointment={assignment.appointment} />
           )}
+          {showConversationLinks && <ConversationLink assignment={assignment} />}
         </View>
       ))}
       {proposals.map((proposal) => (

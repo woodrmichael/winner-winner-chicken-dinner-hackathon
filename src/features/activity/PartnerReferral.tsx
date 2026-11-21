@@ -13,6 +13,7 @@ import { partnerName } from '../matching/directory';
 import {
   AppointmentDetails,
   AssignmentHistory,
+  ConversationLink,
   ReferralDetails,
   SharedWith,
   needName,
@@ -191,7 +192,7 @@ function ProviderResponse({
   );
 }
 
-function PartnerReferralDetails({ ticket }: { ticket: Ticket }) {
+export function PartnerReferralDetails({ ticket }: { ticket: Ticket }) {
   const { run } = useDemo();
   const [action, setAction] = useState<Action | null>(null);
   const [more, setMore] = useState(false);
@@ -309,6 +310,7 @@ export function PartnerReferral({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const { shared } = useDemo();
   const title = ticket.outstanding.length
     ? ticket.outstanding.map(needName).join(' and ')
     : ticket.services.map(({ category }) => needName(category)).join(' and ') || ticket.status;
@@ -321,6 +323,7 @@ export function PartnerReferral({
         onToggle={onToggle}
       >
         <PartnerReferralDetails ticket={ticket} />
+        {shared.enabled && <ConversationLink assignment={ticket.assignment} />}
       </Disclosure>
     </Card>
   );

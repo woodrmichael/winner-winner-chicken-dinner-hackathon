@@ -87,6 +87,7 @@ function Shell() {
       {tabs.map(({ name, path, icon: Icon }) => {
         const selected =
           pathname === path ||
+          (path === '/activity' && pathname.startsWith('/activity/referral/')) ||
           (path === '/' &&
             (['/ask', '/offer'].includes(pathname) || pathname.startsWith('/community-post/')));
         return (

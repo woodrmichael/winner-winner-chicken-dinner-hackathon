@@ -31,7 +31,7 @@ export default function Ask() {
 }
 
 function RequestForm({ initialPartner }: { initialPartner?: string }) {
-  const { run, setRole, setPartnerId } = useDemo();
+  const { run, shared: workspace, setRole, setPartnerId } = useDemo();
   const router = useRouter();
   const [step, setStep] = useState<Step>(initialPartner ? 'review' : 'describe');
   const [description, setDescription] = useState('');
@@ -86,6 +86,17 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
       setRecipient(partner);
       setPartnerOpen(!partner);
     }
+  }
+
+  if (workspace.enabled && workspace.data?.account.kind !== 'resident') {
+    return (
+      <Page title="Ask for help">
+        <Card>
+          <Copy>Sign in as a resident to send a private referral.</Copy>
+          <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />
+        </Card>
+      </Page>
+    );
   }
 
   if (step === 'describe') {
@@ -296,7 +307,7 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
               partnerId: recipient,
               message,
               needs: result.needs,
-              shared: detailsToShare(shared),
+              shared: detailsToShare(shared, workspace.data?.account.details),
               at: now(),
             });
             setPartnerId(recipient);

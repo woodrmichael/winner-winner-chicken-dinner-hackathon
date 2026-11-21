@@ -1,5 +1,6 @@
 node_modules/
 .expo/
+.comforce/
 dist/
 output/
 .playwright-cli/

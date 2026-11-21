@@ -7,6 +7,7 @@ import { Btn, Card, Copy, Field, Page, color, row } from '../../ui/kit';
 import { communityEvents, residentAuthor } from './model';
 import { PostTimestamp } from './PostTimestamp';
 import { SavePostButton } from './SavePostButton';
+import { VolunteerOptions } from '../volunteer/Volunteer';
 
 function OfferThread({ post }: { post: Post }) {
   const { state, run, offerReplyFrom: from } = useDemo();
@@ -46,30 +47,39 @@ function OfferThread({ post }: { post: Post }) {
 }
 
 function EventDetails({ postId }: { postId: string }) {
-  const { state, run } = useDemo();
+  const { state, run, shared } = useDemo();
+  const router = useRouter();
   const event = communityEvents.get(postId);
   if (!event) return null;
   const joined = state.community.joinedEvents.includes(postId);
+  const sharedDrive = shared.enabled && postId === 'drive';
 
   return (
-    <Card>
-      <Copy kind="title">Event details</Copy>
-      <Copy kind="strong">When</Copy>
-      <Copy>{event.when}</Copy>
-      <Copy kind="strong">Where</Copy>
-      <Copy>{event.where}</Copy>
-      <Copy kind="strong">What to bring</Copy>
-      <Copy>{event.bring}</Copy>
-      <View accessibilityLiveRegion="polite" style={{ gap: 4 }}>
-        <Copy kind="strong">{event.volunteers + Number(joined)} volunteers</Copy>
-        {joined && <Copy tint={color.pine}>You’ve joined this event.</Copy>}
-      </View>
-      <Btn
-        label={joined ? 'Cancel signup' : 'Join event'}
-        secondary={joined}
-        onPress={() => run({ type: 'event-rsvp', postId, joined: !joined })}
-      />
-    </Card>
+    <>
+      <Card>
+        <Copy kind="title">Event details</Copy>
+        <Copy kind="strong">When</Copy>
+        <Copy>{event.when}</Copy>
+        <Copy kind="strong">Where</Copy>
+        <Copy>{event.where}</Copy>
+        <Copy kind="strong">What to bring</Copy>
+        <Copy>{event.bring}</Copy>
+        {!sharedDrive && (
+          <>
+            <View accessibilityLiveRegion="polite" style={{ gap: 4 }}>
+              <Copy kind="strong">{event.volunteers + Number(joined)} volunteers</Copy>
+              {joined && <Copy tint={color.pine}>You’ve joined this event.</Copy>}
+            </View>
+            <Btn
+              label={joined ? 'Cancel signup' : 'Join event'}
+              secondary={joined}
+              onPress={() => run({ type: 'event-rsvp', postId, joined: !joined })}
+            />
+          </>
+        )}
+      </Card>
+      {sharedDrive && <VolunteerOptions openSettings={() => router.navigate('/settings')} />}
+    </>
   );
 }
 

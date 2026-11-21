@@ -78,6 +78,31 @@ the native keyboard and system-text checks.
 | In **Community board**, type `coat` in **Search posts**. Open **Offers** and tap **Clear search**. | Search finds “Kids’ coats available,” and clearing it restores all offers. |
 | In **My groups**, join Harambee and publish a post with a distinctive title. Search for it in My groups, then switch to Community board. | The post appears in the group search and stays out of the board results. |
 
+## Check the shared workspace on two devices
+
+On the laptop, set `$env:COMFORCE_API_HOST = '0.0.0.0'` and run `npm.cmd run api`.
+In the terminal that starts Expo, set `EXPO_PUBLIC_API_URL` to the laptop’s LAN
+address and port, for example `$env:EXPO_PUBLIC_API_URL = 'http://192.168.1.20:8787'`.
+Start `npm.cmd run mobile:lan` and open the project on the phone. Launch the web
+app with the same API URL to test using a second account on the laptop.
+
+| What to check | Expected result |
+| --- | --- |
+| Sign in as `alex` on the phone. Send a clothing request to Winter Care Collective. On the laptop, sign in as `winter-worker` and accept it. | The worker’s Activity shows the organization and request. Alex sees the accepted status within a few seconds. |
+| Open Activity as `table-worker` or another resident. As `candidate`, request Winter Care Collective membership, then approve that request from `organizer` in Settings. | Unrelated accounts cannot open the request. The candidate sees an approval notice while waiting and can open the correct inbox after approval. |
+| From the winter drive, reserve the two distribution places as `alex` and `jordan`. Open the event as `sam`. Cancel one reservation, then reserve the reopened place. | Sorting stays at four places. Distribution shows Full at two. The volunteer’s role and instructions appear in Activity. |
+| As `organizer`, record 120 minutes for the attending volunteer and zero for the other. Open the event summary and the attendee’s Activity. | The summary shows two sign-ups, one participant and two contributed hours. The attendee can select and copy the hours confirmation. |
+
+## Check private messages and unread updates
+
+Use the shared workspace with a resident and approved worker on separate devices.
+
+| What to check | Expected result |
+| --- | --- |
+| As `alex`, send a clothing referral to Winter Care Collective. As `winter-worker`, open the new unread item in **Activity** and accept it. Go back to Activity. | The update opens the exact referral and stays read when Activity is reopened. Alex gets an unread acceptance update. |
+| In the referral’s private conversation, ask which sizes to bring. From Alex’s unread reply, open the conversation and answer “6 and 8.” Reopen it from both accounts. | Both messages show a sender and time. The reply opens the conversation and clears its unread status for the signed-in account. |
+| Use `jordan` or `table-worker` to open Activity. If testing a handoff, approve a different provider and open its new assignment. | Unrelated accounts do not see the messages. The new provider opens a separate thread and cannot see the original conversation. |
+
 ## If it won’t open
 
 | Symptom | Try |

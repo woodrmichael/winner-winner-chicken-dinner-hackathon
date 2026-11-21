@@ -9,14 +9,17 @@ import {
   type PropsWithChildren,
 } from 'react';
 import { View } from 'react-native';
-import { applyCommand } from '../domain/model';
+import { applyCommand, isCommunityCommand } from '../domain/model';
 import { seedState } from '../domain/seed';
 import type { Command, DemoState, OfferReply } from '../domain/types';
 import { Btn, Copy } from '../ui/kit';
 import { decode, storageKey } from './persistence';
+import { isWorkspaceCommand } from '../shared/workspace';
+import { useSharedWorkspace } from './sharedWorkspace';
 
 type DemoContext = {
   state: DemoState;
+  shared: ReturnType<typeof useSharedWorkspace>;
   run: (cmd: Command) => Promise<void>;
   partnerId: string;
   setPartnerId: (id: string) => void;
@@ -30,6 +33,7 @@ export const newId = () => Date.now().toString(36) + '-' + Math.random().toStrin
 export const now = () => new Date().toISOString();
 
 export function DemoProvider({ children }: PropsWithChildren) {
+  const shared = useSharedWorkspace();
   const [state, setState] = useState<DemoState>();
   const current = useRef<DemoState | undefined>(undefined);
   const writes = useRef(Promise.resolve());
@@ -54,7 +58,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
       active = false;
     };
   }, []);
-  const save = useCallback((cmd?: Command) => {
+  const save = useCallback((cmd?: Parameters<typeof applyCommand>[1]) => {
     const next = writes.current.then(async () => {
       const value = cmd && current.current ? applyCommand(current.current, cmd) : seedState();
       if (value !== current.current) await AsyncStorage.setItem(storageKey, JSON.stringify(value));
@@ -81,11 +85,16 @@ export function DemoProvider({ children }: PropsWithChildren) {
   return (
     <Context.Provider
       value={{
-        state,
-        run: save,
-        role,
+        state: shared.enabled ? { ...state, referrals: [] } : state,
+        shared,
+        run: (cmd) => {
+          if (shared.enabled && !isCommunityCommand(cmd)) return shared.run(cmd);
+          if (isWorkspaceCommand(cmd)) return Promise.reject(new Error('Open the shared workspace first.'));
+          return save(cmd);
+        },
+        role: shared.enabled ? shared.data?.account.kind === 'worker' ? 'Partner' : 'Resident' : role,
         setRole,
-        partnerId,
+        partnerId: shared.enabled ? shared.data?.account.membership?.partnerId ?? '' : partnerId,
         setPartnerId,
         offerReplyFrom,
         setOfferReplyFrom,

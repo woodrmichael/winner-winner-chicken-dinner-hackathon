@@ -232,12 +232,16 @@ export function Field({
   change,
   multiline = false,
   placeholder,
+  secure = false,
+  autoCapitalize,
 }: {
   label: string;
   value: string;
   change: (v: string) => void;
   multiline?: boolean;
   placeholder?: string;
+  secure?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }) {
   return (
     <View style={{ gap: 6 }}>
@@ -248,6 +252,9 @@ export function Field({
         placeholderTextColor={color.muted}
         value={value}
         onChangeText={change}
+        secureTextEntry={secure}
+        autoCapitalize={secure ? 'none' : autoCapitalize}
+        autoCorrect={secure || autoCapitalize === 'none' ? false : undefined}
         multiline={multiline}
         style={{
           color: color.ink,

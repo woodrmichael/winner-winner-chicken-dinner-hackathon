@@ -1,8 +1,8 @@
 # Architecture
 
-Each feature shares one Expo Router app and one device-local workspace. A referral represents one resident request. It contains partner assignments, requested categories and deliveries credited to the partner that provided each service.
+Each feature shares one Expo Router app. The offline rehearsal uses a device-local workspace. With `EXPO_PUBLIC_API_URL` set, the app sends referral, membership and volunteer commands to the shared server. A referral represents one resident request. It contains partner assignments, requested categories and deliveries credited to the partner that provided each service.
 
-The [demo directory](../src/features/matching/directory.ts) contains sample provider records. Referrals sent in the demo appear in Activity on the same device.
+The [demo directory](../src/features/matching/directory.ts) contains sample provider records. Community posts, bookmarks and offer replies stay on the current device. Shared referrals appear for authorized users across devices.
 
 | Change | Start here |
 | --- | --- |
@@ -37,6 +37,14 @@ A screen supplies an ID and timestamp, then awaits `run(command)`. The provider 
 - `complete` requires acceptance and an outstanding category the assignment handles. Each delivery stores its category, assignment, provider, time and optional program. Repeating acceptance, approval or delivery preserves the original record.
 - AsyncStorage uses the existing key `comforce-connect/demo/v1`. The v2 decoder upgrades v1 records to one original assignment and preserves every old delivery. A requested category without a delivery stays open after migration. Older snapshots without community state or bookmarks load with empty defaults for those fields. Settings holds the referral view, partner inbox and offer reply identity for the session. Unsent drafts are session state.
 
+### Shared account and volunteer contracts
+
+- [The workspace API](../server/api.ts) authenticates each request with a session token. `GET /workspace` returns the active account, its resident referrals or its approved organization’s assignments, and separate public reporting projections. It does not distribute raw referrals to other accounts. [Workspace access checks](../server/workspace.ts) run on every command and use the current membership, so approval reaches an already signed-in worker on the next refresh.
+- `request-membership` opens a pending worker membership. `approve-membership` requires an administrator from the requested organization. Referral consent uses the resident account’s profile fields and the selections reviewed for that recipient.
+- `reserve-volunteer` creates one signup per account for the winter drive. `cancel-volunteer` releases the place before attendance is recorded. Capacity checks and saves happen against the same server state. `update-volunteer-role` and `record-attendance` require the winter organizer. Pending attendance has no minutes, a no-show has zero, and a participant has positive confirmed minutes. The project summary counts signups, positive attendance and total minutes from those same records.
+- `send-referral-message` targets one assignment. Only the resident who owns the referral and approved workers at that assignment’s organization can read or reply. The server records sender and time. It shows the resident’s first name only when shared with that organization. A handoff starts a separate conversation for the new assignment.
+- Sending, accepting, proposing a handoff and replying create Activity updates for the relevant recipient. `mark-activity-read` records the signed-in account that opened the update. Reading it leaves it unread for colleagues, and the state persists across sessions. Older shared workspaces start with empty conversations and updates.
+
 ## Read from the same records
 
 | View | Contract |
@@ -48,7 +56,7 @@ A screen supplies an ID and timestamp, then awaits `run(command)`. The provider 
 
 ### Counting rules for 4.3 and 5.2
 
-The map's optional service category filters open needs and completed services in both the map labels and neighborhood list. Directory resources and historical observations keep their neighborhood totals.
+The map's optional service category filters open needs and completed services in both the map labels and neighborhood list. The shared API provides the same per-category totals without sending private referral records to the map. Directory resources and historical observations keep their neighborhood totals.
 
 - For 4.3, use `outstandingNeeds(referral)` for the category breakdown. A provider decline or handoff leaves the category outstanding. Recording a service or withdrawing a category removes it. A request without detected categories counts as Other until resolved.
 - For 5.2, use `referral.sentAt` for requests received and `service.deliveredAt` for deliveries. Filter delivery breakdowns by `service.providerId` and use the Milwaukee calendar for month boundaries. Handoffs, declines, withdrawals and appointments never add requests or deliveries.
