@@ -1,16 +1,17 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
+import { useState, type ReactNode } from 'react';
 import {
   Activity,
   ChartNoAxesColumnIncreasing,
-  HeartHandshake,
   Map,
   MapPin,
   Settings,
   UsersRound,
 } from 'lucide-react-native';
-import { Pressable, StatusBar, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, StatusBar, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { DemoProvider } from '../src/state/Demo';
+import { MobileHeaderActionContext } from '../src/ui/MobileHeaderAction';
 import { Btn, Copy, color, row } from '../src/ui/kit';
 
 const tabs = [
@@ -22,18 +23,14 @@ const tabs = [
 
 function Brand() {
   return (
-    <View style={[row, { gap: 8, flexShrink: 1 }]}>
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
-          backgroundColor: color.pine,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <HeartHandshake size={21} color="#FFF" strokeWidth={1.8} />
+    <View style={[row, { gap: 7, flexShrink: 1 }]}>
+      <View style={{ width: 32, height: 36, overflow: 'hidden' }}>
+        <Image
+          source={require('../assets/comforce-mke-logo.png')}
+          accessibilityLabel="ComForce MKE logo"
+          resizeMode="contain"
+          style={{ position: 'absolute', width: 224, height: 61, left: -19, top: -4 }}
+        />
       </View>
       <Copy kind="strong" style={{ fontSize: 17, letterSpacing: -0.55, flexShrink: 1 }}>
         ComForce Connect
@@ -55,6 +52,7 @@ function Shell() {
   const pathname = usePathname();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const [mobileHeaderAction, setMobileHeaderAction] = useState<ReactNode>(null);
   const wide = width >= 900;
   const settingsAction = pathname === '/settings' ? (
     <Btn
@@ -88,6 +86,7 @@ function Shell() {
         const selected =
           pathname === path ||
           (path === '/activity' && pathname.startsWith('/activity/referral/')) ||
+          (path === '/impact' && pathname === '/impact-program') ||
           (path === '/' &&
             (['/ask', '/offer'].includes(pathname) || pathname.startsWith('/community-post/')));
         return (
@@ -169,19 +168,22 @@ function Shell() {
                 {
                   justifyContent: 'space-between',
                   paddingHorizontal: 18,
-                  paddingVertical: 10,
+                  paddingVertical: 8,
                   minHeight: 54,
                 },
               ]}
             >
               <Brand />
               <View style={row}>
-                {width >= 400 && <Location />}
+                {width >= 400 && !mobileHeaderAction && <Location />}
                 {settingsAction}
+                {mobileHeaderAction}
               </View>
             </View>
           )}
-          <Slot />
+          <MobileHeaderActionContext.Provider value={setMobileHeaderAction}>
+            <Slot />
+          </MobileHeaderActionContext.Provider>
           {!wide && navigation}
         </View>
       </View>

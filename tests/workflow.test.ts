@@ -8,7 +8,7 @@ import {
   residentTimeline,
   status,
 } from '../src/domain/model';
-import { profile, program, residentId, seedState } from '../src/domain/seed';
+import { profile, program, residentId, seedState as fullDemo } from '../src/domain/seed';
 import { outstandingNeeds, pendingHandoffs } from '../src/domain/referrals';
 import type { Command } from '../src/domain/types';
 import { example, matchResources } from '../src/features/matching/match';
@@ -24,6 +24,10 @@ import {
 import { decode } from '../src/state/persistence';
 
 const at = '2026-11-21T18:00:00Z';
+function seedState() {
+  const state = fullDemo();
+  return { ...state, referrals: state.referrals.filter(({ id }) => id.startsWith('seed-')) };
+}
 const send: Command = {
   type: 'send',
   id: 'demo-run',
@@ -418,7 +422,7 @@ test('removing a need re-ranks partners for review', () => {
 });
 
 test('saved state validation and deterministic reset', () => {
-  assert.deepEqual(decode(JSON.stringify(seedState())), seedState());
+  assert.deepEqual(decode(JSON.stringify(fullDemo())), fullDemo());
   for (const raw of [
     'null',
     '{}',

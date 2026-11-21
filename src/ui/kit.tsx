@@ -70,7 +70,14 @@ export function Page({
   children,
   title,
   right,
-}: PropsWithChildren<{ title: string; right?: ReactNode }>) {
+  subtitle,
+  back,
+}: PropsWithChildren<{
+  title: string;
+  right?: ReactNode;
+  subtitle?: ReactNode;
+  back?: ReactNode;
+}>) {
   const wide = useWindowDimensions().width >= 900;
   return (
     <ScrollView
@@ -89,7 +96,8 @@ export function Page({
           paddingBottom: 48,
         }}
       >
-        <View style={[wrap, { justifyContent: 'space-between', columnGap: 18 }]}>
+        {back && <View style={{ marginBottom: -14 }}>{back}</View>}
+        <View style={[wrap, { justifyContent: 'space-between', columnGap: 12 }]}>
           <Text
             accessibilityRole="header"
             style={{
@@ -106,6 +114,7 @@ export function Page({
           </Text>
           {wide && right}
         </View>
+        {subtitle && <View style={{ marginTop: -16 }}>{subtitle}</View>}
         {!wide && right}
         {children}
       </View>
@@ -141,6 +150,7 @@ export function Btn({
   quiet = false,
   stretch = false,
   disabled = false,
+  expanded,
 }: {
   label: string;
   onPress: () => unknown;
@@ -151,6 +161,7 @@ export function Btn({
   quiet?: boolean;
   stretch?: boolean;
   disabled?: boolean;
+  expanded?: boolean;
 }) {
   const lock = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -176,7 +187,7 @@ export function Btn({
         accessibilityRole="button"
         accessibilityLabel={iconOnly ? label : undefined}
         disabled={disabled || busy}
-        accessibilityState={{ disabled: disabled || busy }}
+        accessibilityState={{ disabled: disabled || busy, expanded }}
         onPress={press}
         style={({ pressed }) => [
           row,

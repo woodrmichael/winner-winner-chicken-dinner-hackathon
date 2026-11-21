@@ -15,7 +15,7 @@ test('upgrading a saved workspace preserves existing public offers and private r
     type: 'post', id: 'older-offer', title: 'Warm socks', body: 'Pickup Saturday', at,
   });
   const upgraded = decode(JSON.stringify({ posts, referrals, version }));
-  assert.deepEqual(communityFeed(upgraded, 'board'), posts);
+  assert.deepEqual(communityFeed(upgraded, 'board'), posts.filter(({ group }) => !group));
   assert.deepEqual(upgraded.referrals, referrals);
   assert.deepEqual(upgraded.community, initial.community);
 });
@@ -79,17 +79,20 @@ test('group posts appear only under My groups while a resident has joined that g
   const initial = seedState();
   assert.throws(() => applyCommand(initial, post), /Join the group/);
   const published = reopen(applyCommand(applyCommand(initial, join), post));
-  assert.deepEqual(communityFeed(published, 'groups').map((item) => item.title), ['Park cleanup']);
+  assert.deepEqual(
+    communityFeed(published, 'groups').map((item) => item.title),
+    ['Park cleanup', 'Help set up the winter drive'],
+  );
   assert.deepEqual(communityFeed(published, 'groups', 'cleanup noon').map((item) => item.id), [post.id]);
   assert.deepEqual(communityFeed(published, 'board', 'cleanup noon'), []);
-  assert.deepEqual(communityFeed(published, 'board'), initial.posts);
+  assert.deepEqual(communityFeed(published, 'board'), initial.posts.filter(({ group }) => !group));
   const bookmarked = applyCommand(published, { type: 'save-post', postId: post.id, saved: true });
-  assert.deepEqual(communityFeed(bookmarked, 'saved'), communityFeed(published, 'groups'));
+  assert.deepEqual(communityFeed(bookmarked, 'saved').map(({ id }) => id), [post.id]);
   const left = reopen(applyCommand(bookmarked, { ...join, joined: false }));
   assert.deepEqual(communityFeed(left, 'groups'), []);
   assert.deepEqual(communityFeed(left, 'groups', 'cleanup'), []);
   assert.deepEqual(communityFeed(left, 'saved'), []);
   const rejoined = applyCommand(left, join);
   assert.deepEqual(communityFeed(rejoined, 'groups'), communityFeed(published, 'groups'));
-  assert.deepEqual(communityFeed(rejoined, 'saved'), communityFeed(published, 'groups'));
+  assert.deepEqual(communityFeed(rejoined, 'saved').map(({ id }) => id), [post.id]);
 });

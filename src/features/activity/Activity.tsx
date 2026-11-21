@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { partnerInbox, residentTimeline } from '../../domain/referrals';
 import { useDemo } from '../../state/Demo';
+import { Disclosure } from '../../ui/Disclosure';
 import { Btn, Card, Copy, Page, color } from '../../ui/kit';
 import { ActivityUpdates } from './ActivityUpdates';
 import { partnerName } from '../matching/directory';
@@ -18,6 +19,7 @@ const inboxSections = [
 
 function PartnerTickets({ tickets }: { tickets: ReturnType<typeof partnerInbox> }) {
   const [openTicket, setOpenTicket] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
   if (!tickets.length) {
     return (
       <Card>
@@ -29,22 +31,37 @@ function PartnerTickets({ tickets }: { tickets: ReturnType<typeof partnerInbox> 
   return inboxSections.map((section) => {
     const cases = tickets.filter((ticket) => section.statuses.includes(ticket.status));
     if (!cases.length) return null;
+    const rows = cases.map((ticket) => (
+      <PartnerReferral
+        key={ticket.assignment.id}
+        ticket={ticket}
+        expanded={openTicket === ticket.assignment.id}
+        onToggle={() =>
+          setOpenTicket(openTicket === ticket.assignment.id ? '' : ticket.assignment.id)
+        }
+      />
+    ));
+    if (section.title === 'Completed history') {
+      return (
+        <Card key={section.title}>
+          <Disclosure
+            label={section.title}
+            detail={`${cases.length} referrals`}
+            expanded={showHistory}
+            onToggle={() => setShowHistory(!showHistory)}
+          >
+            <View style={{ gap: 12 }}>{rows}</View>
+          </Disclosure>
+        </Card>
+      );
+    }
 
     return (
       <View key={section.title} style={{ gap: 12 }}>
         <View accessible accessibilityRole="header">
           <Copy kind="strong">{section.title}</Copy>
         </View>
-        {cases.map((ticket) => (
-          <PartnerReferral
-            key={ticket.assignment.id}
-            ticket={ticket}
-            expanded={openTicket === ticket.assignment.id}
-            onToggle={() =>
-              setOpenTicket(openTicket === ticket.assignment.id ? '' : ticket.assignment.id)
-            }
-          />
-        ))}
+        {rows}
       </View>
     );
   });

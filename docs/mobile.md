@@ -16,7 +16,7 @@ Use the **Settings** gear at the top of the app to switch the **Referral view** 
 
 | On the phone | Expected result |
 | --- | --- |
-| Open **Impact** and note the starting totals. | A fresh workspace starts at 4 requests received, 2 open referrals and 2 services delivered. |
+| Open **Impact**, tap the reporting month and choose **All time**. Note the starting totals. | A fresh workspace has 289 sample requests. Using All time makes it easy to compare totals after the walkthrough. |
 | Go to **Community → Ask for help**. Type “We need clothes for the kids and a ride to pick them up.” Tap **Find resources**. | Winter Care Collective matches clothing and transportation. Tap its name to see the other sample partners. |
 | Open **Sharing options**, select **Neighborhood · Harambee**, then tap **Send referral**. | Your referral appears in Activity as **Sent**. |
 | In **Settings**, select **Partner**, then tap **Done**. Open the referral under **Awaiting response** and tap **Accept referral**. Press **r** on the laptop, then switch back to **Partner** in Settings. | The referral appears under **Accepted cases** after reload. |
@@ -102,6 +102,13 @@ Use the shared workspace with a resident and approved worker on separate devices
 | As `alex`, send a clothing referral to Winter Care Collective. As `winter-worker`, open the new unread item in **Activity** and accept it. Go back to Activity. | The update opens the exact referral and stays read when Activity is reopened. Alex gets an unread acceptance update. |
 | In the referral’s private conversation, ask which sizes to bring. From Alex’s unread reply, open the conversation and answer “6 and 8.” Reopen it from both accounts. | Both messages show a sender and time. The reply opens the conversation and clears its unread status for the signed-in account. |
 | Use `jordan` or `table-worker` to open Activity. If testing a handoff, approve a different provider and open its new assignment. | Unrelated accounts do not see the messages. The new provider opens a separate thread and cannot see the original conversation. |
+
+## Check monthly impact
+
+1. In a fresh workspace, open **Impact**. November 2026 shows 126 requests, 89 deliveries, 62 residents assisted and 58 open referrals. The median time to first acceptance is 1 hour 35 minutes, with 25 referrals still awaiting acceptance.
+2. Select **Winter Care Collective** in **Assistance by type**. Compare the delivery total and breakdown. Open **Winter essentials** under **Recent work** and tap **View delivery history** to see who delivered the clothing. Program funding shows $1,250 received and $300 pledged.
+3. Tap the share icon at the top of Impact and compare the month, provider and totals in the summary. Tap **Share summary** and confirm the phone’s share sheet opens. On the web, use **Copy summary** and paste it into a local editor.
+4. Choose **October 2026** and compare its 74 requests and 67 deliveries with November. Repeat on a narrow phone with larger system text.
 
 ## If it won’t open
 

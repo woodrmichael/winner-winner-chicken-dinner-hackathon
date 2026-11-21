@@ -1,21 +1,10 @@
 import { profile } from '../../domain/seed';
+import { communityEvents } from '../../domain/demoCommunity';
 import { neighborhoods, type CommunityCommand, type DemoState, type Post } from '../../domain/types';
 
 export const residentAuthor = `${profile.firstName} (you)`;
 
-type CommunityEvent = { when: string; where: string; bring: string; volunteers: number };
-
-export const communityEvents = new Map<string, CommunityEvent>([
-  [
-    'drive',
-    {
-      when: 'Saturday, November 21 · 10 am',
-      where: 'Moody Park',
-      bring: 'Bring a clean winter coat if you’re donating. If you’re picking one up, just bring yourself.',
-      volunteers: 8,
-    },
-  ],
-]);
+export { communityEvents };
 
 export type CommunityView = 'board' | 'groups' | 'saved';
 
