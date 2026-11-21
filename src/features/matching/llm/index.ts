@@ -3,7 +3,7 @@ import { createDemoLlmClient } from './demoClient';
 
 export type { LlmClient } from './client';
 export type { DraftResult, MatchResult, MatchSource, PartnerMatch } from './types';
-export { interpretNeeds, rankPartners } from './demoClient';
+export { detectNeighborhood, interpretNeeds, rankPartners } from './demoClient';
 
 /**
  * Returns the active LLM client. Demo hardcoding for now;

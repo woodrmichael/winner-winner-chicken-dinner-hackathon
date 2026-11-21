@@ -1,4 +1,4 @@
-import type { Category } from '../../../domain/types';
+import { neighborhoods, type Category, type Neighborhood } from '../../../domain/types';
 import { directory } from '../directory';
 import type { LlmClient } from './client';
 import type { PartnerMatch } from './types';
@@ -33,10 +33,21 @@ function delay(ms: number) {
 
 export function interpretNeeds(text: string): Category[] {
   const clauses = text.split(/[.!?;]|\bbut\b/i);
-  return vocabulary.filter(([need, pattern]) =>
-    clauses.some((clause) => pattern.test(clause) &&
-      !satisfied.some(([category, rule]) => category === need && rule.test(clause))),
-  ).map(([need]) => need);
+  return vocabulary
+    .filter(([need, pattern]) =>
+      clauses.some(
+        (clause) =>
+          pattern.test(clause) &&
+          !satisfied.some(([category, rule]) => category === need && rule.test(clause)),
+      ),
+    )
+    .map(([need]) => need);
+}
+
+/** Detect a directory neighborhood named in the request text. */
+export function detectNeighborhood(text: string): Neighborhood | undefined {
+  const lower = text.toLowerCase();
+  return neighborhoods.find((area) => lower.includes(area.toLowerCase()));
 }
 
 function explain(covers: Category[]): string {
@@ -49,19 +60,87 @@ function explain(covers: Category[]): string {
   return '';
 }
 
-export function rankPartners(needs: Category[]): PartnerMatch[] {
-  const directoryIndex = new Map(directory.map((partner, index) => [partner.id, index]));
+function directoryIndex() {
+  return new Map(directory.map((partner, index) => [partner.id, index]));
+}
+
+function areaScore(area: Neighborhood, preferred?: Neighborhood) {
+  if (!preferred) return 0;
+  return area === preferred ? 1 : 0;
+}
+
+function compareMatches(
+  a: PartnerMatch,
+  b: PartnerMatch,
+  index: Map<string, number>,
+  preferred?: Neighborhood,
+) {
+  const byCoverage = b.covers.length - a.covers.length;
+  if (byCoverage !== 0) return byCoverage;
+  const byArea = areaScore(b.partner.area, preferred) - areaScore(a.partner.area, preferred);
+  if (byArea !== 0) return byArea;
+  return (index.get(a.partner.id) ?? 0) - (index.get(b.partner.id) ?? 0);
+}
+
+function coveringMatches(needs: Category[]): PartnerMatch[] {
   return directory
     .map((partner) => {
       const covers = needs.filter((need) => partner.categories.includes(need));
       return { partner, covers, explanation: explain(covers) };
     })
-    .filter((match) => match.covers.length > 0)
-    .sort((a, b) => {
-      const byCoverage = b.covers.length - a.covers.length;
-      if (byCoverage !== 0) return byCoverage;
-      return (directoryIndex.get(a.partner.id) ?? 0) - (directoryIndex.get(b.partner.id) ?? 0);
-    });
+    .filter((match) => match.covers.length > 0);
+}
+
+function pickSpecialist(
+  need: Category,
+  candidates: PartnerMatch[],
+  preferred?: Neighborhood,
+): PartnerMatch | undefined {
+  const index = directoryIndex();
+  const forNeed = candidates.filter((match) => match.covers.includes(need));
+  if (!forNeed.length) return undefined;
+  return [...forNeed].sort((a, b) => {
+    const bySpecialty = a.partner.categories.length - b.partner.categories.length;
+    if (bySpecialty !== 0) return bySpecialty;
+    const byArea = areaScore(b.partner.area, preferred) - areaScore(a.partner.area, preferred);
+    if (byArea !== 0) return byArea;
+    return (index.get(a.partner.id) ?? 0) - (index.get(b.partner.id) ?? 0);
+  })[0];
+}
+
+/**
+ * Rank partners by needs covered, then preferred neighborhood, then directory order.
+ * When no partner covers every need, surface one complementary specialist per need first.
+ */
+export function rankPartners(needs: Category[], preferredArea?: Neighborhood): PartnerMatch[] {
+  if (!needs.length) return [];
+  const index = directoryIndex();
+  const matches = coveringMatches(needs);
+  const fullCover = matches.some((match) => match.covers.length === needs.length);
+
+  if (fullCover) {
+    return [...matches].sort((a, b) => compareMatches(a, b, index, preferredArea));
+  }
+
+  const complementary: PartnerMatch[] = [];
+  const seen = new Set<string>();
+  for (const need of needs) {
+    const pick = pickSpecialist(need, matches, preferredArea);
+    if (pick && !seen.has(pick.partner.id)) {
+      seen.add(pick.partner.id);
+      complementary.push({
+        ...pick,
+        covers: [need],
+        explanation: 'Covers ' + need.toLowerCase(),
+      });
+    }
+  }
+
+  const others = matches
+    .filter((match) => !seen.has(match.partner.id))
+    .sort((a, b) => compareMatches(a, b, index, preferredArea));
+
+  return [...complementary, ...others];
 }
 
 function cannedDraft(text: string, needs: Category[]): string {
@@ -108,7 +187,7 @@ export function createDemoLlmClient(waitMs = 550): LlmClient {
     async interpret(text: string) {
       await delay(waitMs);
       const needs = interpretNeeds(text);
-      return { needs, matches: rankPartners(needs) };
+      return { needs, matches: rankPartners(needs, detectNeighborhood(text)) };
     },
     async draft(text: string, needs: Category[]) {
       await delay(Math.min(220, waitMs));
