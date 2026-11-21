@@ -1,6 +1,6 @@
 # Working on ComForce Connect
 
-Pick any ready ticket from the [product backlog](docs/tasks.md). Check its dependencies, claim its ID with your name or branch, and use its acceptance example to verify the change. After it lands, pick another ticket from any section.
+Choose an open subtask from the [team task board](docs/tasks.md). Check any dependency marked “After” and claim the subtask number with your name or branch. Respect existing claims and use the example beside your number to verify the change.
 
 - Keep routes in `app/` thin. Put screens and feature-specific logic in `src/features/`. Shared components live in `src/ui/`.
 - Call `useDemo().run(command)` for writes. Read the [architecture](docs/architecture.md) before changing a command, persistence or a metric. Coordinate shared contract changes with anyone working on a dependent ticket.
