@@ -2,7 +2,7 @@
 
 Milwaukee residents can post offers and privately request help. A partner accepts a referral and records the service it delivered. That one entry updates the resident’s timeline, the neighborhood map and ComForce’s impact totals.
 
-**First time using Expo?** Start with [testing on your phone](docs/mobile.md). To pick up work, choose one of the [five team assignments](docs/tasks.md).
+**First time using Expo?** Start with [testing on your phone](docs/mobile.md). Pick any ready ticket from the [product backlog](docs/tasks.md). Each ticket includes its dependencies and a concrete acceptance check.
 
 ## Run on a laptop
 
