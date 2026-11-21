@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { detailsToShare } from '../../domain/referrals';
@@ -14,6 +14,7 @@ import { example } from './match';
 import {
   draftReferral,
   findResources,
+  interpretNeeds,
   isVagueRequest,
   withNeeds,
   type MatchResult,
@@ -24,15 +25,21 @@ type Step = 'describe' | 'clarify' | 'review';
 const emptyMatch: MatchResult = { needs: [], matches: [], source: 'model' };
 
 export default function Ask() {
+  const { partner } = useLocalSearchParams<{ partner?: string }>();
+  const initialPartner = directory.find((entry) => entry.id === partner)?.id;
+  return <RequestForm key={initialPartner ?? 'community'} initialPartner={initialPartner} />;
+}
+
+function RequestForm({ initialPartner }: { initialPartner?: string }) {
   const { run, setRole, setPartnerId } = useDemo();
   const router = useRouter();
-  const [step, setStep] = useState<Step>('describe');
+  const [step, setStep] = useState<Step>(initialPartner ? 'review' : 'describe');
   const [description, setDescription] = useState('');
   const [clarification, setClarification] = useState('');
   const [originalWording, setOriginalWording] = useState('');
   const [suggestedDraft, setSuggestedDraft] = useState('');
   const [message, setMessage] = useState('');
-  const [recipient, setRecipient] = useState('');
+  const [recipient, setRecipient] = useState(initialPartner ?? '');
   const [shared, setShared] = useState<ShareKey[]>([]);
   const [partnerOpen, setPartnerOpen] = useState(false);
   const [sharingOpen, setSharingOpen] = useState(false);
@@ -61,7 +68,7 @@ export default function Ask() {
     setSuggestedDraft(draft);
     setMessage(draft);
     setResult(next);
-    const partner = next.matches[0]?.partner.id ?? '';
+    const partner = initialPartner ? recipient : next.matches[0]?.partner.id ?? '';
     setRecipient(partner);
     setPartnerOpen(!partner);
     setSharingOpen(false);
@@ -74,7 +81,7 @@ export default function Ask() {
     const needs = result.needs.filter((entry) => entry !== need);
     const next = withNeeds(needs, result.source);
     setResult(next);
-    if (recipient && !next.matches.some((match) => match.partner.id === recipient)) {
+    if (!initialPartner && recipient && !next.matches.some((match) => match.partner.id === recipient)) {
       const partner = next.matches[0]?.partner.id ?? '';
       setRecipient(partner);
       setPartnerOpen(!partner);
@@ -226,6 +233,16 @@ export default function Ask() {
           </View>
         </Card>
       ) : null}
+      {initialPartner && !originalWording ? (
+        <Card>
+          <Field label="Your message" multiline value={message} placeholder="What do you need?"
+            change={(text) => {
+              setMessage(text);
+              setResult(withNeeds(interpretNeeds(text)));
+            }}
+          />
+        </Card>
+      ) : (
       <Card style={{ gap: 2 }}>
         <View style={[wrap, { justifyContent: 'space-between' }]}>
           <Copy kind="strong">Your message</Copy>
@@ -256,6 +273,7 @@ export default function Ask() {
           <Copy>{message}</Copy>
         )}
       </Card>
+      )}
       <Card style={{ paddingVertical: 10 }}>
         <Disclosure
           label="Sharing options"

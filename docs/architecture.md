@@ -48,6 +48,8 @@ A screen supplies an ID and timestamp, then awaits `run(command)`. The provider 
 
 ### Counting rules for 4.3 and 5.2
 
+The map's optional service category filters open needs and completed services in both the map labels and neighborhood list. Directory resources and historical observations keep their neighborhood totals.
+
 - For 4.3, use `outstandingNeeds(referral)` for the category breakdown. A provider decline or handoff leaves the category outstanding. Recording a service or withdrawing a category removes it. A request without detected categories counts as Other until resolved.
 - For 5.2, use `referral.sentAt` for requests received and `service.deliveredAt` for deliveries. Filter delivery breakdowns by `service.providerId` and use the Milwaukee calendar for month boundaries. Handoffs, declines, withdrawals and appointments never add requests or deliveries.
 

@@ -44,6 +44,17 @@ const complete: Command = {
 };
 const reopen = (state: ReturnType<typeof seedState>) => decode(JSON.stringify(state));
 
+test('neighborhood categories separate an outstanding ride from a delivered coat', () => {
+  const empty = { ...seedState(), referrals: [] };
+  const partial = applyCommand(applyCommand(applyCommand(empty, send), accept), complete);
+  const counts = (category: 'Transportation' | 'Clothing') => {
+    const row = mapRows(partial, category).find(({ area }) => area === profile.neighborhood)!;
+    return [row.open, row.delivered];
+  };
+  assert.deepEqual(counts('Transportation'), [1, 0]);
+  assert.deepEqual(counts('Clothing'), [0, 1]);
+});
+
 test('partial delivery updates all views, survives reload, and cannot be counted twice', () => {
   const initial = seedState();
   const sent = applyCommand(initial, send);
@@ -79,6 +90,7 @@ test('partial delivery updates all views, survives reload, and cannot be counted
 test('public views omit request text, identity and unshared geography', () => {
   const state = applyCommand(seedState(), { ...send, shared: {} });
   assert.deepEqual(mapRows(state), mapRows(seedState()));
+  assert.deepEqual(mapRows(state, 'Transportation'), mapRows(seedState(), 'Transportation'));
   assert.deepEqual(state.posts, seedState().posts);
   assert.equal(residentTimeline(state).length, 1);
   assert(!partnerInbox(state, 'table').some((r) => r.assignment.id === send.id));
@@ -359,6 +371,7 @@ test('model ranks Winter Care for clothing and a ride', async () => {
 test('model drops satisfied clothing and suggests transportation alone', async () => {
   setModelAvailable(true);
   const text = 'We already have coats but can’t get to the pickup';
+  assert.deepEqual(interpretNeeds('I already have coats but need a ride'), ['Transportation']);
   assert.deepEqual(interpretNeeds(text), ['Transportation']);
   const result = await matchWithModel(text, 0);
   assert.deepEqual(result.needs, ['Transportation']);
