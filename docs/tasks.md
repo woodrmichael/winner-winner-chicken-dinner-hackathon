@@ -1,61 +1,110 @@
 # ComForce Connect task board
 
-Tasks 1–5 keep their original subjects. Claim an open subtask by adding your name or branch beside its number. A checked box links to work on main. Where one task needs another, the entry says “After” and gives its number.
+A Milwaukee family needs clothes and a ride after a fire. In Community, a resident describes what the family needs, chooses a service partner and decides which details to share. In Activity, the partner accepts the referral and records a delivery. ComForce uses that record to see where help arrived and which organization provided it. To try both roles, follow the [referral walkthrough](mobile.md#check-a-complete-referral) on one device.
 
-**Start with 2.1 if you’re choosing work now.** The family asking for clothes and a ride after a fire is the example to preserve. Then try “We already have coats but can’t get to the pickup.” Getting those two requests to the right partners for different reasons is the first AI milestone. Other independent starting points are **3.1** for the partner inbox, **5.2** for ComForce’s impact report and **6.1** for sponsorships.
+Each numbered item describes a change and an example the team can use to check it. Claim an open item by adding your name or branch beside its number. **After** lists prerequisites. When the change lands on main, check the box and link its PR or commit.
 
 ## 1. Community and mobile UI
 
-- [x] **1.1 Finish the community flow on a phone** · **Ben Nguyen.** Passed on iPhone 13 Pro Max, iOS 27.0.1. The walkthrough covered posting an offer, finding it under Offers after reload and completing a private request, with checks for the keyboard and larger text. Local commit `a697629` is awaiting the merge to land.
-- [x] **1.2 Reply to an offer.** · **Ben Nguyen.** Someone reading “Winter coats available” can ask about a size. The post author can reply in the same thread, and both replies are there when the post is reopened. Private help requests stay in Activity.
-- [x] **1.3 Join a community event.** · **Ben Nguyen.** Open the winter drive from the feed to see when and where it takes place and what to bring. Joining adds one volunteer to the count. Reopening shows the resident has joined, and cancelling removes that one place.
-- [x] **1.4 Follow a neighborhood group.** · **Ben Nguyen.** Let a resident join a group, publish a community post to it and find it again under My groups. Leaving the group updates that feed. Use the existing Community tab so following a group takes no extra tab.
+Community is where neighbors offer items and organize activities. A resident with spare coats can post an offer for everyone to see. A family seeking help uses **Ask for help** to send a private referral to a partner. Both flows need to work on a phone while someone is typing.
 
-Stories 1.2–1.4 are implemented locally and passed browser testing in Chrome at 390 px. The same run verified offer persistence and private referral completion. The [phone walkthrough for the new stories](mobile.md#check-offer-replies-event-signups-and-groups) is pending.
+- [x] **1.1 Complete the resident phone walkthrough.** Ben Nguyen verified publishing an offer, finding it under Offers after reload and sending a private referral on an iPhone 13 Pro Max running iOS 27.0.1, including keyboard and larger-text checks. [Mobile layout commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/a697629)
+- [x] **1.2 Reply to an offer.** From “Kids’ coats available,” a neighbor asks whether the size 6 coat is still available. The author can answer on the post. Reopening the offer shows the question and answer together so the next reader can see what is available.
+- [x] **1.3 Join a community event.** Open the winter drive from the feed to see when and where it takes place and what to bring. Joining reserves one volunteer place and updates the count. Reopening shows the resident has joined. Cancelling releases that place.
+- [x] **1.4 Follow a public neighborhood group.** From Community, a resident joins a group, publishes an offer to it and finds the offer under My groups. Leaving removes the group from that feed. Its public posts remain visible to other neighbors.
 
 ## 2. Resource matching
 
-Residents can already describe a need, see keyword matches, pick another directory partner and review what they’ll share. [Original referral flow](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/e8d981b)
+From **Community → Ask for help**, a resident can describe a situation without knowing which organization handles it. Today the app uses keywords to suggest directory partners. The resident can choose a different partner, review the message and decide whether to include their first name, callback number or neighborhood. The matching work below helps someone reach a partner that covers the help they still need.
 
-- [ ] **2.1 Match the help someone still needs.** Use a language model to interpret the request, then rank existing directory partners by the needs they cover. The house-fire example should suggest Winter Care Collective for clothing and transportation. “We already have coats but can’t get to the pickup” should suggest transportation alone. Show a short reason grounded in the partner’s services. Keep the current matching and manual selection usable when the model is unavailable. Only the request text is needed for matching.
-- [ ] **2.2 Help residents write the referral.** After 2.1. Offer an editable draft in the resident’s own voice. For the house-fire request, keep both needs and let the resident remove one, review the recipient and confirm the final message. They can also send their original wording.
-- [ ] **2.3 Ask one useful follow-up.** After 2.1. For “I need help after the fire,” let the resident clarify what they need or choose a partner themselves. Answering “food for tonight” should bring up a food provider without restarting the request.
+- [ ] **2.1 Match the needs expressed in the request.** Use a language model to interpret the request text and rank existing partners by the needs their services cover. For the family asking for clothes and a ride, suggest Winter Care Collective and explain that it offers both. For “We already have coats but can’t get to the pickup,” suggest transportation alone. Use only the request text for model input. Keep keyword matching and manual partner selection available when the model is unavailable.
+- [ ] **2.2 Help residents write the referral.** After 2.1. Offer an editable draft in the resident’s voice. The house-fire draft should include both clothing and transportation. A resident who has since found clothes can remove that need, review the recipient and send the revised message. They can also keep their original wording.
+- [ ] **2.3 Clarify a vague request.** After 2.1. For “I need help after the fire,” ask what help the resident needs. Answering “food for tonight” should bring up a food provider within the same request. A resident who already knows where to go can skip the question and choose a partner.
 
 ## 3. Referral coordination
 
-Partners can already accept referrals and record a completed service. Residents can see both steps in Activity. [Original partner workflow](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/e8d981b)
+In Activity, the receiving partner sees the message and the details the resident agreed to share. Accepting tells the resident someone has taken the case. Recording a service tells them what arrived and credits the provider. Today one delivery closes the referral, even when the family requested both clothing and a ride.
 
-- [ ] **3.1 Put the next referral at the top of the inbox.** A partner opening Activity sees requests awaiting a response first, accepted cases next and completed history last. Accepting or completing a referral moves it to the right group when the partner reopens the inbox.
-- [ ] **3.2 Schedule a pickup or visit.** From an accepted referral, a partner can add a time and short instruction. The resident sees them in their timeline. Rescheduling updates the appointment and keeps the service open until delivery.
-- [ ] **3.3 Hand a referral to another partner.** When the first partner can’t help, it can suggest a named alternative and give a reason. The resident reviews the new recipient and fields to share. Approval puts the request in the new inbox once. Declining keeps it out of that inbox.
-- [ ] **3.4 Keep the second need open.** When a resident asks for clothes and transportation, recording clothing should credit the delivering partner once and leave the ride visible as outstanding. After the ride arrives, both services and their providers appear under the original request. Coordinate the counting change with anyone working on 4.3 or 5.2.
-- [ ] **3.5 Turn a worker’s note into a service entry.** After 2.1 and 3.4. A worker types or uses phone dictation to enter “Dropped off the coats today. Ride still needed.” Offer clothing as the completed service and let the worker review the partner and program. Their confirmation records one delivery and leaves the ride open.
+- [ ] **3.1 Put referrals awaiting a response first.** A worker opening the partner inbox should see which requests need a first response, followed by accepted cases and then completed history. Accept a request, reopen the inbox and find it among the accepted cases. Record a delivery and confirm it moves into completed history.
+- [ ] **3.2 Schedule a pickup or visit.** From an accepted referral, a worker adds a time and instructions such as “Saturday at 10, use the side entrance.” The resident sees both in Activity. If the worker reschedules, the resident sees the revised appointment and the case stays open until delivery.
+- [ ] **3.3 Hand a referral to another partner.** If a partner cannot provide a ride, the worker suggests another organization and explains why. The resident reviews the proposed recipient and the fields to share. Approval places the referral in the new partner’s inbox once. Declining keeps the request private from that partner.
+- [ ] **3.4 Keep outstanding needs visible after a delivery.** On the family’s request, record the coat delivery and credit the clothing provider once. The resident and coordinating worker should still see that the ride is outstanding. When the ride arrives, the original request shows both services and who delivered each. Coordinate the counting rules with the owners of 4.3 and 5.2.
+- [ ] **3.5 Turn a worker’s note into a service entry.** After 2.1 and 3.4. A worker types or dictates “Dropped off the coats today. Ride still needed.” Suggest a clothing delivery and let the worker review the category, partner and program. Confirming the entry records one delivery and leaves transportation open.
+
+- [ ] **3.6 Assign a referral to a worker.** After 9.1. A partner assigns an accepted ride request to an approved worker. The team can see who is arranging the ride, and the worker can find it under their assigned requests. Reassign it to a colleague and verify that responsibility moves while request and service totals stay the same.
+- [ ] **3.7 Resolve a request a partner cannot fulfill.** A worker declines a ride and gives a reason. The resident sees that this provider declined and can seek another provider or withdraw the need. A ride still sought remains outstanding on the neighborhood map if the resident shared their neighborhood. Withdrawing it removes it from outstanding needs. Only a recorded ride counts as delivered.
 
 ## 4. Milwaukee map
 
-- [x] **4.1 Select a neighborhood and see its totals** · **Completed by paladugup for original task 4.** Selecting Harambee on the map or in the list connects the selection to its totals. The existing layer switches and list view are available. [Landed change](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/ba0083c)
-- [ ] **4.2 Find a named resource on the map.** Selecting a neighborhood with resources should show which partners are there and what each offers. Choosing one starts the existing private request review with that partner selected. The resident can still change their choice.
-- [ ] **4.3 Show where help is still needed.** Let a coordinator compare open needs and delivered services by category for the selected neighborhood. With one open ride and a completed clothing delivery, filtering to transportation should show the ride only. Use shared neighborhood totals and keep household locations private.
-- [ ] **4.4 Show the distribution of fatal and nonfatal violence.** Build on the existing historical homicide and nonfatal shooting counts. Give each layer a distinct color and show how shading corresponds to count. A resident can switch between layers and read the neighborhood, reporting period and value. A missing observation must remain distinguishable from a recorded zero. [Milwaukee data sources](sources.md)
+The map lets a resident or coordinator select a neighborhood and read its totals in the list. For service activity, the map uses the neighborhood a resident chose to share. The historical violence layers use a separate reporting period. The next changes help people find a local provider, identify unmet needs and interpret those historical counts.
+
+- [x] **4.1 Select a neighborhood and see its totals.** Select Harambee on the map or in the list to see the same neighborhood totals. Layer switches and the list view remain available. Completed by paladugup. [Neighborhood selection commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/ba0083c)
+- [ ] **4.2 Find a named resource on the map.** Select a neighborhood with directory resources to see the partners there and what each offers. Choosing a provider opens the private request review with that partner selected. The resident can change their choice before sending.
+- [ ] **4.3 Show where help is still needed.** For a selected neighborhood, let a coordinator compare outstanding needs and deliveries by category. In a neighborhood with an open ride and a completed coat delivery, filtering to transportation should show the open ride alone. Show aggregate neighborhood counts and keep household locations private.
+- [ ] **4.4 Make historical violence counts readable.** Give homicide and nonfatal shooting layers distinct colors and a legend that explains the shading. A reader switching layers should be able to identify the neighborhood, reporting period and count, and distinguish a recorded zero from a missing observation. [Milwaukee data sources](sources.md)
 
 ## 5. Impact and presentation
 
-- [x] **5.1 Show who delivered help and which program it supported** · **Completed by paladugup for original task 5.** Impact credits the delivering partner, shows program delivery history and displays sponsor funding with pledges listed separately. [Landed change](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/cfcf87e)
-- [ ] **5.2 Give ComForce a monthly impact report.** Let Vaun pick a month and answer “How many requests came in, what help arrived, and who delivered it?” Count requests by received date and services by delivery date. A request received in October and served in November contributes to each month’s corresponding measure. Selecting one provider narrows the delivery breakdown.
-- [ ] **5.3 Share the report with a funder.** After 5.2. From the selected report, share or copy a summary with the period, totals and provider credit. Someone reading it outside the app should see the same figures and understand whose work they represent. Exclude resident messages and contact details.
-- [ ] **5.4 Show how long people wait for a response.** Give coordinators a median time from submission to first acceptance, alongside the count still awaiting a response. An unanswered referral adds to that count and stays out of the median. Reopening an accepted referral preserves its first response time.
+Impact helps ComForce answer a funder’s question about what the winter program accomplished. A coat delivery credits the organization that supplied the coat and, when linked, the winter program. Funding appears alongside deliveries. The reporting work adds a time period so ComForce can describe a particular month and share the figures outside the app.
+
+- [x] **5.1 Show who delivered help and which program it supported.** After recording a winter coat delivery, open Impact to find the delivering partner and the entry in the winter program’s history. The program also shows funds received and outstanding pledges separately. Completed by paladugup. [Program attribution commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/cfcf87e)
+- [ ] **5.2 Give ComForce a monthly impact report.** A coordinator selects a month to see how many requests came in, what services arrived and who delivered them. A request received in October and served in November counts as an October request and a November delivery. Selecting a provider narrows the delivery breakdown to that organization.
+- [ ] **5.3 Share the report with a funder.** After 5.2. From the selected report, share or copy a summary with the reporting period, totals and provider credit. Check that a reader outside the app can identify the month and provider and sees the same figures as the coordinator. Exclude resident messages and contact details.
+- [ ] **5.4 Show how long residents wait for a response.** Measure each answered referral from submission to first acceptance and show the median wait. Alongside it, show how many referrals still await acceptance. An unanswered request increases the waiting count and stays out of the median. Reopening an accepted referral preserves its first response time.
 
 ## 6. Business partnerships and sponsorships
 
-- [ ] **6.1 Track a sponsor’s pledge and payment.** Let ComForce record a business, program and pledge, then record money received against it. If a market pledges $200 and pays $50, the program shows $50 received and $150 outstanding from that pledge. Its delivered-service count stays the same.
-- [ ] **6.2 Run a café fundraiser.** After 6.1. A café can back a program with $1 per featured drink. Recording 32 qualifying drinks creates a $32 pledge attributed to that café. Paying it moves the amount to received once, with the campaign still named on the program.
-- [ ] **6.3 Give local businesses a way to sponsor a program.** A business can open the winter program, see its goal and recent work, and send ComForce a sponsorship inquiry for that program. The coordinator sees the business and its preferred contact method. An inquiry leaves funding totals unchanged.
-- [ ] **6.4 Show sponsors what their program delivered.** After 6.1. On the program detail, show contributing businesses alongside the program’s recorded deliveries. A second sponsor paying into the same winter drive gets funding credit while each coat delivery still counts once and credits the service partner.
+One proposed funding model is for an employer to sponsor a ComForce project such as the winter drive. The employer could fund supplies, send employees to help, or pay ComForce to organize a volunteer day and report the results. An agreement would specify which funds cover direct services and which cover coordination or app operations. ComForce would decide which projects it can run and what to charge.
+
+- [ ] **6.1 Track a sponsor’s pledge and payment.** A coordinator records the business, the program it supports and the amount promised. Record a $200 pledge from a market, then apply a $50 payment to it. The program should show $50 received and $150 outstanding for that pledge, with the same delivery count.
+- [ ] **6.2 Confirm business support for a project.** After 6.1. On the winter drive page, show who runs it, its funding goal, supplies needed and volunteer places. An employer offers $200 and two volunteers. ComForce reviews the offer before listing the employer as a supporter. Record the confirmed pledge once through 6.1. The two volunteer places count toward staffing, and cash received changes when payment arrives.
+- [ ] **6.3 Explain the partnership and collect an inquiry.** A business considering the winter drive can see what sponsorship would pay for, where supporters receive credit and what updates to expect. If it asks about bringing a team, the coordinator receives the project, proposed support and preferred contact method. At this point the business is an inquiry, and volunteer places and funding totals stay unchanged.
+- [ ] **6.4 Show sponsors what their program delivered.** After 6.1. On the program detail, list contributing businesses alongside recorded services. If two businesses fund the same winter drive, each gets credit for its own contribution. Each coat delivery appears once and names the partner that supplied it.
+
+- [ ] **6.5 Allocate program and operating support.** After 6.1. For a $200 agreement covering $150 of supplies and $50 of coordination, record both purposes. When the employer pays in full, the report shows $150 received for supplies and $50 for operations, adding up to a single $200 payment.
+- [ ] **6.6 Give a business a partnership summary.** After 6.2 and 6.4. An employer supporting two projects can see its commitments, payments, upcoming activities and public updates together. A reader can identify what the business contributed and which partner delivered each service. Keep resident messages and contact details private.
 
 ## 7. Partner directory
 
-- [ ] **7.1 Help residents choose between partners.** A resident comparing two transportation providers can open either profile to see the services offered, area served and how pickup works. Selecting a partner carries that choice into request review. Use the same partner information in matching and map details.
-- [ ] **7.2 Let partners update availability.** A partner can pause new referrals for a service and later reopen it. If rides pause but coats are available, their profile reflects both and new ride suggestions favor an available partner. Previously accepted rides remain visible in Activity. Coordinate the availability rule with whoever owns 2.1.
-- [ ] **7.3 Bring a new service organization into the directory.** An organization submits its name, service area and help offered for ComForce to review. After approval it appears in the directory and becomes eligible for matching. A pending listing stays out of resident suggestions.
+Residents choose a referral recipient from the directory, and the matcher uses its service listings to suggest partners. A resident arranging a ride needs to know whether a provider serves their neighborhood, how pickup works and whether the provider can take a new referral.
 
-Once the features are together, use the [phone walkthrough](mobile.md) and [presentation runbook](demo.md) for the final rehearsal.
+- [ ] **7.1 Compare partners before sending a request.** Open two transportation providers’ profiles and check their services, coverage areas and pickup arrangements. Selecting one carries that choice into request review. Use the same partner information for profiles, matching and map details.
+- [ ] **7.2 Update availability by service.** A partner can pause ride referrals while continuing to accept clothing requests. The profile should show both statuses, new ride suggestions should favor available providers, and previously accepted rides should stay in Activity. Reopening rides makes that service available again. Coordinate the matching rule with the owner of 2.1.
+- [ ] **7.3 Add a service organization to the directory.** An organization submits its name, service area and help offered. ComForce reviews the listing before residents can find it. Check suggestions while the listing is pending, then approve it and verify that it appears in the directory and is eligible for matching.
+
+## 8. Private messages and notifications
+
+A referral can be accepted before the worker knows enough to deliver help. A conversation attached to the request gives the family a place to answer, and an unread update helps each participant find the case that needs attention.
+
+- [ ] **8.1 Continue a private conversation about a request.** After 9.1. A worker asks which sizes to bring and the resident replies “6 and 8.” Reopen the request from each account and find both messages with senders and times. Another resident or an unrelated organization cannot read the thread.
+- [ ] **8.2 Open an unread update from Activity.** After 9.1. Sending a referral gives the receiving partner an unread item. Acceptance gives the resident one. Opening it takes that person to the referral and marks their item read, including after reopening Activity. Use the same behavior for a private reply or proposed handoff when those flows are available.
+
+## 9. Resident and organization access
+
+Today the demo switches roles inside one device-local workspace. Using it across households and organizations requires signed-in accounts, shared records and access checks for each private request.
+
+- [ ] **9.1 Open a referral from the right account.** Show the active person and organization. Send a request as a resident on one device, accept it as an approved worker on another, and verify that the resident sees the update. Check that an unrelated signed-in account cannot read the same referral or record a delivery against it.
+- [ ] **9.2 Approve a worker to act for an organization.** After 9.1. A worker requests membership or accepts an invitation. While approval is pending, the worker cannot open the partner inbox. After an authorized administrator approves membership, the worker can handle that organization’s referrals.
+
+## 10. Volunteer coordination
+
+The winter drive needs people to sort coats and help with distribution. Before the event, the organizer needs to know which roles are filled. Afterward, attendance lets ComForce report who helped and how much time they contributed.
+
+- [ ] **10.1 Reserve a volunteer role.** After 1.3. The organizer lists four sorting places and two distribution places. Taking the last distribution place fills that role and puts its instructions in the volunteer’s Activity. Cancelling reopens one distribution place and leaves sorting capacity unchanged.
+- [ ] **10.2 Confirm attendance and time.** After 10.1. Two employees register and one works two hours. The organizer records attendance and the project summary shows two sign-ups, one participant and two contributed hours. The attending employee can use the confirmed hours when requesting an eligible employer volunteer grant.
+
+## 11. Post management and moderation
+
+Neighbors need to know whether an offer is still available. Authors can keep listings current, and moderators need a way to review a reported post without exposing anyone’s private referral.
+
+- [ ] **11.1 Edit or close an offer.** The author updates “Kids’ coats available” after the size 6 coat is collected, then marks the offer fulfilled when the last coat is gone. Reopen the post and check its status and any existing replies. Closing a public offer leaves verified delivery totals unchanged.
+- [ ] **11.2 Review a reported post.** A resident flags a post and a moderator reviews the report, records a reason and hides the post. Check the public feed from a second account. The post disappears and private referrals continue to appear for their participants.
+
+## 12. Service records and corrections
+
+A partner may need the individual entries behind its monthly totals or discover that a worker recorded a delivery by mistake. Both workflows depend on using the same service records as Activity, Map and Impact.
+
+- [ ] **12.1 Export an organization’s service records.** After 9.1. An authorized worker chooses a period and exports delivery dates, categories, provider credit and program links. For a month with two winter partner deliveries and one from another provider, the winter partner’s export contains its two entries and reconciles with its Impact count.
+- [ ] **12.2 Correct a mistaken delivery.** After 9.1. An authorized worker fixes the category or voids a delivery and records why. If a ride was marked delivered by mistake, voiding it restores the outstanding ride and updates Activity, the shared neighborhood’s counts and Impact. The correction history identifies the worker and reason.
+
+For the team demo, use the [presentation runbook](demo.md) to rehearse the referral and show how the delivery changes the map and Impact totals.
