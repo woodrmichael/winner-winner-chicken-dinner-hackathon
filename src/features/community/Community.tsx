@@ -4,7 +4,7 @@ import { ArrowUpRight, CalendarDays, HandHeart, MapPin, Plus, Shirt } from 'luci
 import { Image, View } from 'react-native';
 import { useDemo } from '../../state/Demo';
 import { impact, residentTimeline } from '../../domain/model';
-import { Btn, Card, Columns, Copy, Page, color, row, wrap } from '../../ui/kit';
+import { Btn, Card, Columns, Copy, Page, color, wrap } from '../../ui/kit';
 import { Segments } from '../../ui/Segments';
 import type { Post } from '../../domain/types';
 
@@ -42,7 +42,7 @@ function Bulletin({ post }: { post: Post }) {
         </View>
       )}
       <View style={{ padding: 17, gap: 7 }}>
-        <View style={row}>
+        <View style={wrap}>
           {post.kind === 'Event' ? (
             <CalendarDays size={15} color={color.pine} />
           ) : post.kind === 'Offer' ? (
@@ -62,7 +62,7 @@ function Bulletin({ post }: { post: Post }) {
         </Copy>
         <Copy>{post.body}</Copy>
         {featured && (
-          <View style={row}>
+          <View style={wrap}>
             <MapPin size={15} color={color.muted} />
             <Copy kind="small" tint={color.muted}>
               Moody Park · Saturday, 10 am

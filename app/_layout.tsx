@@ -10,7 +10,7 @@ import {
 import { Pressable, StatusBar, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { DemoProvider } from '../src/state/Demo';
-import { Copy, color, row } from '../src/ui/kit';
+import { Copy, color, row, wrap } from '../src/ui/kit';
 
 const tabs = [
   { name: 'Community', path: '/', icon: UsersRound },
@@ -21,7 +21,7 @@ const tabs = [
 
 function Brand() {
   return (
-    <View style={[row, { gap: 8 }]}>
+    <View style={[row, { gap: 8, flexShrink: 1 }]}>
       <View
         style={{
           width: 32,
@@ -34,7 +34,7 @@ function Brand() {
       >
         <HeartHandshake size={21} color="#FFF" strokeWidth={1.8} />
       </View>
-      <Copy kind="strong" style={{ fontSize: 17, letterSpacing: -0.55 }}>
+      <Copy kind="strong" style={{ fontSize: 17, letterSpacing: -0.55, flexShrink: 1 }}>
         ComForce Connect
       </Copy>
     </View>
@@ -76,6 +76,7 @@ function Shell() {
             onPress={() => router.navigate(path)}
             style={({ pressed }) => ({
               flex: wide ? undefined : 1,
+              minWidth: 0,
               minHeight: wide ? 46 : 56,
               paddingHorizontal: wide ? 12 : 2,
               paddingVertical: 6,
@@ -100,6 +101,8 @@ function Shell() {
                 fontWeight: selected ? '700' : '500',
                 fontSize: wide ? 15 : 11,
                 lineHeight: wide ? 22 : 15,
+                textAlign: 'center',
+                maxWidth: '100%',
               }}
             >
               {name}
@@ -136,8 +139,13 @@ function Shell() {
           {!wide && (
             <View
               style={[
-                row,
-                { justifyContent: 'space-between', paddingHorizontal: 18, minHeight: 54 },
+                wrap,
+                {
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 18,
+                  paddingVertical: 10,
+                  minHeight: 54,
+                },
               ]}
             >
               <Brand />

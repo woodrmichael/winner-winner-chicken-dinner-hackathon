@@ -23,6 +23,29 @@ Expo Go opens the app on your phone while your laptop serves the code. Run both 
 
 Also try typing your own request. Check that the keyboard leaves the message and submit action reachable. Record your phone model, OS and any failing step on the [task board](tasks.md).
 
+## Community and larger-text walkthrough
+
+Run this on the same phone as the referral check above. Record the model, OS,
+text-size setting and results on the task board. Browser checks do not replace
+the native keyboard and system-text checks.
+
+1. Open **Community → Post an offer**. Enter a long title and a description
+   spanning several lines. With the keyboard open, scroll to **Publish offer**
+   and tap it. The offer should appear on the board after one tap.
+2. Reload the app, select **Offers**, and confirm the title and description
+   remain. Check that the author, title and filter labels stay inside their cards.
+3. Open **Ask for help** and type a request with the keyboard open. Scroll to
+   **Find resources** and tap it. On the review screen, edit the message and
+   scroll through partner selection, optional sharing and **Send referral**.
+4. Select the winter partner and send the referral. Confirm it appears in
+   **Activity**, and that its private message is absent from all Community filters.
+   Finish acceptance and service recording using the complete-referral check above.
+5. Increase system text size (iOS: **Settings → Accessibility → Display & Text
+   Size → Larger Text**; Android: search Settings for **Font size**). Repeat the
+   offer and request steps. Check the brand header, four bottom tabs, filters,
+   multiline fields and long action labels for clipping or unreachable controls.
+   Restore your preferred setting afterward.
+
 ## If it won’t open
 
 | Symptom | Try |

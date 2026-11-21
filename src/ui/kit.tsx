@@ -71,6 +71,8 @@ export function Page({
       style={{ flex: 1, backgroundColor: color.bg }}
       contentContainerStyle={{ alignItems: 'center' }}
       keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
     >
       <View
         style={{
@@ -91,6 +93,7 @@ export function Page({
               letterSpacing: -0.9,
               fontSize: wide ? 42 : 34,
               lineHeight: wide ? 52 : 42,
+              flexShrink: 1,
             }}
           >
             {title}
@@ -154,7 +157,7 @@ export function Btn({
   }
   const fg = secondary ? color.pine : '#FFF';
   return (
-    <View style={{ flexShrink: 1, gap: error ? 4 : 0 }}>
+    <View style={{ flexShrink: 1, maxWidth: '100%', gap: error ? 4 : 0 }}>
       <Pressable
         accessibilityRole="button"
         disabled={disabled || busy}
@@ -164,6 +167,7 @@ export function Btn({
           row,
           {
             alignSelf: 'flex-start',
+            maxWidth: '100%',
             justifyContent: 'center',
             minHeight: 44,
             paddingHorizontal: 16,
@@ -177,7 +181,7 @@ export function Btn({
         ]}
       >
         {Icon && <Icon color={fg} size={17} />}
-        <Copy kind="strong" tint={fg} style={{ fontSize: 14 }}>
+        <Copy kind="strong" tint={fg} style={{ fontSize: 14, flexShrink: 1 }}>
           {label}
         </Copy>
       </Pressable>
