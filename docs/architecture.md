@@ -21,6 +21,12 @@ The meal-kit project uses the existing pantry event, a $1,000 goal and optional 
 
 Only confirmed support is published in the shared projection. Delivery credit comes from the existing program service records. The business summary uses public project information, funding and aggregate provider credit.
 
+## Worker notes and responsibility
+
+The delivery form optionally suggests one eligible completed service from a worker note using conservative completion phrases. Notes and suggestions stay on the device until review. Only the existing complete command records the selected category, provider and optional program. Keyboard dictation can fill the note field.
+
+In shared mode, assign-worker targets an accepted open assignment. The server requires an approved colleague at the same organization and validates the selected worker against current approved membership. It derives the worker name from the account and stores assignedWorker on the assignment. Reassignment changes responsibility only. Older records default to unassigned. Workers see their own organization's approved roster and can filter the inbox to Assigned to me. Organization access and referral delivery authorization continue to use membership.
+
 ## Shared UI
 
 Use system typography, neutral surfaces and one teal accent. Give each screen a clear title and keep text that helps someone decide, act or understand a result.

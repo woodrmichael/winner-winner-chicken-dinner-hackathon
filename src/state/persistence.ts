@@ -119,6 +119,7 @@ function isAssignment(value: unknown): value is ReferralAssignment {
   const { id, partnerId, message, shared, sentAt, category, acceptedAt, appointment, declines } =
     value;
   return (
+    (value.assignedWorker === undefined || (record(value.assignedWorker) && isText(value.assignedWorker.id) && isText(value.assignedWorker.name))) &&
     isText(id) &&
     isPartner(partnerId) &&
     isText(message) &&

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
+import { Segments } from '../../ui/Segments';
 import { partnerInbox, residentTimeline } from '../../domain/referrals';
 import { useDemo } from '../../state/Demo';
 import { Disclosure } from '../../ui/Disclosure';
@@ -18,6 +19,8 @@ const inboxSections = [
 ];
 
 function PartnerTickets({ tickets }: { tickets: ReturnType<typeof partnerInbox> }) {
+  const { shared } = useDemo();
+  const [scope, setScope] = useState<'Team' | 'Assigned to me'>('Team');
   const [openTicket, setOpenTicket] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   if (!tickets.length) {
@@ -28,8 +31,12 @@ function PartnerTickets({ tickets }: { tickets: ReturnType<typeof partnerInbox> 
     );
   }
 
-  return inboxSections.map((section) => {
-    const cases = tickets.filter((ticket) => section.statuses.includes(ticket.status));
+  const visible = scope === 'Assigned to me' ? tickets.filter((t) => t.assignment.assignedWorker?.id === shared.data?.account.id) : tickets;
+  return <>
+    {shared.enabled && <Segments options={['Team', 'Assigned to me'] as const} value={scope} onChange={setScope} label={(v) => v} />}
+    {!visible.length && <Copy>No referrals assigned to you.</Copy>}
+    {inboxSections.map((section) => {
+    const cases = visible.filter((ticket) => section.statuses.includes(ticket.status));
     if (!cases.length) return null;
     const rows = cases.map((ticket) => (
       <PartnerReferral
@@ -64,16 +71,17 @@ function PartnerTickets({ tickets }: { tickets: ReturnType<typeof partnerInbox> 
         {rows}
       </View>
     );
-  });
+  })}</>;
 }
 
 export default function Activity() {
   const { state, role, partnerId, shared } = useDemo();
   const router = useRouter();
   const account = shared.data?.account;
+  const partnerView = shared.enabled ? account?.kind === 'worker' : role === 'Partner';
   const residentTickets = shared.enabled ? shared.data?.referrals ?? [] : residentTimeline(state);
   const workerWaiting = account?.kind === 'worker' && account.membership?.status !== 'approved';
-  const organization = role === 'Partner' && partnerId ? partnerName(partnerId) : undefined;
+  const organization = partnerView && partnerId ? partnerName(partnerId) : undefined;
   const identity = [account?.name, organization].filter(Boolean).join(' · ');
   if (shared.enabled && !account) {
     return (
@@ -86,7 +94,7 @@ export default function Activity() {
     );
   }
   return (
-    <Page title={role === 'Partner' ? (workerWaiting ? 'Activity' : 'Partner inbox') : 'Referral activity'}>
+    <Page title={partnerView ? (workerWaiting ? 'Activity' : 'Partner inbox') : 'Referral activity'}>
       {identity ? (
         <Copy kind="strong" tint={color.muted}>
           {identity}
@@ -100,7 +108,7 @@ export default function Activity() {
           <Copy>{account.membership ? 'Your organization membership is awaiting approval.' : 'Request an organization membership to open its inbox.'}</Copy>
           <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />
         </Card>
-      ) : role === 'Partner' ? (
+      ) : partnerView ? (
         <PartnerTickets key={partnerId} tickets={shared.enabled ? shared.data?.inbox ?? [] : partnerInbox(state, partnerId)} />
       ) : residentTickets.length ? (
         residentTickets.map((ticket) => (

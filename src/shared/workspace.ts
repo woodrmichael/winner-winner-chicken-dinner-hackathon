@@ -65,6 +65,7 @@ export type SharedSnapshot = {
   messages: ReferralMessage[];
   updates: ActivityUpdate[];
   requests: { id: string; name: string }[];
+  workers: { id: string; name: string }[];
   volunteers: VolunteerView;
   reporting: {
     impact: ReturnType<typeof impact>;
@@ -79,7 +80,7 @@ export type SharedSnapshot = {
 
 export function isWorkspaceCommand(cmd: { type: string }): cmd is WorkspaceCommand {
   return [
-    'request-membership', 'approve-membership', 'reserve-volunteer', 'cancel-volunteer',
+    'assign-worker', 'request-membership', 'approve-membership', 'reserve-volunteer', 'cancel-volunteer',
     'update-volunteer-role', 'record-attendance', 'send-referral-message', 'mark-activity-read',
   ].includes(cmd.type);
 }

@@ -9,7 +9,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 import { View } from 'react-native';
-import { applyCommand, isCommunityCommand } from '../domain/model';
+import { applyCommand } from '../domain/model';
 import { residentId, seedState, withDemoSamples } from '../domain/seed';
 import type { Command, DemoState, OfferReply } from '../domain/types';
 import { Btn, Copy } from '../ui/kit';
@@ -97,7 +97,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
         } : state,
         shared,
         run: (cmd) => {
-          if (shared.enabled && (cmd.type === 'partnership' || isCommunityCommand(cmd) || isWorkspaceCommand(cmd))) return shared.run(cmd);
+          if (shared.enabled) return shared.run(cmd);
           if (cmd.type === 'partnership' && cmd.entry.kind !== 'offer' && cmd.entry.kind !== 'inquiry' &&
             role !== 'Moderator' && !(role === 'Partner' && partnerId === 'winter-team')) {
             return Promise.reject(new Error('Choose the coordinator view in Settings to manage support.'));

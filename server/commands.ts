@@ -111,6 +111,8 @@ export function parseCommand(input: unknown, details: SharedDetails): CommunityC
       return { type: cmd.type, id: text(cmd.id), partnerId: text(cmd.partnerId), message: text(cmd.message, 4000),
         needs: cmd.needs.map((value) => option(value, categories)), shared, at };
     }
+    case 'assign-worker':
+      return { type: cmd.type, assignmentId: text(cmd.assignmentId), workerId: cmd.workerId === null ? null : text(cmd.workerId) };
     case 'accept':
       return { type: cmd.type, id: text(cmd.id), partnerId: text(cmd.partnerId), at };
     case 'schedule': {

@@ -73,6 +73,7 @@ export type ReferralAssignment = {
   sentAt: string;
   category?: Category;
   acceptedAt?: string;
+  assignedWorker?: { id: string; name: string };
   appointment?: Appointment;
   declines: Partial<Record<Category, { reason: string; at: string }>>;
 };
@@ -183,6 +184,7 @@ export type ReferralCommand =
 
 export type VolunteerRoleId = 'sorting' | 'distribution';
 export type WorkspaceCommand =
+  | { type: 'assign-worker'; assignmentId: string; workerId: string | null }
   | { type: 'request-membership'; partnerId: string }
   | { type: 'approve-membership'; accountId: string }
   | { type: 'send-referral-message'; assignmentId: string; messageId: string; body: string }

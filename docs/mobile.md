@@ -116,6 +116,12 @@ In a shared workspace, sign in before opening Impact. Its totals come from the s
 
 Open **Community → Winter essentials drive → Team inquiries and project details**. Ask about bringing a team, then offer $150 for supplies, $50 for operations and two volunteers. In shared mode, sign in as the organizer to review the inquiry and confirm the offer. For local rehearsal use **Settings → Partner → Winter Care Collective**. From **Manage project support → Payments**, expand the business pledge and apply a $50 payment and verify $150 remains. Pay the balance and check the allocation on the program page. Use the same business name for a pantry meal-kit pledge and find both projects in **Business summary**. Only confirmed business places count toward staffing. Confirming or paying a pledge leaves delivery counts unchanged.
 
+## Check worker notes and assignments
+
+As a partner, accept a referral for clothing and transportation. Open **Record delivery**, type or dictate “Dropped off the coats today. Ride still needed.” and tap **Suggest service from note**. Review Clothing, provider and program before recording. Reopen and verify one clothing delivery and an open ride. Try a future or ambiguous note and use the manual category selector.
+
+In the shared workspace, sign in as the winter worker. On an accepted referral, choose a colleague under **Responsible worker** and save. Sign in as that colleague and find the case under **Assigned to me**. Reassign it and verify the team sees the new owner, the previous worker's personal filter loses the case, and delivery totals stay unchanged. Pending workers and workers at other organizations must be excluded. Reload and verify responsibility persists. Physical-phone dictation, keyboard reachability and large-text layout need a device check.
+
 ## If it won’t open
 
 | Symptom | Try |
