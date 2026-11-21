@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { detailsToShare } from '../../domain/referrals';
 import { newId, now, useDemo } from '../../state/Demo';
@@ -11,11 +11,17 @@ import { directory } from './directory';
 import { matchResources } from './match';
 
 export default function Ask() {
+  const { partner } = useLocalSearchParams<{ partner?: string }>();
+  const initialPartner = directory.find((entry) => entry.id === partner)?.id;
+  return <RequestForm key={initialPartner ?? 'community'} initialPartner={initialPartner} />;
+}
+
+function RequestForm({ initialPartner }: { initialPartner?: string }) {
   const { run, setRole, setPartnerId } = useDemo();
   const router = useRouter();
   const [message, setMessage] = useState('');
-  const [review, setReview] = useState(false);
-  const [recipient, setRecipient] = useState('');
+  const [review, setReview] = useState(Boolean(initialPartner));
+  const [recipient, setRecipient] = useState(initialPartner ?? '');
   const [shared, setShared] = useState<ShareKey[]>([]);
   const [partnerOpen, setPartnerOpen] = useState(false);
   const [sharingOpen, setSharingOpen] = useState(false);
@@ -91,11 +97,17 @@ export default function Ask() {
         </Disclosure>
       </Card>
       <Card style={{ gap: 2 }}>
-        <View style={[wrap, { justifyContent: 'space-between' }]}>
-          <Copy kind="strong">Your message</Copy>
-          <Btn label="Edit message" quiet onPress={() => setReview(false)} />
-        </View>
-        <Copy>{message}</Copy>
+        {initialPartner ? (
+          <Field label="Your message" multiline value={message} change={setMessage} placeholder="What do you need?" />
+        ) : (
+          <>
+            <View style={[wrap, { justifyContent: 'space-between' }]}>
+              <Copy kind="strong">Your message</Copy>
+              <Btn label="Edit message" quiet onPress={() => setReview(false)} />
+            </View>
+            <Copy>{message}</Copy>
+          </>
+        )}
       </Card>
       <Card style={{ paddingVertical: 10 }}>
         <Disclosure

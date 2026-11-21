@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import Svg, {
   Circle,
@@ -14,8 +15,9 @@ import { ToggleRow } from '../../ui/SelectionRows';
 import { mapRows } from '../../domain/model';
 import type { Neighborhood } from '../../domain/types';
 import { useDemo } from '../../state/Demo';
-import { Card, Columns, Copy, Page, color, wrap } from '../../ui/kit';
+import { Btn, Card, Columns, Copy, Page, color, wrap } from '../../ui/kit';
 import boundaries from './boundaries.json';
+import { directory } from '../matching/directory';
 
 const layers = [
   { key: 'open', label: 'Open needs', symbol: '○', ink: '#844923' },
@@ -38,6 +40,7 @@ const pins: Record<
 };
 
 export default function MapScreen() {
+  const router = useRouter();
   const { state } = useDemo();
 
   // Map layer visibility.
@@ -272,6 +275,20 @@ export default function MapScreen() {
       />
 
       {/* Neighborhood totals */}
+      {selectedNeighborhood && (
+        <Card>
+          <Copy kind="title">Providers in {selectedNeighborhood}</Copy>
+          {directory.filter((partner) => partner.area === selectedNeighborhood).map((partner) => (
+            <View key={partner.id} style={{ gap: 6 }}>
+              <Copy kind="strong">{partner.name}</Copy>
+              <Copy>{partner.categories.join(' · ')}</Copy>
+              <Btn label={`Request help from ${partner.name}`} secondary onPress={() =>
+                router.push({ pathname: '/ask', params: { partner: partner.id } })
+              } />
+            </View>
+          ))}
+        </Card>
+      )}
       <Card>
         <View
           style={{
