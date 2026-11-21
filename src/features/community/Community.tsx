@@ -4,11 +4,18 @@ import { ArrowUpRight, CalendarDays, HandHeart, MapPin, Plus, Shirt } from 'luci
 import { Image, View } from 'react-native';
 import { useDemo } from '../../state/Demo';
 import { impact, residentTimeline } from '../../domain/model';
-import { Btn, Card, Columns, Copy, Page, color, wrap } from '../../ui/kit';
+import { Btn, Card, Columns, Copy, Field, Page, color, row, wrap } from '../../ui/kit';
 import { Segments } from '../../ui/Segments';
 import { neighborhoods, type Post } from '../../domain/types';
-import { communityEvents, communityFeed } from './model';
+import { communityEvents, communityFeed, type CommunityView } from './model';
 import { PostTimestamp } from './PostTimestamp';
+import { SavePostButton } from './SavePostButton';
+
+const views: Record<CommunityView, string> = {
+  board: 'Community board',
+  groups: 'My groups',
+  saved: 'Saved',
+};
 
 function Bulletin({ post }: { post: Post }) {
   const router = useRouter();
@@ -73,61 +80,54 @@ function Bulletin({ post }: { post: Post }) {
             </Copy>
           </View>
         )}
-        {(event || post.kind === 'Offer') && (
-          <Btn
-            label={event ? 'View event' : 'View offer and replies'}
-            secondary
-            onPress={() => router.push({ pathname: '/community-post/[id]', params: { id: post.id } })}
-          />
-        )}
-        <PostTimestamp date={post.date} />
+        <View style={[row, { alignItems: 'flex-end' }]}>
+          <View style={{ flex: 1, minWidth: 0, gap: 7 }}>
+            {(event || post.kind === 'Offer') && (
+              <Btn
+                label={event ? 'View event' : 'View offer and replies'}
+                secondary
+                onPress={() => router.push({ pathname: '/community-post/[id]', params: { id: post.id } })}
+              />
+            )}
+            <PostTimestamp date={post.date} />
+          </View>
+          <SavePostButton postId={post.id} />
+        </View>
       </View>
     </Card>
   );
 }
 
-function Groups() {
+function GroupDirectory() {
   const router = useRouter();
   const { state, run } = useDemo();
-  const posts = communityFeed(state, 'groups');
   return (
-    <>
-      <Card>
-        <Copy kind="title">Neighborhood groups</Copy>
-        {neighborhoods.map((group) => {
-          const joined = state.community.groups.includes(group);
-          return (
-            <View key={group} style={{ gap: 6 }}>
-              <Copy kind="strong">
-                {group}{joined ? ' · Joined' : ''}
-              </Copy>
-              <View style={wrap}>
-                {joined && (
-                  <Btn
-                    label={`Post to ${group}`}
-                    onPress={() => router.push({ pathname: '/offer', params: { group } })}
-                  />
-                )}
+    <Card>
+      <Copy kind="title">Neighborhood groups</Copy>
+      {neighborhoods.map((group) => {
+        const joined = state.community.groups.includes(group);
+        return (
+          <View key={group} style={{ gap: 6 }}>
+            <Copy kind="strong">
+              {group}{joined ? ' · Joined' : ''}
+            </Copy>
+            <View style={wrap}>
+              {joined && (
                 <Btn
-                  label={`${joined ? 'Leave' : 'Join'} ${group}`}
-                  secondary
-                  onPress={() => run({ type: 'group-membership', group, joined: !joined })}
+                  label={`Post to ${group}`}
+                  onPress={() => router.push({ pathname: '/offer', params: { group } })}
                 />
-              </View>
+              )}
+              <Btn
+                label={`${joined ? 'Leave' : 'Join'} ${group}`}
+                secondary
+                onPress={() => run({ type: 'group-membership', group, joined: !joined })}
+              />
             </View>
-          );
-        })}
-      </Card>
-      {posts.length ? (
-        posts.map((post) => <Bulletin key={post.id} post={post} />)
-      ) : (
-        <Copy tint={color.muted}>
-          {state.community.groups.length
-            ? 'No posts in your groups yet.'
-            : 'Join a neighborhood group to see its posts here.'}
-        </Copy>
-      )}
-    </>
+          </View>
+        );
+      })}
+    </Card>
   );
 }
 
@@ -135,7 +135,20 @@ export default function Community() {
   const router = useRouter();
   const { view } = useLocalSearchParams<{ view?: string }>();
   const { state } = useDemo();
+  const activeView = view === 'groups' || view === 'saved' ? view : 'board';
   const [filter, setFilter] = useState<'All' | Post['kind']>('All');
+  const [query, setQuery] = useState('');
+  const searching = !!query.trim();
+  const posts = communityFeed(state, activeView, query).filter(
+    (post) => activeView !== 'board' || filter === 'All' || post.kind === filter,
+  );
+  const emptyFeed = {
+    board: 'No posts in this category yet.',
+    groups: state.community.groups.length
+      ? 'No posts in your groups yet.'
+      : 'Join a neighborhood group to see its posts here.',
+    saved: 'Save a post to find it here later.',
+  };
   const active = residentTimeline(state).filter((ticket) => !ticket.service).length;
   const actions = (
     <View style={wrap}>
@@ -150,25 +163,37 @@ export default function Community() {
         main={
           <>
             <Segments
-              options={['board', 'groups'] as const}
-              value={view === 'groups' ? 'groups' : 'board'}
+              options={['board', 'groups', 'saved'] as const}
+              value={activeView}
               onChange={(next) => router.setParams({ view: next })}
-              label={(item) => (item === 'groups' ? 'My groups' : 'Community board')}
+              label={(item) => views[item]}
             />
-            {view === 'groups' ? (
-              <Groups />
+            <View style={{ gap: 6 }}>
+              <Field
+                label="Search posts"
+                value={query}
+                change={setQuery}
+                placeholder="Coats, winter drive, pantry…"
+              />
+              {query !== '' && <Btn label="Clear search" secondary onPress={() => setQuery('')} />}
+            </View>
+            {activeView === 'board' && (
+              <Segments
+                options={['All', 'Event', 'Offer', 'Update'] as const}
+                value={filter}
+                onChange={setFilter}
+                label={(item) => (item === 'All' ? 'All posts' : item + 's')}
+              />
+            )}
+            {activeView === 'groups' && !searching && <GroupDirectory />}
+            {posts.length ? (
+              posts.map((post) => <Bulletin key={post.id} post={post} />)
             ) : (
-              <>
-                <Segments
-                  options={['All', 'Event', 'Offer', 'Update'] as const}
-                  value={filter}
-                  onChange={setFilter}
-                  label={(item) => (item === 'All' ? 'All posts' : item + 's')}
-                />
-                {communityFeed(state, 'board')
-                  .filter((post) => filter === 'All' || post.kind === filter)
-                  .map((post) => <Bulletin key={post.id} post={post} />)}
-              </>
+              <View accessibilityLiveRegion="polite">
+                <Copy tint={color.muted}>
+                  {searching ? 'No posts match your search.' : emptyFeed[activeView]}
+                </Copy>
+              </View>
             )}
           </>
         }

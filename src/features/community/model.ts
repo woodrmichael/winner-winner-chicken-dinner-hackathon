@@ -17,10 +17,23 @@ export const communityEvents = new Map<string, CommunityEvent>([
   ],
 ]);
 
-export function communityFeed(state: DemoState, view: 'board' | 'groups') {
-  return state.posts.filter((post) =>
-    view === 'board' ? !post.group : !!post.group && state.community.groups.includes(post.group),
-  );
+export type CommunityView = 'board' | 'groups' | 'saved';
+
+function canSeePost(state: DemoState, post: Post) {
+  return !post.group || state.community.groups.includes(post.group);
+}
+
+export function communityFeed(state: DemoState, view: CommunityView, query = '') {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return state.posts.filter((post) => {
+    if (!canSeePost(state, post)) return false;
+    if (view === 'board' && post.group) return false;
+    if (view === 'groups' && !post.group) return false;
+    if (view === 'saved' && !state.community.savedPostIds.includes(post.id)) return false;
+
+    const text = `${post.title} ${post.body}`.toLowerCase();
+    return words.every((word) => text.includes(word));
+  });
 }
 
 function membership<T>(items: T[], item: T, joined: boolean): T[] {
@@ -77,6 +90,16 @@ export function applyCommunityCommand(state: DemoState, cmd: CommunityCommand): 
       if (!neighborhoods.includes(cmd.group)) throw new Error('Choose a neighborhood group.');
       const groups = membership(community.groups, cmd.group, cmd.joined);
       return groups === community.groups ? state : { ...state, community: { ...community, groups } };
+    }
+    case 'save-post': {
+      const post = state.posts.find((entry) => entry.id === cmd.postId);
+      if (!post || (cmd.saved && !canSeePost(state, post))) {
+        throw new Error('This post is unavailable.');
+      }
+      const savedPostIds = membership(community.savedPostIds, cmd.postId, cmd.saved);
+      return savedPostIds === community.savedPostIds
+        ? state
+        : { ...state, community: { ...community, savedPostIds } };
     }
   }
 }

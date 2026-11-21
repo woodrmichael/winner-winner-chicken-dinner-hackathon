@@ -22,7 +22,9 @@ function isPost(p: unknown): p is Post {
   );
 }
 
-function isCommunity(value: unknown, posts: Post[]): value is CommunityState {
+type StoredCommunity = Omit<CommunityState, 'savedPostIds'> & { savedPostIds?: string[] };
+
+function isCommunity(value: unknown, posts: Post[]): value is StoredCommunity {
   if (
     !record(value) ||
     !Array.isArray(value.replies) ||
@@ -49,7 +51,11 @@ function isCommunity(value: unknown, posts: Post[]): value is CommunityState {
     value.joinedEvents.every((id) => postKinds.get(id) === 'Event') &&
     new Set(value.joinedEvents).size === value.joinedEvents.length &&
     value.groups.every((group) => includes(neighborhoods, group)) &&
-    new Set(value.groups).size === value.groups.length
+    new Set(value.groups).size === value.groups.length &&
+    (value.savedPostIds === undefined ||
+      (Array.isArray(value.savedPostIds) &&
+        value.savedPostIds.every((id) => postKinds.has(id)) &&
+        new Set(value.savedPostIds).size === value.savedPostIds.length))
   );
 }
 function isReferral(r: unknown): r is Referral {
@@ -98,7 +104,7 @@ export function decode(raw: string): DemoState {
       version: 1,
       posts: state.posts,
       referrals: state.referrals,
-      community: state.community ?? emptyCommunity(),
+      community: { ...emptyCommunity(), ...state.community },
     };
   throw new Error('Your workspace couldn’t be opened. Reset it to start again.');
 }

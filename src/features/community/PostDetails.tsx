@@ -3,10 +3,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { OfferReply, Post } from '../../domain/types';
 import { newId, now, useDemo } from '../../state/Demo';
-import { Btn, Card, Copy, Field, Page, color } from '../../ui/kit';
+import { Btn, Card, Copy, Field, Page, color, row } from '../../ui/kit';
 import { Segments } from '../../ui/Segments';
 import { communityEvents, residentAuthor } from './model';
 import { PostTimestamp } from './PostTimestamp';
+import { SavePostButton } from './SavePostButton';
 
 function OfferThread({ post }: { post: Post }) {
   const { state, run } = useDemo();
@@ -94,7 +95,12 @@ export default function PostDetails() {
           <Card>
             <Copy kind="small" tint={color.muted}>{post.author}</Copy>
             <Copy>{post.body}</Copy>
-            <PostTimestamp date={post.date} />
+            <View style={row}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <PostTimestamp date={post.date} />
+              </View>
+              <SavePostButton postId={post.id} />
+            </View>
           </Card>
           {post.kind === 'Offer' && <OfferThread key={post.id} post={post} />}
           {post.kind === 'Event' && <EventDetails postId={post.id} />}

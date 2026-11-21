@@ -22,7 +22,12 @@ export const historicalIncidents = {
   'Brewers Hill': { fatal: 1, nonfatal: 3 },
 };
 
-export const emptyCommunity = (): CommunityState => ({ replies: [], joinedEvents: [], groups: [] });
+export const emptyCommunity = (): CommunityState => ({
+  replies: [],
+  joinedEvents: [],
+  groups: [],
+  savedPostIds: [],
+});
 
 export function seedState(): DemoState {
   const sentAt = '2026-11-18T15:00:00.000Z';

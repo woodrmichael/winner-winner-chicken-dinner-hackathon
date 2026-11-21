@@ -20,6 +20,28 @@ test('upgrading a saved workspace preserves existing public offers and private r
   assert.deepEqual(upgraded.community, initial.community);
 });
 
+test('existing community snapshots gain bookmarks without losing signups or memberships', () => {
+  const olderCommunity = { joinedEvents: ['drive'], groups: ['Harambee'], replies: [] };
+  const upgraded = decode(JSON.stringify({ ...seedState(), community: olderCommunity }));
+  assert.deepEqual(upgraded.community, { ...olderCommunity, savedPostIds: [] });
+});
+
+test('saving an event adds it to Saved after reload and removing the bookmark clears it', () => {
+  const save: Command = { type: 'save-post', postId: 'drive', saved: true };
+  const saved = reopen(applyCommand(seedState(), save));
+  assert.deepEqual(communityFeed(saved, 'saved').map((post) => post.id), ['drive']);
+  assert.equal(applyCommand(saved, save), saved);
+  assert.deepEqual(communityFeed(reopen(applyCommand(saved, { ...save, saved: false })), 'saved'), []);
+  assert.throws(() => applyCommand(saved, { ...save, postId: 'seed-winter' }), /unavailable/);
+});
+
+test('search matches title and body across case and spacing within the selected feed', () => {
+  const initial = seedState();
+  assert.deepEqual(communityFeed(initial, 'board', '  COATS   Saturday ').map((post) => post.id), ['coats']);
+  assert.deepEqual(communityFeed(initial, 'board', 'Could I pick up groceries?'), []);
+  assert.deepEqual(communityFeed(initial, 'groups', 'coat'), []);
+});
+
 test('the resident and offer author can reply in the same persistent public thread', () => {
   const ask: Command = {
     type: 'reply', id: 'question', postId: 'coats', from: 'resident', body: ' Is size 8 still available? ', at,
@@ -58,8 +80,16 @@ test('group posts appear only under My groups while a resident has joined that g
   assert.throws(() => applyCommand(initial, post), /Join the group/);
   const published = reopen(applyCommand(applyCommand(initial, join), post));
   assert.deepEqual(communityFeed(published, 'groups').map((item) => item.title), ['Park cleanup']);
+  assert.deepEqual(communityFeed(published, 'groups', 'cleanup noon').map((item) => item.id), [post.id]);
+  assert.deepEqual(communityFeed(published, 'board', 'cleanup noon'), []);
   assert.deepEqual(communityFeed(published, 'board'), initial.posts);
-  const left = reopen(applyCommand(published, { ...join, joined: false }));
+  const bookmarked = applyCommand(published, { type: 'save-post', postId: post.id, saved: true });
+  assert.deepEqual(communityFeed(bookmarked, 'saved'), communityFeed(published, 'groups'));
+  const left = reopen(applyCommand(bookmarked, { ...join, joined: false }));
   assert.deepEqual(communityFeed(left, 'groups'), []);
-  assert.deepEqual(communityFeed(applyCommand(left, join), 'groups'), communityFeed(published, 'groups'));
+  assert.deepEqual(communityFeed(left, 'groups', 'cleanup'), []);
+  assert.deepEqual(communityFeed(left, 'saved'), []);
+  const rejoined = applyCommand(left, join);
+  assert.deepEqual(communityFeed(rejoined, 'groups'), communityFeed(published, 'groups'));
+  assert.deepEqual(communityFeed(rejoined, 'saved'), communityFeed(published, 'groups'));
 });

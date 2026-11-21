@@ -24,6 +24,7 @@ export type CommunityState = {
   replies: OfferReply[];
   joinedEvents: string[];
   groups: Neighborhood[];
+  savedPostIds: string[];
 };
 export type SharedDetails = { firstName?: string; callback?: string; neighborhood?: Neighborhood };
 export type Referral = {
@@ -42,7 +43,8 @@ export type CommunityCommand =
   | { type: 'post'; id: string; title: string; body: string; at: string; group?: Neighborhood }
   | ({ type: 'reply' } & OfferReply)
   | { type: 'event-rsvp'; postId: string; joined: boolean }
-  | { type: 'group-membership'; group: Neighborhood; joined: boolean };
+  | { type: 'group-membership'; group: Neighborhood; joined: boolean }
+  | { type: 'save-post'; postId: string; saved: boolean };
 export type Command =
   | CommunityCommand
   | {

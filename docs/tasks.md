@@ -12,6 +12,8 @@ Community is where neighbors offer items and organize activities. A resident wit
 - [x] **1.2 Reply to an offer.** From “Kids’ coats available,” a neighbor asks whether the size 6 coat is still available. The author can answer on the post. Reopening the offer shows the question and answer together so the next reader can see what is available.
 - [x] **1.3 Join a community event.** Open the winter drive from the feed to see when and where it takes place and what to bring. Joining reserves one volunteer place and updates the count. Reopening shows the resident has joined. Cancelling releases that place.
 - [x] **1.4 Follow a public neighborhood group.** From Community, a resident joins a group, publishes an offer to it and finds the offer under My groups. Leaving removes the group from that feed. Its public posts remain visible to other neighbors.
+- [x] **1.5 Save a post for later.** Save the winter drive, reload the app and find it under **Saved** in Community. Removing the bookmark removes it from Saved.
+- [x] **1.6 Search community posts.** Search `coat` to find “Kids’ coats available” on the Community board. Search **My groups** for a post from a joined neighborhood. Private referrals stay in Activity.
 
 ## 2. Resource matching
 

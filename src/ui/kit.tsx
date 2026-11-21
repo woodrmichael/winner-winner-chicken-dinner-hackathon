@@ -129,12 +129,16 @@ export function Btn({
   label,
   onPress,
   icon: Icon,
+  iconOnly = false,
+  fillIcon = false,
   secondary = false,
   disabled = false,
 }: {
   label: string;
   onPress: () => unknown;
   icon?: LucideIcon;
+  iconOnly?: boolean;
+  fillIcon?: boolean;
   secondary?: boolean;
   disabled?: boolean;
 }) {
@@ -160,6 +164,7 @@ export function Btn({
     <View style={{ flexShrink: 1, maxWidth: '100%', gap: error ? 4 : 0 }}>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={iconOnly ? label : undefined}
         disabled={disabled || busy}
         accessibilityState={{ disabled: disabled || busy }}
         onPress={press}
@@ -170,9 +175,10 @@ export function Btn({
             maxWidth: '100%',
             justifyContent: 'center',
             minHeight: 44,
-            paddingHorizontal: 16,
-            paddingVertical: 9,
-            borderRadius: 13,
+            width: iconOnly ? 44 : undefined,
+            paddingHorizontal: iconOnly ? 0 : 16,
+            paddingVertical: iconOnly ? 0 : 9,
+            borderRadius: iconOnly ? 10 : 13,
             borderWidth: 0,
             borderColor: secondary ? color.line : color.pine,
             backgroundColor: secondary ? color.pale : color.pine,
@@ -180,10 +186,12 @@ export function Btn({
           },
         ]}
       >
-        {Icon && <Icon color={fg} size={17} />}
-        <Copy kind="strong" tint={fg} style={{ fontSize: 14, flexShrink: 1 }}>
-          {label}
-        </Copy>
+        {Icon && <Icon color={fg} fill={fillIcon ? fg : 'none'} size={iconOnly ? 20 : 17} />}
+        {!iconOnly && (
+          <Copy kind="strong" tint={fg} style={{ fontSize: 14, flexShrink: 1 }}>
+            {label}
+          </Copy>
+        )}
       </Pressable>
       {error ? (
         <Text accessibilityRole="alert" style={{ color: color.rust }}>
