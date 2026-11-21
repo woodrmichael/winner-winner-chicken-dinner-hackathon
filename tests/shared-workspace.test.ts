@@ -246,3 +246,50 @@ test('shared volunteer capacity and confirmed time come from the same signups', 
   assert.equal(api.stored().signups.find(({ accountId }) => accountId === 'alex')?.minutes, 120);
   assert.equal((await api.command(alex, { type: 'cancel-volunteer' })).status, 409);
 });
+
+test('post reports stay private and only the moderator account can hide a post', async (t) => {
+  const api = await fixture(t);
+  const alex = await api.login('alex');
+  const jordan = await api.login('jordan');
+  const worker = await api.login('winter-worker');
+  const moderator = await api.login('organizer');
+
+  const report = {
+    type: 'report-post',
+    postId: 'pantry',
+    id: 'pantry-report-shared',
+    reporterId: 'fake-id',
+    reason: 'The pickup details are incorrect.',
+  };
+  assert.equal((await api.command(alex, report)).status, 200);
+  assert.equal((await api.command(jordan, report)).status, 200);
+  assert.equal((await api.command(worker, report)).status, 403);
+
+  const residentSnapshot = (await api.read(jordan)).data;
+  assert.equal(residentSnapshot.community.reports.length, 0);
+  assert.equal(residentSnapshot.posts.some((post) => post.id === 'pantry'), true);
+
+  assert.equal((await api.command(worker, {
+    type: 'hide-post',
+    postId: 'pantry',
+    moderatorId: 'winter-worker',
+    reason: 'Unauthorized moderation.',
+  })).status, 403);
+
+  const hide = {
+    type: 'hide-post',
+    postId: 'pantry',
+    moderatorId: 'organizer',
+    reason: 'Verified as an outdated duplicate.',
+  };
+  assert.equal((await api.command(moderator, hide)).status, 200);
+  assert.equal((await api.command(moderator, hide)).status, 200);
+
+  const hiddenToResident = (await api.read(jordan)).data;
+  assert.equal(hiddenToResident.posts.some((post) => post.id === 'pantry'), false);
+  assert.equal(hiddenToResident.community.reports.length, 0);
+  const hiddenToModerator = (await api.read(moderator)).data;
+  assert.equal(hiddenToModerator.posts.find((post) => post.id === 'pantry')?.status, 'hidden');
+  assert.equal(hiddenToModerator.community.reports.length, 2);
+  assert.equal(hiddenToModerator.community.moderation.length, 1);
+});

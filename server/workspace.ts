@@ -1,7 +1,16 @@
 import { deliveredServices, impact, mapRows } from '../src/domain/model';
 import { applyReferralCommand, partnerInbox, residentTimeline } from '../src/domain/referrals';
 import { profile, program, seedState } from '../src/domain/seed';
-import { categories, type Referral, type ReferralCommand, type WorkspaceCommand } from '../src/domain/types';
+import { applyCommunityCommand } from '../src/features/community/model';
+import {
+  categories,
+  type CommunityCommand,
+  type CommunityState,
+  type Post,
+  type Referral,
+  type ReferralCommand,
+  type WorkspaceCommand,
+} from '../src/domain/types';
 import { impactReports, reportingMonth, type ImpactReports } from '../src/features/impact/report';
 import { directory } from '../src/features/matching/directory';
 import type { Account, SharedSnapshot, VolunteerRole, VolunteerSignup } from '../src/shared/workspace';
@@ -11,6 +20,8 @@ import { approvedPartner, assignmentScope, WorkspaceError } from './referral-acc
 export type StoredAccount = Account & { passwordHash: string };
 export type Workspace = {
   referrals: Referral[];
+  posts: Post[];
+  community: CommunityState;
   accounts: StoredAccount[];
   roles: VolunteerRole[];
   signups: VolunteerSignup[];
@@ -22,7 +33,13 @@ export const sampleResidentAccount = 'alex';
 const reportCache = new WeakMap<Referral[], { month: number; reports: ImpactReports }>();
 
 export function restoreCommunication(stored: StoredWorkspace): Workspace {
-  return { ...stored, communication: stored.communication ?? emptyCommunication() };
+  const demo = seedState(sampleResidentAccount);
+  return {
+    ...stored,
+    posts: stored.posts ?? demo.posts,
+    community: stored.community ?? demo.community,
+    communication: stored.communication ?? emptyCommunication(),
+  };
 }
 
 export const demoAccounts: Account[] = [
@@ -32,15 +49,18 @@ export const demoAccounts: Account[] = [
   { id: 'winter-worker', name: 'Jamie Reed', kind: 'worker', details: { firstName: 'Jamie' },
     membership: { partnerId: 'winter-team', status: 'approved', admin: false } },
   { id: 'organizer', name: 'Morgan Chen', kind: 'worker', details: { firstName: 'Morgan' },
-    membership: { partnerId: 'winter-team', status: 'approved', admin: true } },
+    membership: { partnerId: 'winter-team', status: 'approved', admin: true }, moderator: true },
   { id: 'table-worker', name: 'Casey Lee', kind: 'worker', details: { firstName: 'Casey' },
     membership: { partnerId: 'table', status: 'approved', admin: false } },
   { id: 'candidate', name: 'Riley Jones', kind: 'worker', details: { firstName: 'Riley' } },
 ];
 
 export function createWorkspace(accounts: StoredAccount[]): Workspace {
+  const demo = seedState(sampleResidentAccount);
   return {
-    referrals: seedState(sampleResidentAccount).referrals,
+    referrals: demo.referrals,
+    posts: demo.posts,
+    community: demo.community,
     accounts,
     roles: [
       { id: 'sorting', name: 'Coat sorting', capacity: 4, instructions: 'Check in at the coat sorting table at Moody Park at 9:30 am.' },
@@ -77,6 +97,12 @@ export function snapshot(workspace: Workspace, account: StoredAccount, revision:
   return {
     revision,
     account: publicAccount,
+    posts: account.moderator ? workspace.posts : workspace.posts.filter((post) => post.status !== 'hidden'),
+    community: {
+      ...workspace.community,
+      reports: account.moderator ? workspace.community.reports : [],
+      moderation: account.moderator ? workspace.community.moderation : [],
+    },
     referrals: account.kind === 'resident' ? residentTimeline(workspace, account.id) : [],
     inbox: partner ? partnerInbox(workspace, partner) : [],
     ...communicationFor(workspace, account),
@@ -123,6 +149,33 @@ export function applySharedReferral(workspace: Workspace, account: Account, cmd:
     }
   }
   return notifyReferralChange(workspace, applyReferralCommand(workspace, cmd, account), cmd);
+}
+
+export function applySharedCommunity(
+  workspace: Workspace,
+  account: Account,
+  cmd: CommunityCommand,
+): Workspace {
+  if (cmd.type === 'hide-post' && !account.moderator) {
+    throw new WorkspaceError(403, 'Moderator access is required.');
+  }
+  if (cmd.type === 'edit-post' || cmd.type === 'close-post') {
+    if (account.kind !== 'resident') {
+      throw new WorkspaceError(403, 'Sign in as a resident to manage offers.');
+    }
+  }
+  if (cmd.type === 'report-post' && account.kind !== 'resident') {
+    throw new WorkspaceError(403, 'Sign in as a resident to report posts.');
+  }
+  const state = applyCommunityCommand({
+    version: 2,
+    posts: workspace.posts,
+    community: workspace.community,
+    referrals: workspace.referrals,
+  }, cmd, account.id);
+  return state.posts === workspace.posts && state.community === workspace.community
+    ? workspace
+    : { ...workspace, posts: state.posts, community: state.community };
 }
 
 export function applyWorkspaceCommand(workspace: Workspace, account: StoredAccount, cmd: WorkspaceCommand): Workspace {

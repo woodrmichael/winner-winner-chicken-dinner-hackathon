@@ -21,10 +21,12 @@ const entries: DemoPost[] = [
   {
     id: 'coats',
     kind: 'Offer',
-    author: 'Maya R.',
+    author: 'Alex (you)',
+    authorId: 'demo-resident',
     title: 'Kids’ coats available',
     body: 'Two gently used winter coats, sizes 6 and 8. Available for Saturday pickup.',
     date: '2026-11-19T18:00:00Z',
+    status: 'active',
   },
   {
     id: 'pantry',

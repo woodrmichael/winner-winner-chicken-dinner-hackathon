@@ -108,8 +108,8 @@ Ben Nguyen verified volunteer reservations and attendance on iPhone and PC. [Sha
 
 Neighbors need to know whether an offer is still available. Authors can keep listings current, and moderators need a way to review a reported post without exposing anyone’s private referral.
 
-- [ ] **11.1 Edit or close an offer.** The author updates “Kids’ coats available” after the size 6 coat is collected, then marks the offer fulfilled when the last coat is gone. Reopen the post and check its status and any existing replies. Closing a public offer leaves verified delivery totals unchanged.
-- [ ] **11.2 Review a reported post.** A resident flags a post and a moderator reviews the report, records a reason and hides the post. Check the public feed from a second account. The post disappears and private referrals continue to appear for their participants.
+- [x] **11.1 Edit or close an offer.** The author updates “Kids’ coats available” after the size 6 coat is collected, then marks the offer fulfilled when the last coat is gone. Reopen the post and check its status and any existing replies. Closing a public offer leaves verified delivery totals unchanged. Author-only editing, fulfillment, persistence and delivery regression checks are implemented.
+- [x] **11.2 Review a reported post.** A resident flags a post and a moderator reviews the report, records a reason and hides the post. Check the public feed from a second account. The post disappears and private referrals continue to appear for their participants. Report privacy, moderator authorization and hidden-post filtering are implemented.
 
 ## 12. Service records and corrections
 

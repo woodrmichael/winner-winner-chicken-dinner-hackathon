@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ReferralCommand, WorkspaceCommand } from '../domain/types';
+import type { CommunityCommand, ReferralCommand, WorkspaceCommand } from '../domain/types';
 import type { SharedSnapshot } from '../shared/workspace';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/+$/, '');
@@ -92,7 +92,7 @@ export function useSharedWorkspace() {
     if (session) await request('/session', { method: 'DELETE' }, session).catch(() => {});
   }
 
-  async function run(command: ReferralCommand | WorkspaceCommand) {
+  async function run(command: CommunityCommand | ReferralCommand | WorkspaceCommand) {
     const session = token.current;
     if (!session) throw new Error('Sign in through Settings to use the shared workspace.');
     try {

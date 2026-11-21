@@ -8,10 +8,12 @@ export type Post = {
   id: string;
   kind: 'Event' | 'Offer' | 'Update';
   author: string;
+  authorId?: string;
   title: string;
   body: string;
   date: string;
   group?: Neighborhood;
+  status?: 'active' | 'fulfilled' | 'hidden';
 };
 export type OfferReply = {
   id: string;
@@ -20,11 +22,26 @@ export type OfferReply = {
   body: string;
   at: string;
 };
+export type PostReport = {
+  id: string;
+  postId: string;
+  reporterId: string;
+  reason: string;
+  at: string;
+};
+export type PostModeration = {
+  postId: string;
+  moderatorId: string;
+  reason: string;
+  at: string;
+};
 export type CommunityState = {
   replies: OfferReply[];
   joinedEvents: string[];
   groups: Neighborhood[];
   savedPostIds: string[];
+  reports: PostReport[];
+  moderation: PostModeration[];
 };
 export type SharedDetails = { firstName?: string; callback?: string; neighborhood?: Neighborhood };
 export type Appointment = { date: string; time: string; instructions: string };
@@ -75,7 +92,11 @@ export type CommunityCommand =
   | ({ type: 'reply' } & OfferReply)
   | { type: 'event-rsvp'; postId: string; joined: boolean }
   | { type: 'group-membership'; group: Neighborhood; joined: boolean }
-  | { type: 'save-post'; postId: string; saved: boolean };
+  | { type: 'save-post'; postId: string; saved: boolean }
+  | { type: 'edit-post'; postId: string; authorId: string; title: string; body: string }
+  | { type: 'close-post'; postId: string; authorId: string }
+  | { type: 'report-post'; postId: string; id: string; reporterId: string; reason: string; at: string }
+  | { type: 'hide-post'; postId: string; moderatorId: string; reason: string; at: string };
 export type ReferralCommand =
   | {
       type: 'send';

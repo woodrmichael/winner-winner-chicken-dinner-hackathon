@@ -1,4 +1,4 @@
-import { profile } from '../../domain/seed';
+import { profile, residentId } from '../../domain/seed';
 import { communityEvents } from '../../domain/demoCommunity';
 import { neighborhoods, type CommunityCommand, type DemoState, type Post } from '../../domain/types';
 
@@ -9,7 +9,7 @@ export { communityEvents };
 export type CommunityView = 'board' | 'groups' | 'saved';
 
 function canSeePost(state: DemoState, post: Post) {
-  return !post.group || state.community.groups.includes(post.group);
+  return post.status !== 'hidden' && (!post.group || state.community.groups.includes(post.group));
 }
 
 export function communityFeed(state: DemoState, view: CommunityView, query = '') {
@@ -25,12 +25,20 @@ export function communityFeed(state: DemoState, view: CommunityView, query = '')
   });
 }
 
+export function postStatus(post: Post) {
+  return post.status ?? 'active';
+}
+
 function membership<T>(items: T[], item: T, joined: boolean): T[] {
   if (items.includes(item) === joined) return items;
   return joined ? [...items, item] : items.filter((entry) => entry !== item);
 }
 
-export function applyCommunityCommand(state: DemoState, cmd: CommunityCommand): DemoState {
+export function applyCommunityCommand(
+  state: DemoState,
+  cmd: CommunityCommand,
+  actorId = residentId,
+): DemoState {
   const { community } = state;
   switch (cmd.type) {
     case 'post': {
@@ -43,9 +51,11 @@ export function applyCommunityCommand(state: DemoState, cmd: CommunityCommand): 
         id: cmd.id,
         kind: cmd.group ? 'Update' : 'Offer',
         author: residentAuthor,
+        authorId: actorId,
         title: cmd.title.trim(),
         body: cmd.body.trim(),
         date: cmd.at,
+        status: 'active',
         ...(cmd.group ? { group: cmd.group } : {}),
       };
       return { ...state, posts: [post, ...state.posts] };
@@ -89,6 +99,81 @@ export function applyCommunityCommand(state: DemoState, cmd: CommunityCommand): 
       return savedPostIds === community.savedPostIds
         ? state
         : { ...state, community: { ...community, savedPostIds } };
+    }
+    case 'edit-post': {
+      const post = state.posts.find((entry) => entry.id === cmd.postId);
+      if (!post || post.kind !== 'Offer') throw new Error('This offer is unavailable.');
+      if ((post.authorId ?? residentId) !== actorId || cmd.authorId !== actorId) {
+        throw new Error('Only the original author can edit this offer.');
+      }
+      if (post.status === 'hidden') throw new Error('Hidden offers cannot be edited.');
+      if (!cmd.title.trim() || !cmd.body.trim()) throw new Error('Add a title and a description.');
+      if (post.title === cmd.title.trim() && post.body === cmd.body.trim()) return state;
+      return {
+        ...state,
+        posts: state.posts.map((entry) => entry.id === post.id
+          ? { ...entry, title: cmd.title.trim(), body: cmd.body.trim() }
+          : entry),
+      };
+    }
+    case 'close-post': {
+      const post = state.posts.find((entry) => entry.id === cmd.postId);
+      if (!post || post.kind !== 'Offer') throw new Error('This offer is unavailable.');
+      if ((post.authorId ?? residentId) !== actorId || cmd.authorId !== actorId) {
+        throw new Error('Only the original author can close this offer.');
+      }
+      if (post.status === 'hidden') throw new Error('Hidden offers cannot be changed.');
+      if (post.status === 'fulfilled') return state;
+      return { ...state, posts: state.posts.map((entry) =>
+        entry.id === post.id ? { ...entry, status: 'fulfilled' } : entry) };
+    }
+    case 'report-post': {
+      const post = state.posts.find((entry) => entry.id === cmd.postId);
+      if (!post || post.status === 'hidden') throw new Error('This post is unavailable.');
+      if (!cmd.reason.trim()) throw new Error('Add a reason for the report.');
+      if (community.reports.some((report) =>
+        report.postId === cmd.postId && report.reporterId === actorId)) return state;
+      return {
+        ...state,
+        community: {
+          ...community,
+          reports: [...community.reports, {
+            id: cmd.id,
+            postId: cmd.postId,
+            reporterId: cmd.reporterId === actorId ? cmd.reporterId : actorId,
+            reason: cmd.reason.trim(),
+            at: cmd.at,
+          }],
+        },
+      };
+    }
+    case 'hide-post': {
+      if (cmd.moderatorId !== actorId ||
+        (actorId === residentId && cmd.moderatorId === residentId)) {
+        throw new Error('Moderator access is required.');
+      }
+      const post = state.posts.find((entry) => entry.id === cmd.postId);
+      if (!post) throw new Error('This post is unavailable.');
+      if (!community.reports.some((report) => report.postId === cmd.postId)) {
+        throw new Error('Only a reported post can be hidden.');
+      }
+      if (!cmd.reason.trim()) throw new Error('Add a moderation reason.');
+      if (post.status === 'hidden') return state;
+      return {
+        ...state,
+        posts: state.posts.map((entry) => entry.id === post.id
+          ? { ...entry, status: 'hidden' }
+          : entry),
+        community: {
+          ...community,
+          moderation: [...community.moderation, {
+            postId: cmd.postId,
+            moderatorId: actorId,
+            reason: cmd.reason.trim(),
+            at: cmd.at,
+          }],
+        },
+      };
     }
   }
 }

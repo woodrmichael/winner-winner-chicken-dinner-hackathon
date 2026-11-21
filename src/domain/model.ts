@@ -14,17 +14,28 @@ import {
 export { partnerInbox, residentTimeline, status } from './referrals';
 
 export function isCommunityCommand(cmd: { type: string }): cmd is CommunityCommand {
-  return ['post', 'reply', 'event-rsvp', 'group-membership', 'save-post'].includes(cmd.type);
+  return [
+    'post', 'reply', 'event-rsvp', 'group-membership', 'save-post',
+    'edit-post', 'close-post', 'report-post', 'hide-post',
+  ].includes(cmd.type);
 }
 
-export function applyCommand(state: DemoState, cmd: CommunityCommand | ReferralCommand): DemoState {
+export function applyCommand(
+  state: DemoState,
+  cmd: CommunityCommand | ReferralCommand,
+  actorId?: string,
+): DemoState {
   switch (cmd.type) {
     case 'post':
     case 'reply':
     case 'event-rsvp':
     case 'group-membership':
     case 'save-post':
-      return applyCommunityCommand(state, cmd);
+    case 'edit-post':
+    case 'close-post':
+    case 'report-post':
+    case 'hide-post':
+      return applyCommunityCommand(state, cmd, actorId);
     default:
       return applyReferralCommand(state, cmd);
   }

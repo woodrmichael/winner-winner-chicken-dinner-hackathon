@@ -1,5 +1,12 @@
 import { detailsToShare, shareFields } from '../src/domain/referrals';
-import { categories, type ReferralCommand, type SharedDetails, type WorkspaceCommand } from '../src/domain/types';
+import {
+  categories,
+  neighborhoods,
+  type CommunityCommand,
+  type ReferralCommand,
+  type SharedDetails,
+  type WorkspaceCommand,
+} from '../src/domain/types';
 import { referralMessageLimit } from '../src/shared/workspace';
 import { WorkspaceError } from './referral-access';
 
@@ -32,10 +39,45 @@ function share(value: unknown) {
   return value.map((key) => option(key, shareFields));
 }
 
-export function parseCommand(input: unknown, details: SharedDetails): ReferralCommand | WorkspaceCommand {
+export function parseCommand(input: unknown, details: SharedDetails): CommunityCommand | ReferralCommand | WorkspaceCommand {
   const cmd = object(input);
   const at = new Date().toISOString();
   switch (cmd.type) {
+    case 'post':
+      return {
+        type: cmd.type,
+        id: text(cmd.id),
+        title: text(cmd.title, 160),
+        body: text(cmd.body, 4000),
+        at,
+        ...(Object.hasOwn(cmd, 'group') ? { group: option(cmd.group, neighborhoods) } : {}),
+      };
+    case 'reply':
+      return {
+        type: cmd.type,
+        id: text(cmd.id),
+        postId: text(cmd.postId),
+        from: option(cmd.from, ['resident', 'author'] as const),
+        body: text(cmd.body, 4000),
+        at,
+      };
+    case 'event-rsvp':
+      return { type: cmd.type, postId: text(cmd.postId), joined: cmd.joined === true };
+    case 'group-membership':
+      return { type: cmd.type, group: option(cmd.group, neighborhoods), joined: cmd.joined === true };
+    case 'save-post':
+      return { type: cmd.type, postId: text(cmd.postId), saved: cmd.saved === true };
+    case 'edit-post':
+      return { type: cmd.type, postId: text(cmd.postId), authorId: text(cmd.authorId),
+        title: text(cmd.title, 160), body: text(cmd.body, 4000) };
+    case 'close-post':
+      return { type: cmd.type, postId: text(cmd.postId), authorId: text(cmd.authorId) };
+    case 'report-post':
+      return { type: cmd.type, postId: text(cmd.postId), id: text(cmd.id),
+        reporterId: text(cmd.reporterId), reason: text(cmd.reason, 1200), at };
+    case 'hide-post':
+      return { type: cmd.type, postId: text(cmd.postId), moderatorId: text(cmd.moderatorId),
+        reason: text(cmd.reason, 1200), at };
     case 'request-membership':
       return { type: cmd.type, partnerId: text(cmd.partnerId) };
     case 'approve-membership':

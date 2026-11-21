@@ -3,12 +3,13 @@ import { useState, type ReactNode } from 'react';
 import {
   Activity,
   ChartNoAxesColumnIncreasing,
+  HeartHandshake,
   Map,
   MapPin,
   Settings,
   UsersRound,
 } from 'lucide-react-native';
-import { Image, Pressable, StatusBar, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, StatusBar, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { DemoProvider } from '../src/state/Demo';
 import { MobileHeaderActionContext } from '../src/ui/MobileHeaderAction';
@@ -24,13 +25,17 @@ const tabs = [
 function Brand() {
   return (
     <View style={[row, { gap: 7, flexShrink: 1 }]}>
-      <View style={{ width: 32, height: 36, overflow: 'hidden' }}>
-        <Image
-          source={require('../assets/comforce-mke-logo.png')}
-          accessibilityLabel="ComForce MKE logo"
-          resizeMode="contain"
-          style={{ position: 'absolute', width: 224, height: 61, left: -19, top: -4 }}
-        />
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          backgroundColor: color.pine,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <HeartHandshake size={21} color="#FFF" strokeWidth={1.8} />
       </View>
       <Copy kind="strong" style={{ fontSize: 17, letterSpacing: -0.55, flexShrink: 1 }}>
         ComForce Connect

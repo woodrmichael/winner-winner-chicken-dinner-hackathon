@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ArrowUpRight, CalendarDays, HandHeart, MapPin, Plus, Shirt } from 'lucide-react-native';
 import { Image, View } from 'react-native';
-import { useDemo } from '../../state/Demo';
+import { now, useDemo } from '../../state/Demo';
 import { impact, residentTimeline } from '../../domain/model';
 import { outstandingNeeds } from '../../domain/referrals';
 import { Btn, Card, Columns, Copy, Field, Page, color, row, wrap } from '../../ui/kit';
@@ -65,6 +65,9 @@ function Bulletin({ post }: { post: Post }) {
           <Copy kind="label" tint={color.pine}>
             {post.group ?? post.kind.toUpperCase()}
           </Copy>
+          {post.kind === 'Offer' && post.status === 'fulfilled' && (
+            <Copy kind="label" tint={color.rust}>FULFILLED</Copy>
+          )}
           <Copy kind="small" tint={color.muted}>
             · {post.author}
           </Copy>
@@ -132,10 +135,61 @@ function GroupDirectory() {
   );
 }
 
+function ModerationQueue() {
+  const { state, run, shared } = useDemo();
+  const [reasons, setReasons] = useState<Record<string, string>>({});
+  const reportedIds = [...new Set(
+    state.community.reports
+      .filter((report) => state.posts.some((post) => post.id === report.postId && post.status !== 'hidden'))
+      .map((report) => report.postId),
+  )];
+  const moderatorId = shared.data?.account.id ?? 'moderator';
+  return (
+    <Card>
+      <Copy kind="title">Moderation queue</Copy>
+      {reportedIds.length === 0 && <Copy tint={color.muted}>No reported posts awaiting review.</Copy>}
+      {reportedIds.map((postId) => {
+        const post = state.posts.find((entry) => entry.id === postId);
+        const reports = state.community.reports.filter((report) => report.postId === postId);
+        if (!post) return null;
+        return (
+          <View key={postId} style={{ gap: 6, borderTopWidth: 1, borderColor: color.line, paddingTop: 10 }}>
+            <Copy kind="strong">{post.title}</Copy>
+            <Copy>{post.body}</Copy>
+            {reports.map((report) => (
+              <Copy key={report.id} kind="small" tint={color.muted}>
+                Report: {report.reason}
+              </Copy>
+            ))}
+            <Field
+              label="Moderation reason"
+              value={reasons[postId] ?? ''}
+              change={(value) => setReasons((current) => ({ ...current, [postId]: value }))}
+              multiline
+            />
+            <Btn
+              label="Hide post"
+              secondary
+              disabled={!(reasons[postId] ?? '').trim()}
+              onPress={() => run({
+                type: 'hide-post',
+                postId,
+                moderatorId,
+                reason: reasons[postId],
+                at: now(),
+              })}
+            />
+          </View>
+        );
+      })}
+    </Card>
+  );
+}
+
 export default function Community() {
   const router = useRouter();
   const { view } = useLocalSearchParams<{ view?: string }>();
-  const { state, shared } = useDemo();
+  const { state, shared, role } = useDemo();
   const activeView = view === 'groups' || view === 'saved' ? view : 'board';
   const [filter, setFilter] = useState<'All' | Post['kind']>('All');
   const [query, setQuery] = useState('');
@@ -164,6 +218,7 @@ export default function Community() {
       <Columns
         main={
           <>
+            {role === 'Moderator' && <ModerationQueue />}
             <Segments
               options={['board', 'groups', 'saved'] as const}
               value={activeView}

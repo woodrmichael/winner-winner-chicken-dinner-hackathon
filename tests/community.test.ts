@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyCommand } from '../src/domain/model';
+import { applyCommand, impact } from '../src/domain/model';
 import { seedState } from '../src/domain/seed';
 import type { Command } from '../src/domain/types';
 import { communityFeed } from '../src/features/community/model';
@@ -23,7 +23,12 @@ test('upgrading a saved workspace preserves existing public offers and private r
 test('existing community snapshots gain bookmarks without losing signups or memberships', () => {
   const olderCommunity = { joinedEvents: ['drive'], groups: ['Harambee'], replies: [] };
   const upgraded = decode(JSON.stringify({ ...seedState(), community: olderCommunity }));
-  assert.deepEqual(upgraded.community, { ...olderCommunity, savedPostIds: [] });
+  assert.deepEqual(upgraded.community, {
+    ...olderCommunity,
+    savedPostIds: [],
+    reports: [],
+    moderation: [],
+  });
 });
 
 test('saving an event adds it to Saved after reload and removing the bookmark clears it', () => {
@@ -95,4 +100,73 @@ test('group posts appear only under My groups while a resident has joined that g
   const rejoined = applyCommand(left, join);
   assert.deepEqual(communityFeed(rejoined, 'groups'), communityFeed(published, 'groups'));
   assert.deepEqual(communityFeed(rejoined, 'saved').map(({ id }) => id), [post.id]);
+});
+
+test('the resident author can edit and fulfill an offer without changing replies or delivery totals', () => {
+  const at = '2026-11-21T18:00:00Z';
+  const initial = seedState();
+  const coat = initial.posts.find((post) => post.id === 'coats')!;
+  assert.equal(coat.authorId, 'demo-resident');
+  const reply: Command = {
+    type: 'reply', id: 'coat-question', postId: 'coats', from: 'resident',
+    body: 'Is size 6 still available?', at,
+  };
+  const replied = applyCommand(initial, reply);
+  const edited = reopen(applyCommand(replied, {
+    type: 'edit-post',
+    postId: 'coats',
+    authorId: 'demo-resident',
+    title: 'Kids’ coats available',
+    body: 'One gently used winter coat, size 8. Available for Saturday pickup.',
+  }, 'demo-resident'));
+  assert.equal(edited.posts.find((post) => post.id === 'coats')?.body,
+    'One gently used winter coat, size 8. Available for Saturday pickup.');
+  assert.deepEqual(edited.community.replies, replied.community.replies);
+  assert.throws(() => applyCommand(edited, {
+    type: 'edit-post',
+    postId: 'coats',
+    authorId: 'other-resident',
+    title: 'Unauthorized',
+    body: 'Unauthorized',
+  }, 'other-resident'), /original author/);
+  const fulfilled = reopen(applyCommand(edited, {
+    type: 'close-post',
+    postId: 'coats',
+    authorId: 'demo-resident',
+  }, 'demo-resident'));
+  assert.equal(fulfilled.posts.find((post) => post.id === 'coats')?.status, 'fulfilled');
+  assert.deepEqual(fulfilled.community.replies, replied.community.replies);
+  assert.equal(impact(fulfilled).delivered, impact(initial).delivered);
+});
+
+test('a resident can report a post and only a moderator can hide it', () => {
+  const at = '2026-11-21T18:00:00Z';
+  const initial = seedState();
+  const reported = reopen(applyCommand(initial, {
+    type: 'report-post',
+    postId: 'pantry',
+    id: 'pantry-report',
+    reporterId: 'demo-resident',
+    reason: 'This information is misleading.',
+    at,
+  }, 'demo-resident'));
+  assert.equal(reported.community.reports[0].reason, 'This information is misleading.');
+  assert.throws(() => applyCommand(reported, {
+    type: 'hide-post',
+    postId: 'pantry',
+    moderatorId: 'demo-resident',
+    reason: 'Unauthorized',
+    at,
+  }, 'demo-resident'), /Moderator access/);
+  const hidden = reopen(applyCommand(reported, {
+    type: 'hide-post',
+    postId: 'pantry',
+    moderatorId: 'moderator',
+    reason: 'Inappropriate duplicate listing.',
+    at,
+  }, 'moderator'));
+  assert.equal(hidden.posts.find((post) => post.id === 'pantry')?.status, 'hidden');
+  assert.equal(communityFeed(hidden, 'board').some((post) => post.id === 'pantry'), false);
+  assert.equal(communityFeed(hidden, 'board', 'pantry').some((post) => post.id === 'pantry'), false);
+  assert.equal(impact(hidden).delivered, impact(initial).delivered);
 });

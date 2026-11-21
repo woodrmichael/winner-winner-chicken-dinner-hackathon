@@ -6,6 +6,8 @@ import type {
   DemoState,
   Handoff,
   Post,
+  PostModeration,
+  PostReport,
   Referral,
   ReferralAssignment,
   Service,
@@ -29,11 +31,17 @@ function isPost(p: unknown): p is Post {
     [p.id, p.author, p.title, p.body].every(isText) &&
     isDate(p.date) &&
     includes(['Offer', 'Event', 'Update'], p.kind) &&
-    (p.group === undefined || (p.kind === 'Update' && includes(neighborhoods, p.group)))
+    (p.group === undefined || (p.kind === 'Update' && includes(neighborhoods, p.group))) &&
+    (p.authorId === undefined || isText(p.authorId)) &&
+    (p.status === undefined || includes(['active', 'fulfilled', 'hidden'], p.status))
   );
 }
 
-type StoredCommunity = Omit<CommunityState, 'savedPostIds'> & { savedPostIds?: string[] };
+type StoredCommunity = Omit<CommunityState, 'savedPostIds' | 'reports' | 'moderation'> & {
+  savedPostIds?: string[];
+  reports?: PostReport[];
+  moderation?: PostModeration[];
+};
 
 function isCommunity(value: unknown, posts: Post[]): value is StoredCommunity {
   if (
@@ -66,7 +74,29 @@ function isCommunity(value: unknown, posts: Post[]): value is StoredCommunity {
     (value.savedPostIds === undefined ||
       (Array.isArray(value.savedPostIds) &&
         value.savedPostIds.every((id) => postKinds.has(id)) &&
-        new Set(value.savedPostIds).size === value.savedPostIds.length))
+        new Set(value.savedPostIds).size === value.savedPostIds.length)) &&
+    (value.reports === undefined ||
+      (Array.isArray(value.reports) &&
+        value.reports.every((report: unknown) =>
+          record(report) &&
+          isText(report.id) &&
+          isText(report.postId) &&
+          isText(report.reporterId) &&
+          isText(report.reason) &&
+          !!report.reason.trim() &&
+          isDate(report.at) &&
+          postKinds.has(report.postId)) &&
+        new Set(value.reports.map((report) => report.id)).size === value.reports.length)) &&
+    (value.moderation === undefined ||
+      (Array.isArray(value.moderation) &&
+        value.moderation.every((entry: unknown) =>
+          record(entry) &&
+          isText(entry.postId) &&
+          isText(entry.moderatorId) &&
+          isText(entry.reason) &&
+          !!entry.reason.trim() &&
+          isDate(entry.at) &&
+          postKinds.has(entry.postId))))
   );
 }
 const isCategory = (value: unknown): value is Category => includes(categories, value);

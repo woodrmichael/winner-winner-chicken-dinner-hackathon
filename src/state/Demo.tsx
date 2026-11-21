@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { View } from 'react-native';
 import { applyCommand, isCommunityCommand } from '../domain/model';
-import { seedState, withDemoSamples } from '../domain/seed';
+import { residentId, seedState, withDemoSamples } from '../domain/seed';
 import type { Command, DemoState, OfferReply } from '../domain/types';
 import { Btn, Copy } from '../ui/kit';
 import { decode, storageKey } from './persistence';
@@ -23,8 +23,8 @@ type DemoContext = {
   run: (cmd: Command) => Promise<void>;
   partnerId: string;
   setPartnerId: (id: string) => void;
-  role: 'Resident' | 'Partner';
-  setRole: (role: 'Resident' | 'Partner') => void;
+  role: 'Resident' | 'Partner' | 'Moderator';
+  setRole: (role: 'Resident' | 'Partner' | 'Moderator') => void;
   offerReplyFrom: OfferReply['from'];
   setOfferReplyFrom: (from: OfferReply['from']) => void;
 };
@@ -38,7 +38,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
   const current = useRef<DemoState | undefined>(undefined);
   const writes = useRef(Promise.resolve());
   const [error, setError] = useState('');
-  const [role, setRole] = useState<'Resident' | 'Partner'>('Resident');
+  const [role, setRole] = useState<'Resident' | 'Partner' | 'Moderator'>('Resident');
   const [partnerId, setPartnerId] = useState('winter-team');
   const [offerReplyFrom, setOfferReplyFrom] = useState<OfferReply['from']>('resident');
   useEffect(() => {
@@ -60,7 +60,11 @@ export function DemoProvider({ children }: PropsWithChildren) {
   }, []);
   const save = useCallback((cmd?: Parameters<typeof applyCommand>[1]) => {
     const next = writes.current.then(async () => {
-      const value = cmd && current.current ? applyCommand(current.current, cmd) : seedState();
+      const value = cmd && current.current ? applyCommand(
+        current.current,
+        cmd,
+        role === 'Moderator' ? 'moderator' : residentId,
+      ) : seedState();
       if (value !== current.current) await AsyncStorage.setItem(storageKey, JSON.stringify(value));
       current.current = value;
       setState(value);
@@ -68,7 +72,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
     });
     writes.current = next.catch(() => {});
     return next;
-  }, []);
+  }, [role]);
   async function reset() {
     await save();
     setRole('Resident');
@@ -85,14 +89,25 @@ export function DemoProvider({ children }: PropsWithChildren) {
   return (
     <Context.Provider
       value={{
-        state: shared.enabled ? { ...state, referrals: [] } : state,
+        state: shared.enabled ? {
+          ...state,
+          posts: shared.data?.posts ?? state.posts,
+          community: shared.data?.community ?? state.community,
+          referrals: [],
+        } : state,
         shared,
         run: (cmd) => {
-          if (shared.enabled && !isCommunityCommand(cmd)) return shared.run(cmd);
+          if (shared.enabled && (isCommunityCommand(cmd) || isWorkspaceCommand(cmd))) return shared.run(cmd);
           if (isWorkspaceCommand(cmd)) return Promise.reject(new Error('Open the shared workspace first.'));
           return save(cmd);
         },
-        role: shared.enabled ? shared.data?.account.kind === 'worker' ? 'Partner' : 'Resident' : role,
+        role: shared.enabled
+          ? shared.data?.account.moderator
+            ? 'Moderator'
+            : shared.data?.account.kind === 'worker'
+              ? 'Partner'
+              : 'Resident'
+          : role,
         setRole,
         partnerId: shared.enabled ? shared.data?.account.membership?.partnerId ?? '' : partnerId,
         setPartnerId,

@@ -1,6 +1,14 @@
 import type { deliveredServices, impact, mapRows } from '../domain/model';
 import type { partnerInbox } from '../domain/referrals';
-import type { Category, Referral, SharedDetails, VolunteerRoleId, WorkspaceCommand } from '../domain/types';
+import type {
+  Category,
+  CommunityState,
+  Post,
+  Referral,
+  SharedDetails,
+  VolunteerRoleId,
+  WorkspaceCommand,
+} from '../domain/types';
 import type { ImpactReports } from '../features/impact/report';
 
 export type Membership = { partnerId: string; status: 'pending' | 'approved'; admin: boolean };
@@ -10,6 +18,7 @@ export type Account = {
   kind: 'resident' | 'worker';
   details: SharedDetails;
   membership?: Membership;
+  moderator?: boolean;
 };
 
 export const referralMessageLimit = 2000;
@@ -42,6 +51,8 @@ export type VolunteerView = {
 export type SharedSnapshot = {
   revision: number;
   account: Account;
+  posts: Post[];
+  community: CommunityState;
   referrals: Referral[];
   inbox: ReturnType<typeof partnerInbox>;
   messages: ReferralMessage[];

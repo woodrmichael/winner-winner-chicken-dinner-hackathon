@@ -3,7 +3,8 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { isWorkspaceCommand, type Account } from '../src/shared/workspace';
 import { object, parseCommand } from './commands';
 import { WorkspaceError } from './referral-access';
-import { applySharedReferral, applyWorkspaceCommand, snapshot, type StoredAccount, type Workspace } from './workspace';
+import { applySharedCommunity, applySharedReferral, applyWorkspaceCommand, snapshot, type StoredAccount, type Workspace } from './workspace';
+import { isCommunityCommand } from '../src/domain/model';
 
 const lifetime = 8 * 60 * 60 * 1000;
 const dummyHash = '00000000000000000000000000000000:' + '0'.repeat(64);
@@ -96,7 +97,11 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
         const cmd = parseCommand(command, account.details);
         let updated: Workspace;
         try {
-          updated = isWorkspaceCommand(cmd) ? applyWorkspaceCommand(workspace, account, cmd) : applySharedReferral(workspace, account, cmd);
+          updated = isCommunityCommand(cmd)
+            ? applySharedCommunity(workspace, account, cmd)
+            : isWorkspaceCommand(cmd)
+              ? applyWorkspaceCommand(workspace, account, cmd)
+              : applySharedReferral(workspace, account, cmd);
         } catch (error) {
           if (!(error instanceof Error) || error instanceof WorkspaceError) throw error;
           throw new WorkspaceError(409, error.message);

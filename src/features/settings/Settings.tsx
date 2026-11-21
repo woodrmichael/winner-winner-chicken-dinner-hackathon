@@ -18,7 +18,7 @@ export default function Settings() {
           <Copy kind="strong">Referral view</Copy>
           <Segments
             accessibilityLabel="Referral view"
-            options={['Resident', 'Partner'] as const}
+            options={['Resident', 'Partner', 'Moderator'] as const}
             value={role}
             onChange={setRole}
             label={(item) => item}

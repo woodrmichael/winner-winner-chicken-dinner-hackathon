@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { Post } from '../../domain/types';
 import { newId, now, useDemo } from '../../state/Demo';
+import { residentId } from '../../domain/seed';
 import { Btn, Card, Copy, Field, Page, color, row } from '../../ui/kit';
 import { communityEvents, residentAuthor } from './model';
 import { PostTimestamp } from './PostTimestamp';
@@ -86,9 +87,20 @@ function EventDetails({ postId }: { postId: string }) {
 export default function PostDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { state } = useDemo();
-  const post = state.posts.find((item) => item.id === id && !item.group);
+  const { state, role, run, shared } = useDemo();
+  const post = state.posts.find((item) =>
+    item.id === id &&
+    !item.group &&
+    (role === 'Moderator' || item.status !== 'hidden'));
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(post?.title ?? '');
+  const [body, setBody] = useState(post?.body ?? '');
+  const [reason, setReason] = useState('');
+  const [feedback, setFeedback] = useState('');
   const back = <Btn label="Back to Community" secondary onPress={() => router.navigate('/')} />;
+  const actorId = shared.data?.account.id ?? residentId;
+  const isAuthor = !!post?.authorId && post.authorId === actorId;
+  const status = post?.status ?? 'active';
 
   return (
     <Page title={post?.title ?? 'Post unavailable'} right={back}>
@@ -96,13 +108,69 @@ export default function PostDetails() {
         <>
           <Card>
             <Copy kind="small" tint={color.muted}>{post.author}</Copy>
-            <Copy>{post.body}</Copy>
+            {post.kind === 'Offer' && (
+              <Copy kind="label" tint={status === 'fulfilled' ? color.rust : color.pine}>
+                {status === 'fulfilled' ? 'FULFILLED' : 'AVAILABLE'}
+              </Copy>
+            )}
+            {editing ? (
+              <View style={{ gap: 8 }}>
+                <Field label="Offer title" value={title} change={setTitle} />
+                <Field label="Description" value={body} change={setBody} multiline />
+              </View>
+            ) : (
+              <Copy>{post.body}</Copy>
+            )}
             <View style={row}>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <PostTimestamp date={post.date} />
               </View>
               <SavePostButton postId={post.id} />
             </View>
+            {post.kind === 'Offer' && isAuthor && role === 'Resident' && (
+              <View style={[row, { flexWrap: 'wrap', gap: 8 }]}>
+                {editing ? (
+                  <>
+                    <Btn label="Save changes" disabled={!title.trim() || !body.trim()} onPress={async () => {
+                      await run({ type: 'edit-post', postId: post.id, authorId: actorId, title, body });
+                      setEditing(false);
+                      setFeedback('Offer updated.');
+                    }} />
+                    <Btn label="Cancel" secondary onPress={() => {
+                      setTitle(post.title);
+                      setBody(post.body);
+                      setEditing(false);
+                    }} />
+                  </>
+                ) : (
+                  <Btn label="Edit offer" secondary onPress={() => setEditing(true)} />
+                )}
+                {status !== 'fulfilled' && (
+                  <Btn label="Mark fulfilled" secondary onPress={async () => {
+                    await run({ type: 'close-post', postId: post.id, authorId: actorId });
+                    setFeedback('Offer marked fulfilled.');
+                  }} />
+                )}
+              </View>
+            )}
+            {post.kind === 'Offer' && role === 'Resident' && (
+              <View style={{ gap: 8, marginTop: 8 }}>
+                <Field label="Report reason" value={reason} change={setReason} multiline />
+                <Btn label="Report post" secondary disabled={!reason.trim()} onPress={async () => {
+                  await run({
+                    type: 'report-post',
+                    id: newId(),
+                    postId: post.id,
+                    reporterId: actorId,
+                    reason,
+                    at: now(),
+                  });
+                  setReason('');
+                  setFeedback('Report submitted for moderator review.');
+                }} />
+              </View>
+            )}
+            {feedback ? <Copy kind="small" tint={color.pine}>{feedback}</Copy> : null}
           </Card>
           {post.kind === 'Offer' && <OfferThread key={post.id} post={post} />}
           {post.kind === 'Event' && <EventDetails postId={post.id} />}

@@ -28,6 +28,8 @@ export const emptyCommunity = (): CommunityState => ({
   joinedEvents: [],
   groups: [],
   savedPostIds: [],
+  reports: [],
+  moderation: [],
 });
 
 const scenarios: { provider: string; needs: Category[]; message: string }[] = [
@@ -159,7 +161,18 @@ function appendMissing<T extends { id: string }>(existing: T[], samples: T[]) {
 }
 
 export function withDemoSamples(state: DemoState, sampleResidentId = residentId): DemoState {
-  const posts = appendMissing(state.posts, demoPosts().filter(({ id }) => id.startsWith('demo-post-')));
+  let postsChanged = false;
+  const postsWithResident = state.posts.map((post) => {
+    if (post.authorId !== residentId || sampleResidentId === residentId) return post;
+    postsChanged = true;
+    return { ...post, authorId: sampleResidentId };
+  });
+  const posts = appendMissing(
+    postsChanged ? postsWithResident : state.posts,
+    demoPosts()
+      .filter(({ id }) => id.startsWith('demo-post-'))
+      .map((post) => post.authorId === residentId ? { ...post, authorId: sampleResidentId } : post),
+  );
   const referrals = withDemoReferrals(state.referrals, sampleResidentId);
   return posts === state.posts && referrals === state.referrals ? state : { ...state, posts, referrals };
 }
