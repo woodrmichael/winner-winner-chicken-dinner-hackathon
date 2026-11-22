@@ -1,1 +1,1 @@
-export { default } from '../src/features/map/MapScreen';
+export { TabRoute as default } from '../src/ui/RetainedTab';

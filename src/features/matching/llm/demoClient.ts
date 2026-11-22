@@ -1,4 +1,4 @@
-import { neighborhoods, type Category, type Neighborhood } from '../../../domain/types';
+import { serviceNeighborhoods, type Category, type Neighborhood } from '../../../domain/types';
 import { directory } from '../directory';
 import type { LlmClient } from './client';
 import type { PartnerMatch } from './types';
@@ -47,7 +47,7 @@ export function interpretNeeds(text: string): Category[] {
 /** Detect a directory neighborhood named in the request text. */
 export function detectNeighborhood(text: string): Neighborhood | undefined {
   const lower = text.toLowerCase();
-  return neighborhoods.find((area) => lower.includes(area.toLowerCase()));
+  return serviceNeighborhoods.find((area) => lower.includes(area.toLowerCase()));
 }
 
 function explain(covers: Category[]): string {

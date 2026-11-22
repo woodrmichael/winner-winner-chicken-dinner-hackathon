@@ -1,1 +1,1 @@
-export { default } from '../src/features/activity/Activity';
+export { TabRoute as default } from '../src/ui/RetainedTab';

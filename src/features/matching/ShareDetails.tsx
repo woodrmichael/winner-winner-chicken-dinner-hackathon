@@ -29,7 +29,7 @@ export function ShareDetails({
   showHeading?: boolean;
 }) {
   const { shared } = useDemo();
-  const details = shared.data?.account.details ?? profile;
+  const details: SharedDetails = shared.enabled ? shared.data?.account.details ?? {} : profile;
   return (
     <View style={{ gap: 6 }}>
       {showHeading && <Copy kind="strong">Optional details to share</Copy>}

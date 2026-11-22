@@ -1,19 +1,20 @@
-import { Slot, usePathname, useRouter } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { Slot, useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Activity,
   ChartNoAxesColumnIncreasing,
-  HeartHandshake,
   Map,
   MapPin,
-  Settings,
   UsersRound,
 } from 'lucide-react-native';
-import { Pressable, StatusBar, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Platform, Pressable, StatusBar, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityScreen, Community, Impact, MapScreen } from '../src/features/navigation/tabScreens';
+import { SettingsDrawer, SettingsEdge } from '../src/features/settings/SettingsDrawer';
 import { DemoProvider } from '../src/state/Demo';
-import { MobileHeaderActionContext } from '../src/ui/MobileHeaderAction';
-import { Btn, Copy, color, row } from '../src/ui/kit';
+import { AppMark } from '../src/ui/AppMark';
+import { RetainedTab } from '../src/ui/RetainedTab';
+import { Card, Copy, Page, color, row } from '../src/ui/kit';
 
 const tabs = [
   { name: 'Community', path: '/', icon: UsersRound },
@@ -22,25 +23,15 @@ const tabs = [
   { name: 'Impact', path: '/impact', icon: ChartNoAxesColumnIncreasing },
 ] as const;
 
-function Brand() {
+function Brand({ openSettings }: { openSettings: () => void }) {
   return (
-    <View style={[row, { gap: 7, flexShrink: 1 }]}>
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
-          backgroundColor: color.pine,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <HeartHandshake size={21} color="#FFF" strokeWidth={1.8} />
-      </View>
+    <Pressable accessibilityRole="button" accessibilityLabel="ComForce Connect, open settings" onPress={openSettings}
+      style={[row, { gap: 7, flexShrink: 1 }]}>
+      <AppMark />
       <Copy kind="strong" style={{ fontSize: 17, letterSpacing: -0.55, flexShrink: 1 }}>
         ComForce Connect
       </Copy>
-    </View>
+    </Pressable>
   );
 }
 function Location() {
@@ -55,28 +46,27 @@ function Location() {
 }
 function Shell() {
   const pathname = usePathname();
+  const { view, period } = useGlobalSearchParams<{ view?: string; period?: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const [mobileHeaderAction, setMobileHeaderAction] = useState<ReactNode>(null);
   const wide = width >= 900;
-  const settingsAction = pathname === '/settings' ? (
-    <Btn
-      label="Done"
-      quiet
-      onPress={() => {
-        if (router.canGoBack()) router.back();
-        else router.replace('/');
-      }}
-    />
-  ) : (
-    <Btn
-      label="Settings"
-      icon={Settings}
-      iconOnly
-      quiet
-      onPress={() => router.push('/settings')}
-    />
-  );
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const openSettings = useCallback(() => {
+    if (pathname === '/settings') return;
+    Keyboard.dismiss();
+    setSettingsOpen(true);
+  }, [pathname]);
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const onShortcut = (event: KeyboardEvent) => {
+      if (event.altKey && event.shiftKey && event.code === 'KeyS') {
+        event.preventDefault();
+        openSettings();
+      }
+    };
+    window.addEventListener('keydown', onShortcut);
+    return () => window.removeEventListener('keydown', onShortcut);
+  }, [openSettings]);
   const navigation = (
     <View
       style={{
@@ -88,6 +78,7 @@ function Shell() {
       }}
     >
       {tabs.map(({ name, path, icon: Icon }) => {
+        const settingsShortcut = !wide && path === '/';
         const selected =
           pathname === path ||
           (path === '/activity' && pathname.startsWith('/activity/referral/')) ||
@@ -100,7 +91,17 @@ function Shell() {
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             accessibilityLabel={name}
-            onPress={() => router.navigate(path)}
+            accessibilityHint={settingsShortcut ? 'Press and hold to open settings' : undefined}
+            accessibilityActions={settingsShortcut ? [{ name: 'openSettings', label: 'Open settings' }] : undefined}
+            onAccessibilityAction={settingsShortcut ? (event) => {
+              if (event.nativeEvent.actionName === 'openSettings') openSettings();
+            } : undefined}
+            onLongPress={settingsShortcut ? openSettings : undefined}
+            onPress={() => {
+              if (pathname === path) return;
+              Keyboard.dismiss();
+              router.navigate(path);
+            }}
             style={({ pressed }) => ({
               flex: wide ? undefined : 1,
               minWidth: 0,
@@ -116,11 +117,11 @@ function Shell() {
               opacity: pressed ? 0.65 : 1,
             })}
           >
-            <Icon
+            {settingsShortcut ? <AppMark size={22} /> : <Icon
               size={wide ? 20 : 22}
               strokeWidth={selected ? 2.5 : 1.65}
               color={selected ? color.pine : color.muted}
-            />
+            />}
             <Copy
               kind={wide ? 'strong' : 'small'}
               tint={selected ? color.pine : color.muted}
@@ -155,43 +156,38 @@ function Shell() {
               backgroundColor: color.paper,
             }}
           >
-            <Brand />
+            <Brand openSettings={openSettings} />
             {navigation}
             <View
               style={[row, { marginTop: 'auto', paddingLeft: 10, justifyContent: 'space-between' }]}
             >
               <Location />
-              {settingsAction}
             </View>
           </View>
         )}
         <View style={{ flex: 1, minWidth: 0 }}>
-          {!wide && (
-            <View
-              style={[
-                row,
-                {
-                  justifyContent: 'space-between',
-                  paddingHorizontal: 18,
-                  paddingVertical: 8,
-                  minHeight: 54,
-                },
-              ]}
-            >
-              <Brand />
-              <View style={row}>
-                {width >= 400 && !mobileHeaderAction && <Location />}
-                {settingsAction}
-                {mobileHeaderAction}
-              </View>
-            </View>
-          )}
-          <MobileHeaderActionContext.Provider value={setMobileHeaderAction}>
+          <View style={{ flex: 1 }}>
             <Slot />
-          </MobileHeaderActionContext.Provider>
+            <RetainedTab active={pathname === '/'} param={view} fallback={<Page title="Community" />}>
+              {(tabView) => <Community view={tabView} />}
+            </RetainedTab>
+            <RetainedTab active={pathname === '/map'} fallback={
+              <Page title="Map"><Card style={{ minHeight: 290, backgroundColor: '#e8eee5' }} /></Page>
+            }>
+              {() => <MapScreen />}
+            </RetainedTab>
+            <RetainedTab active={pathname === '/activity'} fallback={<Page title="Activity" />}>
+              {() => <ActivityScreen />}
+            </RetainedTab>
+            <RetainedTab active={pathname === '/impact'} param={period} fallback={<Page title="Impact" />}>
+              {(tabPeriod) => <Impact period={tabPeriod} />}
+            </RetainedTab>
+          </View>
           {!wide && navigation}
         </View>
+        {!wide && !settingsOpen && pathname !== '/settings' && <SettingsEdge open={openSettings} />}
       </View>
+      {settingsOpen && <SettingsDrawer onClose={() => setSettingsOpen(false)} />}
     </SafeAreaView>
   );
 }

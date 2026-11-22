@@ -46,7 +46,7 @@ export function BusinessSummary({ pledges }: { pledges: Pledge[] }) {
         <View style={section}><Copy kind="strong">Upcoming activities</Copy>
           {!upcoming.length && <Copy tint={color.muted}>No upcoming activities scheduled.</Copy>}
           {upcoming.map((a) => { const event = communityEvents.get(a.id);
-            return event && <View key={a.id}><Copy>{a.name}</Copy><Copy kind="small">{event.when} · {event.where}</Copy></View>;
+            return event && <View key={a.id}><Copy>{a.name}</Copy><Copy kind="small">{event.when} · {event.venue.name}</Copy></View>;
           })}
         </View>
         <View style={section}><Copy kind="strong">Services delivered</Copy>

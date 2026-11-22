@@ -1,11 +1,15 @@
 import { useMemo } from 'react';
+import type { Referral } from '../../domain/types';
 import { useDemo } from '../../state/Demo';
 import { defaultReportMonth, impactReport, reportKey, reportMonths, selectedReportMonth } from './report';
+
+const emptyReferrals: Referral[] = [];
 
 export function useImpactReport(period: string | undefined, provider: string | null = null) {
   const { state, shared } = useDemo();
   const stored = shared.data?.reporting.impactReports;
-  const { referrals } = state;
+  const referrals = shared.enabled ? emptyReferrals : state.referrals;
+  const requiresSignIn = shared.enabled && !shared.data;
 
   return useMemo(() => {
     const source = { referrals };
@@ -16,6 +20,6 @@ export function useImpactReport(period: string | undefined, provider: string | n
     const report = provider
       ? sharedPeriod?.byProvider[provider] ?? impactReport(source, month, provider)
       : completeReport;
-    return { months, month, completeReport, report };
-  }, [period, provider, referrals, stored]);
+    return { months, month, completeReport, report, requiresSignIn };
+  }, [period, provider, referrals, stored, requiresSignIn]);
 }

@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ArrowUpRight, CalendarDays, HandHeart, MapPin, Plus, Shirt } from 'lucide-react-native';
 import { Image, View } from 'react-native';
@@ -80,7 +80,7 @@ function Bulletin({ post }: { post: Post }) {
           <View style={wrap}>
             <MapPin size={15} color={color.muted} />
             <Copy kind="small" tint={color.muted}>
-              {event.where} · {event.when}
+              {event.venue.name} · {event.when}
             </Copy>
           </View>
         )}
@@ -186,9 +186,8 @@ function ModerationQueue() {
   );
 }
 
-export default function Community() {
+export default function Community({ view }: { view?: string }) {
   const router = useRouter();
-  const { view } = useLocalSearchParams<{ view?: string }>();
   const { state, shared, role } = useDemo();
   const activeView = view === 'groups' || view === 'saved' ? view : 'board';
   const [filter, setFilter] = useState<'All' | Post['kind']>('All');
@@ -204,7 +203,7 @@ export default function Community() {
       : 'Join a neighborhood group to see its posts here.',
     saved: 'Save a post to find it here later.',
   };
-  const active = (shared.data?.referrals ?? residentTimeline(state))
+  const active = (shared.enabled ? shared.data?.referrals ?? [] : residentTimeline(state))
     .filter((ticket) => outstandingNeeds(ticket).length > 0).length;
   const actions = (
     <View style={wrap}>
@@ -212,7 +211,8 @@ export default function Community() {
       <Btn label="Post an offer" secondary icon={Plus} onPress={() => router.push('/offer')} />
     </View>
   );
-  const stats = shared.data?.reporting.impact ?? impact(state);
+  const stats = shared.enabled ? shared.data?.reporting.impact : impact(state);
+  const requiresSignIn = shared.enabled && !shared.data;
   return (
     <Page title="Community" right={actions}>
       <Columns
@@ -260,7 +260,7 @@ export default function Community() {
               <HandHeart color={color.pine} size={24} />
               <Copy kind="title">Your referrals</Copy>
               <Copy tint={color.muted}>
-                {active === 0
+                {requiresSignIn ? 'Sign in to see your referrals.' : active === 0
                   ? 'No active referrals'
                   : active + (active === 1 ? ' active referral' : ' active referrals')}
               </Copy>
@@ -270,10 +270,10 @@ export default function Community() {
               <Copy kind="label" tint={color.pine}>
                 COMMUNITY IMPACT
               </Copy>
-              <Copy kind="title" style={{ fontSize: 42, lineHeight: 48 }}>
-                {stats.delivered}
-              </Copy>
-              <Copy>Services delivered by partners</Copy>
+              {stats ? <>
+                <Copy kind="title" style={{ fontSize: 42, lineHeight: 48 }}>{stats.delivered}</Copy>
+                <Copy>Services delivered by partners</Copy>
+              </> : <Copy>Sign in to see services delivered by partners.</Copy>}
               <Btn
                 label="See impact"
                 icon={ArrowUpRight}

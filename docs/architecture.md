@@ -33,7 +33,7 @@ Use system typography, neutral surfaces and one teal accent. Give each screen a 
 
 | Building a… | Use |
 | --- | --- |
-| Screen, card, form or action | [Page, Columns, Card, Copy, Field and Btn](../src/ui/kit.tsx). Pass header actions through `Page.right` for phone and desktop placement. `Btn` handles pending presses and errors. |
+| Screen, card, form or action | [Page, Columns, Card, Copy, Field and Btn](../src/ui/kit.tsx). Use `Page.right` for desktop header actions that can sit below the heading on phones. Use `Page.mobileRight` for a compact phone action in the heading. `Btn` handles pending presses and errors. |
 | Short set of mutually exclusive views | [Segments](../src/ui/Segments.tsx), as used for Community filters and the role selectors in Settings. |
 | List with one selection or independent on/off settings | [SelectionRow and ToggleRow](../src/ui/SelectionRows.tsx). Use a selection row for a partner, and a switch for consent, program inclusion or a map layer. |
 | Compact filter whose options should float over the screen | [SelectMenu](../src/ui/SelectMenu.tsx), as used for reporting period and provider in Impact and service category on the map. |
@@ -78,7 +78,21 @@ The shared server computes monthly and provider reports from its full workspace.
 
 Approved organization workers receive only their provider’s service-record projection. Each record preserves its original delivery fields and append-only correction history. Category corrections update the active category; void corrections mark the record voided and exclude it from delivery, program, map and Impact calculations. Voiding restores an outstanding need only when the category is still requested and no other active delivery satisfies it.
 
-The map's optional service category filters open needs and completed services in both the map labels and neighborhood list. The shared API provides the same per-category totals without sending private referral records to the map. Directory resources and historical observations keep their neighborhood totals.
+The map's optional service category filters open needs and completed services in the neighborhood totals. The shared API provides the same per-category totals without sending private referral records to the map. Directory resources and historical observations keep their neighborhood totals.
+
+The app shell keeps all four primary tabs mounted after their first visit. Inactive panes stay out of touch and accessibility navigation while their images, scroll views and map camera remain mounted. Detail pages use the routed slot. The persistent mobile navigation uses the app mark for Community, and the desktop sidebar carries the brand.
+
+The Settings drawer shares its controls with the direct Settings route. A right-edge swipe or a long press on the Community tab opens it on phones. The desktop wordmark and Alt+Shift+S on web provide alternate entry points. Opening the drawer keeps the current route mounted.
+
+The street map uses MapLibre in an Expo DOM component hosted by `react-native-webview` on phones. It keeps its camera, selection and overlays when another tab is active. All 190 City neighborhood boundaries are bundled for browsing. Open needs use polygon fill, homicides use outlines, and nonfatal shootings use dots. Each overlay has its own switch. OpenFreeMap serves the basemap tiles, and neighborhood stats remain available if the basemap fails to load.
+
+`GET /public/map/libraries` serves validated public library names, addresses and coordinates. It uses an on-demand 24-hour cache, coalesces refreshes and keeps the last valid data when the City feed is unavailable. The map also keeps a public-only device cache and can reach the City feed in a local workspace. Shared service totals come from the authenticated workspace and use a cached projection until referrals change. Preview fixtures are documented in the demo setup.
+
+Workspace polling pauses in the background and resumes on return. The client keeps the latest authenticated snapshot in memory and sends its session-scoped `ETag` with each subsequent poll. The server returns `304` when the workspace revision and reporting month match. Session changes clear the validator, and workspace responses specify `no-store` for browser and intermediary caches.
+
+Event details and the Community events overlay use the same public venue metadata. The overlay derives pins from visible public Event posts with known venues. Hidden posts and group posts are excluded, and event addresses do not come from referrals.
+
+The service map supports 26 reporting neighborhoods. The service category filters open need and delivery totals within that coverage. The mobile overview identifies the selected area, the all-time reporting window and the two service metrics. Community groups keep their own directory.
 
 - For 4.3, use `outstandingNeeds(referral)` for the category breakdown. A provider decline or handoff leaves the category outstanding. Recording a service or withdrawing a category removes it. A request without detected categories counts as Other until resolved.
 - For 5.2, use `referral.sentAt` for requests received and `service.deliveredAt` for deliveries. Filter delivery breakdowns by `service.providerId` and use the Milwaukee calendar for month boundaries. Handoffs, declines, withdrawals and appointments never add requests or deliveries.

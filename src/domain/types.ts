@@ -1,7 +1,15 @@
 export const categories = ['Clothing', 'Transportation', 'Food', 'Other'] as const;
 export type Category = (typeof categories)[number];
-export const neighborhoods = ['Harambee', 'Riverwest', 'Brewers Hill'] as const;
-export type Neighborhood = (typeof neighborhoods)[number];
+export const neighborhoods = ['Harambee', 'Riverwest', 'Brewers Hill', 'Amani', 'Bay View', "Walker's Point"] as const;
+type CommunityNeighborhood = (typeof neighborhoods)[number];
+export const serviceNeighborhoods = [
+  ...neighborhoods,
+  'Avenues West', 'Clarke Square', 'Enderis Park', 'Garden Homes', 'Havenwoods',
+  'Historic Mitchell Street', 'Historic Third Ward', 'Jackson Park', 'Lincoln Village', 'Lower East Side',
+  'Morgandale', 'Old North Milwaukee', 'Silver City', 'Silver Spring', 'Story Hill',
+  'Tippecanoe', 'Upper East Side', 'Washington Heights', 'Washington Park', 'Wilson Park',
+] as const;
+export type Neighborhood = (typeof serviceNeighborhoods)[number];
 
 export type Partner = { id: string; name: string; categories: Category[]; area: Neighborhood };
 export type Post = {
@@ -12,7 +20,7 @@ export type Post = {
   title: string;
   body: string;
   date: string;
-  group?: Neighborhood;
+  group?: CommunityNeighborhood;
   status?: 'active' | 'fulfilled' | 'hidden';
 };
 export type OfferReply = {
@@ -38,7 +46,7 @@ export type PostModeration = {
 export type CommunityState = {
   replies: OfferReply[];
   joinedEvents: string[];
-  groups: Neighborhood[];
+  groups: CommunityNeighborhood[];
   savedPostIds: string[];
   reports: PostReport[];
   moderation: PostModeration[];
@@ -103,10 +111,10 @@ export type DemoState = {
   community: CommunityState;
 };
 export type CommunityCommand =
-  | { type: 'post'; id: string; title: string; body: string; at: string; group?: Neighborhood }
+  | { type: 'post'; id: string; title: string; body: string; at: string; group?: CommunityNeighborhood }
   | ({ type: 'reply' } & OfferReply)
   | { type: 'event-rsvp'; postId: string; joined: boolean }
-  | { type: 'group-membership'; group: Neighborhood; joined: boolean }
+  | { type: 'group-membership'; group: CommunityNeighborhood; joined: boolean }
   | { type: 'save-post'; postId: string; saved: boolean }
   | { type: 'edit-post'; postId: string; authorId: string; title: string; body: string }
   | { type: 'close-post'; postId: string; authorId: string }

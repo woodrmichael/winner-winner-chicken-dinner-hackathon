@@ -12,11 +12,11 @@ Expo Go opens the app on your phone while your laptop serves the code. Run both 
 
 ## Check a complete referral
 
-Use the **Settings** gear at the top of the app to switch the **Referral view** between **Resident** and **Partner**. Select a **Partner inbox** when needed, then tap **Done**.
+Swipe left from the right edge of the app, or press and hold the **Community** tab, to open **Settings**. On desktop, click **ComForce Connect** in the sidebar. On web, **Alt+Shift+S** also opens the drawer. Switch the **Referral view** between **Resident** and **Partner** and select a **Partner inbox** when needed. Tap **Done** to return to the same screen.
 
 | On the phone | Expected result |
 | --- | --- |
-| Open **Impact**, tap the reporting month and choose **All time**. Note the starting totals. | A fresh workspace has 289 sample requests. Using All time makes it easy to compare totals after the walkthrough. |
+| Open **Impact**, tap the reporting month and choose **All time**. Note the starting totals. | A fresh workspace has 530 sample requests. Using All time makes it easy to compare totals after the walkthrough. |
 | Go to **Community → Ask for help**. Type “We need clothes for the kids and a ride to pick them up.” Tap **Find resources**. | Winter Care Collective matches clothing and transportation. Tap its name to see the other sample partners. |
 | Open **Sharing options**, select **Neighborhood · Harambee**, then tap **Send referral**. | Your referral appears in Activity as **Sent**. |
 | In **Settings**, select **Partner**, then tap **Done**. Open the referral under **Awaiting response** and tap **Accept referral**. Press **r** on the laptop, then switch back to **Partner** in Settings. | The referral appears under **Accepted cases** after reload. |
@@ -58,7 +58,7 @@ the native keyboard and system-text checks.
    Finish acceptance and service recording using the complete-referral check above.
 5. Increase system text size (iOS: **Settings → Accessibility → Display & Text
    Size → Larger Text**; Android: search Settings for **Font size**). Repeat the
-   offer and request steps. Check the brand header, four bottom tabs, filters,
+   offer and request steps. Check the page headers, four bottom tabs, filters,
    multiline fields and long action labels for clipping or unreachable controls.
    Restore your preferred setting afterward.
 
@@ -107,10 +107,19 @@ Use the shared workspace with a resident and approved worker on separate devices
 
 In a shared workspace, sign in before opening Impact. Its totals come from the server.
 
-1. In a fresh workspace, open **Impact**. November 2026 shows 126 requests, 89 deliveries, 62 residents assisted and 58 open referrals. The median time to first acceptance is 1 hour 35 minutes, with 25 referrals still awaiting acceptance.
+1. In a fresh workspace, open **Impact**. November 2026 shows 186 requests, 124 deliveries, 97 residents assisted and 83 open referrals. The median time to first acceptance is 2 hours 10 minutes, with 37 referrals still awaiting acceptance.
 2. Select **Winter Care Collective** in **Assistance by type**. Compare the delivery total and breakdown. Open **Winter essentials** under **Recent work** and tap **View delivery history** to see who delivered the clothing. Program funding shows $1,250 received and $300 pledged.
 3. Tap the share icon at the top of Impact and compare the month, provider and totals in the summary. Tap **Share summary** and confirm the phone’s share sheet opens. On the web, use **Copy summary** and paste it into a local editor.
-4. Tap the month beside **Our impact** and choose **October 2026**. Check that the month and provider menus float over the page and dismiss when you tap outside. Compare October’s 74 requests and 67 deliveries with November, then repeat on a narrow phone with larger system text.
+4. Tap the month in the **Impact** header and choose **October 2026**. Check that the month and provider menus float over the page and dismiss when you tap outside. Compare October’s 137 requests and 108 deliveries with November, then repeat on a narrow phone with larger system text.
+
+## Check the Milwaukee map
+
+1. Open **Map** and check that its heading and card edges align with Community and Impact. Drag with one finger and pinch to zoom. Switch between tabs and check that the Community logo stays in place, the cover image stays loaded and Map keeps its position and selection.
+2. Tap a neighborhood or open **Browse neighborhoods** to choose Bay View or Jackson Park. Check that **Service activity** names the area and shows its all-time open needs and deliveries. Tap the selected area again or choose **All neighborhoods** to restore the combined totals while keeping the camera in place. From Harambee, open a provider’s request review and confirm the provider is selected.
+3. In the overview, choose **Transportation** from **All services** and verify the numbers and open-needs shading change together. Under **Map overlays**, turn on **Homicides** and **Nonfatal shootings**. Check the legend above the map for purple outlines, orange dots and what an unmarked area means.
+4. Increase system text size and repeat selection and filtering. Record the phone model, OS, text setting and result in the PR.
+5. Turn on **Public libraries** with one of the historical overlays still active. Tap a branch and verify the address and hours link. Reopen the map and check that the locations appear while the City data refreshes.
+6. Open **Winter essentials drive** from Community and check its Moody Park address and inline venue map. On Map, turn on **Community events** alongside **Public libraries**. Tap the winter drive pin, then **Back to Map**. Check that both overlays are still on and the camera stays in place. Tap Central Library and check that its popup also links to the meal kit event.
 
 ## Check business partnerships
 

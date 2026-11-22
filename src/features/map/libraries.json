@@ -1,0 +1,109 @@
+{
+  "fetchedAt": 1795300167265,
+  "libraries": [
+    {
+      "name": "Atkinson Library",
+      "address": "1960 W Atkinson Av",
+      "coordinates": [
+        -87.93619,
+        43.090107
+      ]
+    },
+    {
+      "name": "Bay View Library",
+      "address": "2566 S Kinnickinnic Av",
+      "coordinates": [
+        -87.900055,
+        42.998268
+      ]
+    },
+    {
+      "name": "Capitol Library",
+      "address": "3969 N 74th St",
+      "coordinates": [
+        -88.00535,
+        43.0896
+      ]
+    },
+    {
+      "name": "Center Street Library",
+      "address": "2727 W Fond du Lac Av",
+      "coordinates": [
+        -87.947761,
+        43.067364
+      ]
+    },
+    {
+      "name": "Central Library",
+      "address": "814 W Wisconsin Av",
+      "coordinates": [
+        -87.922372,
+        43.039523
+      ]
+    },
+    {
+      "name": "East Library",
+      "address": "2320 N Cramer St",
+      "coordinates": [
+        -87.886456,
+        43.060727
+      ]
+    },
+    {
+      "name": "Good Hope Library",
+      "address": "7715 W Good Hope Rd",
+      "coordinates": [
+        -88.007272,
+        43.148143
+      ]
+    },
+    {
+      "name": "Martin Luther King Library",
+      "address": "2901 N. Martin Luther King Jr. Dr.",
+      "coordinates": [
+        -87.914447,
+        43.071576
+      ]
+    },
+    {
+      "name": "Mitchell Street Library",
+      "address": "906 W Historic Mitchell St",
+      "coordinates": [
+        -87.923087,
+        43.012617
+      ]
+    },
+    {
+      "name": "Tippecanoe Library",
+      "address": "3912 S Howell Av",
+      "coordinates": [
+        -87.908959,
+        42.973258
+      ]
+    },
+    {
+      "name": "Villard Square Library",
+      "address": "5190 N 35th St",
+      "coordinates": [
+        -87.955822,
+        43.111652
+      ]
+    },
+    {
+      "name": "Washington Park Library",
+      "address": "2121 N Sherman Blvd",
+      "coordinates": [
+        -87.967892,
+        43.057603
+      ]
+    },
+    {
+      "name": "Zablocki Library",
+      "address": "3501 W Oklahoma Ave",
+      "coordinates": [
+        -87.958614,
+        42.987962
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import type { Post } from './types';
 
-type EventDetails = { when: string; where: string; bring: string; volunteers: number };
+export type EventVenue = { name: string; address: string; coordinates: [number, number] };
+type EventDetails = { when: string; venue: EventVenue; bring: string; volunteers: number };
 type DemoPost = Post & { event?: EventDetails };
 
 const entries: DemoPost[] = [
@@ -9,11 +10,11 @@ const entries: DemoPost[] = [
     kind: 'Event',
     author: 'ComForce Connect',
     title: 'Winter essentials drive',
-    body: 'Bring a clean coat or stop by to pick one up. Kids’ and adult sizes welcome.',
+    body: 'We’re collecting winter gear for neighbors recovering from an apartment fire and anyone who needs a coat. Saturday pickup rides are available by request.',
     date: '2026-11-20T15:00:00Z',
     event: {
       when: 'Saturday, November 21 · 10 am',
-      where: 'Moody Park',
+      venue: { name: 'Moody Park', address: '2201 W. Auer Ave.', coordinates: [-87.939864, 43.076003] },
       bring: 'Bring a clean winter coat if you’re donating. If you’re picking one up, just bring yourself.',
       volunteers: 8,
     },
@@ -45,7 +46,7 @@ const entries: DemoPost[] = [
     date: '2026-11-17T15:30:00Z',
     event: {
       when: 'Sunday, November 22 · 1 pm',
-      where: 'Brewers Hill community room',
+      venue: { name: 'Central Library', address: '814 W. Wisconsin Ave.', coordinates: [-87.922372, 43.039523] },
       bring: 'Wear closed-toe shoes. We’ll have gloves and packing supplies.',
       volunteers: 6,
     },
@@ -63,7 +64,7 @@ const entries: DemoPost[] = [
     kind: 'Update',
     author: 'Riverwest Ride Circle',
     title: 'Adding a second pantry ride',
-    body: 'Tuesday pickups are staying in place. A Thursday afternoon ride will serve the pantry and winter drive.',
+    body: 'Tuesday pantry rides will continue. We’re also taking ride requests for Saturday’s winter drive.',
     date: '2026-11-15T17:00:00Z',
   },
   {
@@ -83,7 +84,7 @@ const entries: DemoPost[] = [
     date: '2026-11-12T16:00:00Z',
     event: {
       when: 'Tuesday, November 24 · 5:30 pm',
-      where: 'Moody Park community room',
+      venue: { name: 'Martin Luther King Library', address: '2901 N. Martin Luther King Jr. Dr.', coordinates: [-87.914447, 43.071576] },
       bring: 'No supplies needed. We’ll provide size labels and sorting bins.',
       volunteers: 4,
     },
@@ -131,9 +132,46 @@ const entries: DemoPost[] = [
     body: 'We have bags and labels ready. Volunteers can check in at the main door.',
     date: '2026-11-16T17:30:00Z',
   },
+  {
+    id: 'demo-post-amani',
+    kind: 'Update',
+    group: 'Amani',
+    author: 'Winter Care Collective',
+    title: 'Coat donations near Moody Park',
+    body: 'We’ll have bins by the welcome table. Zip or button coats before dropping them off so sorting goes faster.',
+    date: '2026-11-18T18:15:00Z',
+  },
+  {
+    id: 'demo-post-bay-view',
+    kind: 'Update',
+    group: 'Bay View',
+    author: 'Neighborhood Table',
+    title: 'Pantry bag pickup this week',
+    body: 'We’ll set aside a few shelf-stable bags for neighbors who can only pick up after work.',
+    date: '2026-11-17T23:10:00Z',
+  },
+  {
+    id: 'demo-post-walkers-point',
+    kind: 'Update',
+    group: "Walker's Point",
+    author: 'Riverwest Ride Circle',
+    title: 'Ride requests for Saturday',
+    body: 'Send a request with the time you need to arrive and whether you’ll be carrying donations.',
+    date: '2026-11-19T20:20:00Z',
+  },
 ];
 
 export const demoPosts = () => entries.map(({ event: _event, ...post }) => post);
 export const communityEvents = new Map(
   entries.flatMap(({ id, event }) => event ? [[id, event]] : []),
 );
+
+export type CommunityEventPin = Pick<Post, 'id' | 'title'> & { coordinates: EventVenue['coordinates'] };
+
+export function communityEventPins(posts: Post[]): CommunityEventPin[] {
+  return posts.flatMap(({ id, title, kind, group, status }) => {
+    if (kind !== 'Event' || group || status === 'hidden') return [];
+    const event = communityEvents.get(id);
+    return event ? [{ id, title, coordinates: event.venue.coordinates }] : [];
+  });
+}

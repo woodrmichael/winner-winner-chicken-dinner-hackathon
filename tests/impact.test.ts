@@ -97,7 +97,7 @@ test('demo fixtures enrich older workspaces without replacing existing records',
   const report = impactReport(full, month, null);
   const total = impactReport(full, null, null);
   assert.equal(report.period, 'November 2026');
-  assert.equal(report.received, 126);
+  assert.equal(report.received, 186);
   assert(report.delivered > 80);
   assert(report.assisted < report.delivered);
   assert.equal(total.delivered, deliveredServices(full).length);
@@ -107,8 +107,10 @@ test('demo fixtures enrich older workspaces without replacing existing records',
     [total.received, total.open, total.delivered, total.programDeliveries.length],
     [community.received, community.open, community.delivered, community.programDeliveries],
   );
-  for (const { area, delivered } of mapRows(full)) {
-    assert(delivered > 20);
+  const areaRows = mapRows(full);
+  assert.equal(areaRows.filter(({ open, delivered }) => open > 0 && delivered > 0).length, 26);
+  for (const { area, delivered } of areaRows) {
+    assert(delivered > 0);
     const local = full.referrals.filter(({ assignments }) => assignments[0].shared.neighborhood === area);
     assert.equal(delivered, local.flatMap(({ services }) => services).length);
   }

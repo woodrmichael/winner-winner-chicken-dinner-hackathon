@@ -29,6 +29,7 @@ async function fixture(t: TestContext) {
   }
 
   return {
+    url,
     request,
     async login(username: string) {
       const result = await request<{ token: string; workspace: SharedSnapshot }>('/session', 'POST', undefined,
@@ -70,6 +71,36 @@ test('partnerships route private inquiries to organizers and publish only confir
   assert.equal(sponsor?.volunteers, 2);
   assert.deepEqual(publicView.reporting.projectDeliveries, before.reporting.projectDeliveries);
   assert(!JSON.stringify(publicView).includes('Email the team lead'));
+});
+
+test('workspace cache validators are session-scoped and invalidated by writes', async (t) => {
+  const api = await fixture(t);
+  const resident = await api.login('alex');
+  const observer = await api.login('jordan');
+  const read = (token: string, etag?: string) => fetch(api.url + '/workspace', {
+    headers: {
+      Authorization: 'Bearer ' + token,
+      ...(etag && { 'If-None-Match': etag }),
+    },
+  });
+  const first = await read(resident);
+  const etag = first.headers.get('ETag');
+  assert.equal(first.status, 200);
+  assert.equal(first.headers.get('Cache-Control'), 'no-store');
+  assert.ok(etag);
+  const unchanged = await read(resident, etag);
+  assert.equal(unchanged.status, 304);
+  assert.equal(await unchanged.text(), '');
+  assert.equal((await read(observer, etag)).status, 200);
+  assert.equal((await api.command(resident, {
+    type: 'send', id: 'cache-check', partnerId: 'winter-team',
+    message: 'Could I get a winter coat?', needs: ['Clothing'], shared: {},
+  })).status, 200);
+  const changed = await read(resident, etag);
+  assert.equal(changed.status, 200);
+  assert.notEqual(changed.headers.get('ETag'), etag);
+  assert.equal((await api.request('/session', 'DELETE', resident)).status, 200);
+  assert.equal((await read(resident, etag)).status, 401);
 });
 
 test('shared map filters count the outstanding ride and delivered coat separately', async (t) => {

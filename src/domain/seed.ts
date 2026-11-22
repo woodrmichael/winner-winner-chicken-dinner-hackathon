@@ -1,4 +1,5 @@
 import { demoPosts } from './demoCommunity';
+import { neighborhoods, serviceNeighborhoods } from './types';
 import type { Category, CommunityState, DemoState, Neighborhood, Referral } from './types';
 
 export const residentId = 'demo-resident';
@@ -17,7 +18,7 @@ export const program = {
   pledged: 300,
 } as const;
 // MHRC 2016 Annual Report, tables 16–17. Three-year totals for 2014–2016.
-export const historicalIncidents = {
+export const historicalIncidents: Partial<Record<Neighborhood, { fatal: number; nonfatal: number }>> = {
   Harambee: { fatal: 23, nonfatal: 84 },
   Riverwest: { fatal: 2, nonfatal: 16 },
   'Brewers Hill': { fatal: 1, nonfatal: 3 },
@@ -46,7 +47,19 @@ const scenarios: { provider: string; needs: Category[]; message: string }[] = [
 ];
 const winterPickup = scenarios[4];
 const areas: Neighborhood[] = ['Harambee', 'Riverwest', 'Harambee', 'Brewers Hill', 'Riverwest', 'Harambee', 'Brewers Hill'];
+const additionalAreas = ['Amani', 'Bay View', "Walker's Point"] as const;
 const responseMinutes = [25, 40, 55, 75, 95, 130, 230, 370, 540, 1080];
+const alternateMessages: Record<Category, string[]> = {
+  Clothing: ['Do you have a warm jacket for my teenager?', 'Looking for a coat that can fit over a work uniform.'],
+  Transportation: ['Could someone give me a ride to pick up a grocery box?', 'I need a ride to the community room after work.'],
+  Food: ['Could I reserve a pantry bag for Thursday pickup?', 'Is there a meal box I can pick up after my shift?'],
+  Other: [],
+};
+const winterPickupMessages = [
+  winterPickup.message,
+  'My daughter needs a winter coat. Could we also get a ride to pick it up?',
+  'I can pick up a coat this week if someone can help me get there.',
+];
 
 function sampleReferral({
   id, ownerId, scenario, neighborhood, sent, wait, deliveryDelays,
@@ -97,13 +110,18 @@ function sampleMonth(month: number, delivered: number, partial: number, accepted
     const scenario = isPartial ? winterPickup : scenarios[(index + month) % scenarios.length];
     const owner = Math.floor(index * 0.76);
     const area = areas[(owner + month) % areas.length];
-    const day = 1 + Math.floor(index * 19 / requests);
+    const lastRequestDay = month === 11 ? 20 : 27;
+    const day = 1 + Math.floor(index * lastRequestDay / requests);
+    const variants = scenario === winterPickup
+      ? winterPickupMessages
+      : [scenario.message, ...alternateMessages[scenario.needs[0]]];
+    const message = variants[(Math.floor(index / scenarios.length) + month) % variants.length];
     return sampleReferral({
       id: `demo-ref-${month}-${index + 1}`,
       ownerId: `demo-neighbor-${month}-${owner + 1}`,
-      scenario,
+      scenario: { ...scenario, message },
       neighborhood: index % 17 === 0 ? undefined : area,
-      sent: Date.UTC(2026, month - 1, day, 14 + index % 6, index % 60),
+      sent: Date.UTC(2026, month - 1, day, 14 + (index * 5 + owner) % 8, (index * 13 + owner * 7) % 60),
       wait: index < requests - awaiting ? responseMinutes[(index * 3 + month) % responseMinutes.length] : undefined,
       deliveryDelays: index < delivered
         ? scenario.needs.map((_, need) => 6 + index % 27 + 2 * need)
@@ -118,6 +136,42 @@ function expandedReferrals() {
     ...sampleMonth(9, 43, 1, 6, 3),
     ...sampleMonth(10, 58, 3, 7, 5),
     ...sampleMonth(11, 65, 12, 19, 23),
+    ...additionalAreas.flatMap((neighborhood, areaIndex) =>
+      Array.from({ length: 8 }, (_, index) => {
+        const scenario = scenarios[(index + areaIndex * 3) % scenarios.length];
+        return sampleReferral({
+          id: `demo-ref-neighborhood-${areaIndex + 1}-${index + 1}`,
+          ownerId: `demo-neighbor-new-${areaIndex + 1}-${Math.floor(index * 0.8) + 1}`,
+          neighborhood,
+          scenario,
+          sent: Date.UTC(2026, 8 + Math.floor(index / 3), 5 + index % 3 * 5 + areaIndex, 15 + (index + areaIndex) % 7, 10 + 7 * index),
+          wait: index === 7 && areaIndex !== 1 ? undefined : responseMinutes[index + areaIndex],
+          deliveryDelays: index < 6 || (index === 6 && areaIndex !== 1)
+            ? scenario.needs.map((_, need) => 10 + index * 3 + need * 4)
+            : [],
+        });
+      })),
+    ...serviceNeighborhoods.slice(neighborhoods.length).flatMap((neighborhood, areaIndex) => {
+      const areaId = neighborhood.toLowerCase().replaceAll(' ', '-');
+      return Array.from({ length: 7 + (areaIndex * 5) % 9 }, (_, index) => {
+        const scenario = scenarios[(index + areaIndex * 3) % scenarios.length];
+        const month = 8 + (areaIndex + index * 3) % 4;
+        const day = 2 + (areaIndex * 3 + index * 5) % 18;
+        const stage = (areaIndex + index * 7) % 10;
+        const messages = [scenario.message, ...alternateMessages[scenario.needs[0]]];
+        return sampleReferral({
+          id: `demo-ref-city-${areaId}-${index + 1}`,
+          ownerId: `demo-neighbor-city-${areaId}-${Math.floor(index * 0.85) + 1}`,
+          neighborhood,
+          scenario: { ...scenario, message: messages[(index + month) % messages.length] },
+          sent: Date.UTC(2026, month - 1, day, 14 + (index + areaIndex) % 8, (index * 11) % 60),
+          wait: stage < 8 ? responseMinutes[(areaIndex + index) % responseMinutes.length] : undefined,
+          deliveryDelays: stage < 6
+            ? scenario.needs.map((_, need) => 9 + (index * 3) % 28 + need * 4)
+            : stage === 6 && scenario.needs.length > 1 ? [18] : [],
+        });
+      });
+    }),
     sampleReferral({
       id: 'demo-ref-october-coat',
       ownerId: 'demo-neighbor-october-coat',

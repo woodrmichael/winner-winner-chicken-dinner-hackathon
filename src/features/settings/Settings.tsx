@@ -1,16 +1,17 @@
-import { View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { View, useWindowDimensions } from 'react-native';
 import { directory } from '../matching/directory';
 import { useDemo } from '../../state/Demo';
 import { SelectionRow } from '../../ui/SelectionRows';
 import { Segments } from '../../ui/Segments';
-import { Card, Copy, Page } from '../../ui/kit';
+import { Btn, Card, Copy, Page } from '../../ui/kit';
 import { SharedAccount } from './SharedAccount';
 
-export default function Settings() {
+export function SettingsOptions() {
   const { shared, role, setRole, partnerId, setPartnerId, offerReplyFrom, setOfferReplyFrom } = useDemo();
 
   return (
-    <Page title="Settings">
+    <>
       {shared.enabled ? (
         <SharedAccount />
       ) : (
@@ -50,6 +51,20 @@ export default function Settings() {
           label={(item) => (item === 'author' ? 'Offer author' : 'Resident')}
         />
       </Card>
+    </>
+  );
+}
+
+export default function Settings() {
+  const router = useRouter();
+  const wide = useWindowDimensions().width >= 900;
+  const done = <Btn label="Done" quiet onPress={() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }} />;
+  return (
+    <Page title="Settings" mobileRight={done} right={wide ? done : undefined}>
+      <SettingsOptions />
     </Page>
   );
 }
