@@ -88,6 +88,9 @@ Residents and coordinators can explore Milwaukee streets and select a reporting 
 - [x] **4.9 Broaden service activity coverage.** After 4.3. Open Map in an existing workspace and check 26 neighborhoods have service totals, including Havenwoods and Jackson Park. Compare the totals to the shared workspace reports and check that loading again adds each record once. [PR #8](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/8)
 
 - [x] **4.10 Recover when Expo Go can’t load the embedded map page.** After 4.5. Claimed by `codex/two-demo-views`. Open Map with an Expo development QR and verify that the city map document and script load. If the web view fails to navigate, retry or browse neighborhoods. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/6914c534a0e5b3f0bb3df4d6db149d9f2265f109)
+- [x] **4.11 Add live bus positions, trip estimates and service alerts.** After 4.5. Claimed by `codex/two-demo-views`. Verified active vehicle dots, route details, actual alerts and separately collapsed source credits in Edge at 390 × 844. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/d23eb2db8ea672d1be0c992ec2cdc06b33c81b88)
+- [x] **4.12 Link current homicide and nonfatal shooting data.** After 4.5. Claimed by `codex/two-demo-views`. Verified the commission dashboard opens from the map and the existing overlay retains its reporting period in Edge at 390 × 844. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/d23eb2db8ea672d1be0c992ec2cdc06b33c81b88)
+- [ ] **4.13 Refresh both neighborhood incident overlays from a comparable series.** After 4.12 and a supported source of neighborhood totals for both measures. Compare both measures, neighborhood boundaries and the common reporting period before replacing the existing series.
 
 ## 5. Impact and presentation
 
@@ -134,6 +137,7 @@ A referral can be accepted before the worker knows enough to deliver help. A con
 
 - [x] **8.1 Continue a private conversation about a request.** After 9.1. A worker asks which sizes to bring and the resident replies “6 and 8.” Reopen the request from each account and find both messages with senders and times. Another resident or an unrelated organization cannot read the thread.
 - [x] **8.2 Open an unread update from Activity.** After 9.1. Sending a referral gives the receiving partner an unread item. Acceptance gives the resident one. Opening it takes that person to the referral and marks their item read, including after reopening Activity. Use the same behavior for a private reply or proposed handoff when those flows are available.
+- [x] **8.3 Polish the partner message composer.** After 8.1. Claimed by `codex/two-demo-views`. Verified composer clearing, focus release and resident reply visibility in Edge at 390 × 844. Physical keyboard dismissal requires a device check. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/a7d434a723f1e3e11baaf824318a8f575fe30237)
 
 Ben Nguyen verified private messages and unread updates on iPhone and PC. [Shared workspace commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/526b591)
 

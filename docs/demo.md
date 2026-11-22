@@ -13,6 +13,8 @@ On the presentation laptop, run `npm run export:web`, then `npm run preview`. Op
 
 For the two phone recordings, use the same Expo Go installation and switch profiles by swiping left from the right edge between takes. As Alex Rivera, choose **Clothing** under Quick actions, tap **Find resources**, apply the suggested draft and send it to **Winter Care Collective**. End the first take on **Request sent**. For Morgan Chen’s recording, open **Inbox → New**, find that same request, accept it, send a private reply and record a clothing delivery. To show microphone transcription on the phone, use the [shared workspace voice setup](mobile.md#try-voice-input).
 
+> Hi! Thanks for reaching out. We can help with winter coats. What sizes do you need? Once we know, we’ll confirm a pickup time.
+
 ## Sponsorship walkthrough
 
 Open **Winter essentials drive → See sponsorship options**. Show how a business can ask about the project, offer funding for supplies and operations, and commit volunteer places. In the Partner profile, open **Impact → Manage project support** to confirm a pledge and record a partial payment. Open **Business summary** to show project-level commitments and provider credit together. Use the same business name on the Pantry meal kits project to see how the summary combines both projects.
