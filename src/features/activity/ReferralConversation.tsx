@@ -17,15 +17,17 @@ function PrivateThread({ assignmentId, partnerId }: { assignmentId: string; part
   const { shared, run, state } = useDemo();
   const messages = shared.data?.messages?.filter((message) => message.assignmentId === assignmentId) ?? [];
   const [draft, setDraft] = useState('');
+  const input = useRef<ComponentRef<typeof TextInput>>(null);
   const attempt = useRef<{ messageId: string; body: string } | undefined>(undefined);
   const body = draft.trim();
+  const partnerView = shared.data?.account.kind === 'worker';
 
   return (
     <View style={{ gap: 12 }}>
-      <View style={[row, { gap: 6 }]}>
+      {!partnerView && <View style={[row, { gap: 6 }]}>
         <LockKeyhole size={14} color={color.muted} />
         <Copy kind="small" tint={color.muted} style={{ flex: 1 }}>Private · {partnerName(state.partners, partnerId)}</Copy>
-      </View>
+      </View>}
       {messages.length ? <View style={{ gap: 8 }}>
         {messages.map((message) => (
           <View key={message.id} style={{ gap: 3, maxWidth: '86%', alignSelf: message.sentByYou ? 'flex-end' : 'flex-start' }}>
@@ -49,7 +51,7 @@ function PrivateThread({ assignmentId, partnerId }: { assignmentId: string; part
       <View style={{ gap: 6 }}>
         {body.length > referralMessageLimit && <Copy tint={color.rust}>Use {referralMessageLimit} characters or fewer.</Copy>}
         <View style={[row, { alignItems: 'flex-end', gap: 7 }]}>
-          <TextInput accessibilityLabel="Private message" placeholder="Write a message"
+          <TextInput ref={input} accessibilityLabel="Private message" placeholder="Write a message"
             placeholderTextColor={color.muted} value={draft} onChangeText={setDraft} multiline
             style={{ flex: 1, minWidth: 0, minHeight: 44, maxHeight: 110, borderRadius: 20, borderWidth: 1,
               borderColor: color.line, backgroundColor: color.bg, color: color.ink, paddingHorizontal: 14,
@@ -59,6 +61,7 @@ function PrivateThread({ assignmentId, partnerId }: { assignmentId: string; part
             onPress={async () => {
               if (attempt.current?.body !== body) attempt.current = { messageId: newId(), body };
               await run({ type: 'send-referral-message', assignmentId, ...attempt.current });
+              if (partnerView) input.current?.blur();
               attempt.current = undefined;
               setDraft((current) => current.trim() === body ? '' : current);
             }} />
