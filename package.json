@@ -11,7 +11,7 @@
     "mobile:lan": "expo start --go --lan",
     "mobile:tunnel": "expo start --go --tunnel",
     "web": "expo start --web",
-    "api": "tsx server/start.ts",
+    "api": "node --env-file-if-exists=.env --import tsx server/start.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",

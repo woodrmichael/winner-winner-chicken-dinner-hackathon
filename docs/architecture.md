@@ -15,7 +15,7 @@ The partner directory lives on the workspace as `partners` (seeded from [directo
 
 The partner inbox projects assignments into New, In progress and History and supports team and personal scopes. Resident and partner request pages put the timeline and private messages in one scroll view. A message notification opens the relevant assignment and scrolls to the thread. Partner actions use assignment IDs and remain attached to the current timeline step.
 
-The main Milwaukee map uses MapLibre. The event detail card loads a bundled preview for its venue and shows its address and data credits. Reopening an event uses the same preview image.
+The [interactive Milwaukee map](../src/features/map/MilwaukeeMap.tsx) uses MapLibre for streets, neighborhood layers and public pins. The [map screen](../src/features/map/MapScreen.tsx) sets overlay visibility and connects neighborhood selection to service reporting. The [event detail card](../src/features/community/PostDetails.tsx) uses a bundled preview for its venue and shows its address and data credits. Reopening an event uses the same preview image. [Map sources and refresh rules](sources.md)
 
 ## Voice, matching and routing
 

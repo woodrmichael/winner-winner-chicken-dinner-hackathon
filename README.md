@@ -16,7 +16,7 @@ Built by **Winner Winner Chicken Dinner** for HacksGiving ComForce MKE.
 
 | Area | Workflows |
 | --- | --- |
-| **Community** | Browse and search neighborhood events, offers and updates. RSVP, reserve a volunteer role, bookmark events, join neighborhood groups, publish an offer and reply to public posts. Event details show the venue, a bundled map and what to bring. |
+| **Community** | Browse and search neighborhood events, offers and updates. RSVP, reserve a volunteer role, bookmark events, reply to offers and publish updates in joined neighborhood groups. Event details show the venue, a map preview and what to bring. |
 | **Ask for help** | Type a request or speak it with **OpenAI Realtime transcription** on mobile. The app identifies needs, drafts a message when useful and automatically recommends a partner based on services, neighborhood coverage and availability. Review the recipient and sharing choices before sending. [How matching and routing work](docs/architecture.md#voice-matching-and-routing) |
 | **Activity and partner inbox** | Track private requests in a timeline and message the assigned partner. Organization staff can see new, in-progress and historical requests, assign work, accept referrals, schedule pickups, record individual services and propose a handoff for resident approval. |
 | **Community map** | Explore Milwaukee neighborhoods, community events, libraries and aggregate service activity. Turn on live bus positions, stop estimates and service alerts, or consult historical neighborhood incident totals and the current public safety dashboard. |
@@ -35,7 +35,7 @@ npm run web
 
 For **iOS or Android**, open the project in Expo Go. Run `npm run mobile:lan` on the same network or `npm run mobile:tunnel` for a phone on another network, then scan the QR code in the terminal. On the phone, swipe left from the right edge to open Settings and switch between the resident and partner profiles. On desktop, open Settings from the app brand or with `Alt+Shift+S`. [Phone setup and walkthrough](docs/mobile.md)
 
-For **multi-device coordination**, run `npm run api` and set `EXPO_PUBLIC_API_URL` to the API address before starting the app. The shared workspace uses sign-in, role-scoped records and persistent server storage. [API setup and mobile release](docs/deployment.md)
+For **multi-device coordination**, copy [.env.example](.env.example) to `.env`, set `EXPO_PUBLIC_API_URL` to the API address, then run `npm run api` in a separate terminal. Sign in using the workspace accounts printed at first startup. The shared workspace uses role-scoped records and persistent server storage. [API setup and mobile release](docs/deployment.md)
 
 ## Start with a referral
 

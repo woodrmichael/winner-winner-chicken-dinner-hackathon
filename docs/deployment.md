@@ -2,12 +2,11 @@
 
 ## Shared workspace API
 
-From the repo root, run `npm ci`, then start the API with `npm run api`. The first startup prints credentials for the workspace’s initial accounts. Open Settings to sign in. Keep the API terminal available and start the client from a separate terminal.
+1. From the repo root, run `npm ci` and copy [`.env.example`](../.env.example) to `.env`. Set `EXPO_PUBLIC_API_URL=http://127.0.0.1:8787` for a browser on the same computer.
+2. Run `npm run api`. Save the initial account credentials printed when the workspace file is created.
+3. Run `npm run web` in a second terminal and use **Settings → Sign in**. Sign in as `alex` for the resident workflow, `winter-worker` for referrals or `organizer` for partnership coordination.
 
-```powershell
-$env:EXPO_PUBLIC_API_URL = 'http://127.0.0.1:8787'
-npm.cmd run web
-```
+The API reads the repo’s `.env` at startup. Environment values supplied by your shell or hosting platform take precedence. Keep payment and AI credentials server-side. Expo includes values prefixed with `EXPO_PUBLIC_` in client builds.
 
 | Variable | Where to set it | Purpose |
 | --- | --- | --- |
@@ -21,6 +20,8 @@ npm.cmd run web
 For a hosted shared workspace, run one API instance per workspace file and place it behind an HTTPS endpoint that forwards WebSocket upgrades. Serve the client builds with that endpoint as `EXPO_PUBLIC_API_URL`. Each phone or browser signs in with its own account. For local devices, follow the [shared phone walkthrough](mobile.md#check-the-shared-workspace-on-two-devices).
 
 The web map reads live buses and service alerts from the public `GET /public/map/transit` endpoint. Set `EXPO_PUBLIC_API_URL` for a separate API origin or forward that route to the API on the web app’s origin. Expo Go and native builds can read the public MCTS feeds directly. Transit requires no workspace sign-in or provider key. [Data sources and refresh](sources.md)
+
+For a phone on another network, use `npm run mobile:tunnel` for the Expo app bundle and set `EXPO_PUBLIC_API_URL` to a phone-accessible HTTPS API address for shared sign-in, voice transcription and Checkout. The Expo tunnel serves the app bundle and embedded map page. [Phone setup](mobile.md)
 
 ## Mobile release
 

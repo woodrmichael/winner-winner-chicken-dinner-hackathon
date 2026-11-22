@@ -17,7 +17,7 @@ Swipe left from the right edge to open **Settings**. On desktop, click **ComForc
 | On the phone | Expected result |
 | --- | --- |
 | Open **Impact**, tap the reporting month and choose **All time**. Note the starting totals. | A fresh workspace has 530 sample requests. Using All time makes it easy to compare totals after the walkthrough. |
-| Go to **Community → Ask for help**. Type “We need clothes for the kids and a ride to pick the clothes up.” Tap **Find resources**. | Winter Care Collective matches clothing and transportation. Tap its name to see the other sample partners. |
+| Go to **Community → Ask for help**. Type “We need clothes for the kids and a ride to pick the clothes up.” Tap **Find resources**. | Review shows clothing and transportation and suggests Winter Care Collective. Tap **Why this match?** to see its coverage. |
 | Under **Information to share**, select **Neighborhood · Harambee**, then tap **Send request**. | **Request sent** shows the organization and a summary. **View request** opens its Activity timeline. |
 | In **Settings**, select **Partner**, then tap **Done**. Open the referral in **Inbox → New** and tap **Accept referral**. Return to Inbox and select **In progress**. | The referral moves to **In progress** and stays there after reload. |
 | Scroll down to **Messages** and ask which coat sizes to bring. Switch to **Resident** and open the unread reply in **Activity**. Answer “6 and 8.” | The notification jumps to Messages at the bottom of the request. Alex can reply and scroll up to see the timeline. |
@@ -60,20 +60,20 @@ Run this on the same phone as the referral check above. Record the model, OS,
 text-size setting and results on the task board. Browser checks do not replace
 the native keyboard and system-text checks.
 
-1. Open **Community → Post an offer**. Enter a long title and a description
-   spanning several lines. With the keyboard open, scroll to **Publish offer**
-   and tap it. The offer should appear on the board after one tap.
-2. Reload the app, select **Offers**, and confirm the title and description
+1. Open **Community → My groups**, join Harambee, and choose **Post to Harambee**.
+   Enter a long title and a description spanning several lines. With the
+   keyboard open, scroll to **Publish post** and tap it.
+2. Reload the app, select **My groups**, and confirm the title and description
    remain. Check that the author, title and filter labels stay inside their cards.
 3. Open **Ask for help** and type a request with the keyboard open. Scroll to
    **Find resources** and tap it. On the review screen, edit the message and
    scroll through the suggested organization, optional sharing and **Send request**.
-4. Select the winter partner and send the referral. Confirm it appears in
+4. Review the suggested winter partner and send the referral. Confirm it appears in
    **Activity**, and that its private message is absent from all Community filters.
    Finish acceptance and service recording using the complete-referral check above.
 5. Increase system text size (iOS: **Settings → Accessibility → Display & Text
    Size → Larger Text**; Android: search Settings for **Font size**). Repeat the
-   offer and request steps. Check the page headers, four bottom tabs, filters,
+   group post and request steps. Check the page headers, four bottom tabs, filters,
    multiline fields and long action labels for clipping or unreachable controls.
    Restore your preferred setting afterward.
 
@@ -82,24 +82,24 @@ the native keyboard and system-text checks.
 | On the phone | Expected result |
 | --- | --- |
 | As Morgan, open **Offers → Kids’ coats available → View offer** and ask about size 8. Switch to Alex and post an answer. Reload and reopen the offer. | Both messages appear in order under the active accounts’ names, and Alex’s reply is marked as the offer author’s. |
-| As Alex, scroll to **Winter essentials drive** and tap the card. Read when and where it takes place and what to bring. Reserve a volunteer role, reload and reopen the event, then tap **Cancel volunteer signup**. | The count increases by one, the signup survives reload, and cancellation restores the original count. |
-| Open **Community → My groups → Join Harambee → Post to Harambee**. Publish a post, reload and reopen **My groups**. Tap **Leave Harambee**, then rejoin. | The post appears under My groups and stays out of the public board. Leaving hides it and rejoining brings it back. |
+| As Alex, scroll to **Winter essentials drive** and tap **Choose a role**. Read when and where it takes place and what to bring. Reserve a volunteer role, reload and reopen the event, then tap **Cancel signup**. | The count increases by one, the signup survives reload, and cancellation restores the original count. |
+| From **Community → My groups**, join Harambee and choose **Post to Harambee**. Publish a post, reload and reopen **My groups**. Tap **Leave Harambee**, then rejoin. | The post appears under My groups and stays out of the public board. Leaving hides it and rejoining brings it back. |
 
 ## Check saved posts and search
 
 | On the phone | Expected result |
 | --- | --- |
-| Tap the bookmark at the bottom right of the winter drive post, reload and open **Saved**. Tap the filled bookmark. | The bookmark fills when saved. The event survives reload in Saved and disappears from that view when removed. |
+| Bookmark the winter drive, reload, and open **Activity → Saved events**. Open the event and remove its bookmark. | The event survives reload in Saved events and disappears from that section when removed. |
 | On **Community**, tap **Search posts** and type `coat`. Choose **Offers** in the filter and close search. | Search finds “Kids’ coats available,” and clearing it restores all offers. |
 | In **My groups**, join Harambee and publish a post with a distinctive title. Search for it in My groups, then switch to Community board. | The post appears in the group search and stays out of the board results. |
 
 ## Check the shared workspace on two devices
 
-On the laptop, set `$env:COMFORCE_API_HOST = '0.0.0.0'` and run `npm.cmd run api`.
-In the terminal that starts Expo, set `EXPO_PUBLIC_API_URL` to the laptop’s LAN
-address and port, for example `$env:EXPO_PUBLIC_API_URL = 'http://192.168.1.20:8787'`.
-Start `npm.cmd run mobile:lan` and open the project on the phone. Launch the web
-app with the same API URL to test using a second account on the laptop.
+In `.env`, set `COMFORCE_API_HOST=0.0.0.0` and point `EXPO_PUBLIC_API_URL` at
+the laptop’s LAN address and port, for example `http://192.168.1.20:8787`.
+Run `npm run api` and `npm run mobile:lan` in separate terminals and open the
+project on the phone. Launch the web app with the same API URL to test using
+a second account on the laptop. [API setup](deployment.md#shared-workspace-api)
 
 | What to check | Expected result |
 | --- | --- |
@@ -116,7 +116,7 @@ Use the shared workspace with a resident and approved worker on separate devices
 
 | What to check | Expected result |
 | --- | --- |
-| As `alex`, send a clothing referral to Winter Care Collective. As `winter-worker`, open the new unread item in **Activity** and accept it. Go back to Activity. | The update opens the exact referral and stays read when Activity is reopened. Alex gets an unread acceptance update. |
+| As `alex`, send a clothing referral to Winter Care Collective. As `winter-worker`, open the new unread item in **Inbox** and accept it. Go back to Inbox. | The update opens the exact referral and stays read when Inbox is reopened. Alex gets an unread acceptance update in Activity. |
 | In the referral’s private conversation, ask which sizes to bring. From Alex’s unread reply, open the conversation and answer “6 and 8.” Reopen it from both accounts. | Both messages show a sender and time. The reply opens the conversation and clears its unread status for the signed-in account. |
 | Use `jordan` or `table-worker` to open Activity. If testing a handoff, approve a different provider and open its new assignment. | Unrelated accounts do not see the messages. The new provider opens a separate thread and cannot see the original conversation. |
 
