@@ -18,7 +18,7 @@ Swipe left from the right edge to open **Settings**. On desktop, click **ComForc
 | --- | --- |
 | Open **Impact**, tap the reporting month and choose **All time**. Note the starting totals. | A fresh workspace has 530 sample requests. Using All time makes it easy to compare totals after the walkthrough. |
 | Go to **Community → Ask for help**. Type “We need clothes for the kids and a ride to pick the clothes up.” Tap **Find resources**. | Winter Care Collective matches clothing and transportation. Tap its name to see the other sample partners. |
-| Under **Information to share**, select **Neighborhood · Harambee**, then tap **Send request**. | Your referral appears in Activity as **Sent**. |
+| Under **Information to share**, select **Neighborhood · Harambee**, then tap **Send request**. | **Request sent** shows the organization and a summary. **View request** opens its Activity timeline. |
 | In **Settings**, select **Partner**, then tap **Done**. Open the referral in **Inbox → New** and tap **Accept referral**. Return to Inbox and select **In progress**. | The referral moves to **In progress** and stays there after reload. |
 | Scroll down to **Messages** and ask which coat sizes to bring. Switch to **Resident** and open the unread reply in **Activity**. Answer “6 and 8.” | The notification jumps to Messages at the bottom of the request. Alex can reply and scroll up to see the timeline. |
 | In the partner’s request timeline, tap **Record delivery**, select **Clothing**, keep the winter program selected and tap **Record completed service**. Switch to **Resident view**. | Winter Care Collective is credited for clothing. Transportation remains outstanding. |

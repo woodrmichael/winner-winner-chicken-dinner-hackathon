@@ -11,7 +11,7 @@
 
 On the presentation laptop, run `npm run export:web`, then `npm run preview`. Open the address it prints in a private browser window to start from a fresh workspace. Keep a recording of both roles available for playback.
 
-For the two phone recordings, use the same Expo Go installation and switch profiles by swiping left from the right edge between takes. Record Alex Rivera entering a clothing-and-ride request, finding Winter Care Collective, choosing what to share and sending the request. For Morgan Chen’s recording, open Inbox, accept that request, send a private reply and record the coat and ride deliveries. Switch back to Alex after the partner take to capture the completed request for the resident recording. To show live microphone transcription on the phone, use the [shared workspace voice setup](mobile.md#try-voice-input).
+For the two phone recordings, use the same Expo Go installation and switch profiles by swiping left from the right edge between takes. As Alex Rivera, choose **Clothing** under Quick actions, tap **Find resources**, apply the suggested draft and send it to **Winter Care Collective**. End the first take on **Request sent**. For Morgan Chen’s recording, open **Inbox → New**, find that same request, accept it, send a private reply and record a clothing delivery. To show microphone transcription on the phone, use the [shared workspace voice setup](mobile.md#try-voice-input).
 
 ## Sponsorship walkthrough
 

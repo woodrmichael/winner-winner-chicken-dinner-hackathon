@@ -39,9 +39,9 @@ For **multi-device coordination**, run `npm run api` and set `EXPO_PUBLIC_API_UR
 
 ## Start with a referral
 
-1. As the **Resident**, open **Community → Ask for help**. Request children’s winter coats and a ride to pick them up. Review Winter Care Collective, select the neighborhood to share and send the request.
-2. As the **Partner**, open **Inbox → New** and accept the request from its timeline. Scroll to **Messages** to confirm the pickup details. Record the clothing delivery, then record transportation separately.
-3. Return to the **Resident** to see both deliveries on the timeline. Open **Impact** to see how the services roll up by category and provider. Open **Winter essentials** for funding and program delivery history.
+1. As the **Resident**, open **Community → Ask for help** and choose **Clothing**. Tap **Find resources**, apply the suggested draft and review Winter Care Collective. Choose what to share and send the request. [See the request confirmation](docs/references/request-sent.png).
+2. As the **Partner**, open **Inbox → New** and accept the same request from its timeline. Scroll to **Messages** to confirm the pickup details. Record the clothing delivery.
+3. Return to the **Resident** to see the delivery on the timeline. Open **Impact** to see how services roll up by category and provider. Open **Winter essentials** for funding and program delivery history.
 
 ## Engineering notes
 

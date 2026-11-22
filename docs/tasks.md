@@ -32,6 +32,8 @@ Community is where neighbors offer items and organize activities. A resident wit
 
 - [x] **1.15 Open volunteer roles from the event card.** After 1.14. Claimed by `codex/two-demo-views`. Choose a role from the winter drive card, reserve it on the event page and return to the same position in Community. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/77cedc3cec14a4396cb8a60e6ab68b1a4b77e0c2)
 
+- [x] **1.16 Give Community one primary action.** Claimed by `codex/two-demo-views`. On a phone, verify the resident sees a full-width Ask for help action and the partner can still open the inbox. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/56158d8087db44632ed35c3c623ee006b8f2601c)
+
 ## 2. Resource matching
 
 From **Community → Ask for help**, a resident can describe a situation without knowing which organization handles it. Today the app uses keywords to suggest directory partners. The resident can choose a different partner, review the message, and decide whether to include their first name, callback number, or neighborhood. The matching work below helps someone reach a partner that covers the help they still need.
@@ -51,6 +53,8 @@ From **Community → Ask for help**, a resident can describe a situation without
 
 - [x] **2.12 Simplify request review and the Food quick action.** After 2.11. Claimed by `codex/two-demo-views`. Use Food, apply the grocery draft and confirm Food is the only identified need. Send the request to Neighborhood Table. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/6914c534a0e5b3f0bb3df4d6db149d9f2265f109)
 
+- [x] **2.13 Confirm a sent request.** After 2.12. Claimed by `codex/two-demo-views`. Send a clothing request and verify the success screen shows the receiving organization, needs and message. Open the same request from the confirmation and check the partner inbox. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/56158d8087db44632ed35c3c623ee006b8f2601c)
+
 ## 3. Referral coordination
 
 In Activity, the receiving partner sees the message and the details the resident agreed to share. Accepting tells the resident someone has taken the case. Each service credits the provider and leaves other needs outstanding. See the [shared counting rules](architecture.md#counting-rules-for-43-and-52) for Map and Impact.
@@ -65,6 +69,8 @@ In Activity, the receiving partner sees the message and the details the resident
 
 - [x] **3.6 Assign a referral to a worker.** After 9.1. A partner assigns an accepted ride request to an approved worker. The team can see who is arranging the ride, and the worker can find it under their assigned requests. Reassign it to a colleague and verify that responsibility moves while request and service totals stay the same.
 - [x] **3.7 Resolve a request a partner cannot fulfill.** A worker declines a ride and gives a reason. The resident sees that this provider declined and can seek another provider or withdraw the need. A ride still sought remains outstanding on the neighborhood map if the resident shared their neighborhood. Withdrawing it removes it from outstanding needs. Only a recorded ride counts as delivered. [PR #1](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/1)
+
+- [x] **3.8 Move partner request tools below messages.** After 1.13. Claimed by `codex/two-demo-views`. Accept a clothing request, check that delivery and scheduling stay in the timeline, and find More actions at the bottom. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/56158d8087db44632ed35c3c623ee006b8f2601c)
 
 ## 4. Milwaukee map
 
