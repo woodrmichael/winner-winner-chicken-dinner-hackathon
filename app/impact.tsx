@@ -1,1 +1,1 @@
-export { default } from '../src/features/impact/Impact';
+export { TabRoute as default } from '../src/ui/RetainedTab';

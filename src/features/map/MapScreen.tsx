@@ -1,439 +1,221 @@
-
-import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Pressable, View } from 'react-native';
-import Svg, {
-  Circle,
-  G,
-  Line,
-  Path,
-  Rect,
-  Text as MapText,
-} from 'react-native-svg';
+import { useCallback, useContext, useMemo, useState } from 'react';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { SelectMenu } from '../../ui/SelectMenu';
-import { ToggleRow } from '../../ui/SelectionRows';
 import { mapRows } from '../../domain/model';
-import { categories, type Category, type Neighborhood } from '../../domain/types';
+import { communityEventPins } from '../../domain/demoCommunity';
+import { historicalIncidents } from '../../domain/seed';
+import { categories, type Category } from '../../domain/types';
 import { useDemo } from '../../state/Demo';
+import { Disclosure } from '../../ui/Disclosure';
+import { TabActive } from '../../ui/RetainedTab';
+import { SelectMenu } from '../../ui/SelectMenu';
+import { SelectionRow, ToggleRow } from '../../ui/SelectionRows';
 import { Btn, Card, Columns, Copy, Page, color, wrap } from '../../ui/kit';
-import boundaries from './boundaries.json';
 import { directory } from '../matching/directory';
-import { incidentBand, incidentBands, incidentLayers, incidentPeriod, noIncidentData } from './incidentScale';
+import MilwaukeeMap from './MilwaukeeMap';
+import { MapLegend } from './MapLegend';
+import { incidentBand, incidentLayers, incidentPeriod, noIncidentData, needColor } from './incidentScale';
+import { usePublicLibraries } from './usePublicLibraries';
 
-const layers = [
-  { key: 'open', label: 'Open needs', symbol: '○', ink: '#844923' },
-  { key: 'delivered', label: 'Assistance delivered', symbol: '✓', ink: '#17634B' },
-  { key: 'resources', label: 'Resources', symbol: '+', ink: '#385E91' },
-  ...incidentLayers,
+const metrics = [
+  { key: 'open', label: 'Needs still open', ink: '#87411F' },
+  { key: 'delivered', label: 'Services delivered', ink: '#17634B' },
 ] as const;
-
-type Layer = (typeof layers)[number]['key'];
 const serviceOptions = (['All', ...categories] as const).map((value) => ({
   value,
   label: value === 'All' ? 'All services' : value,
 }));
-
-// Label anchors are offset from neighborhood interiors for legibility.
-const pins: Record<
-  Neighborhood,
-  { x: number; y: number; left: number; top: number }
-> = {
-  Harambee: { x: 145, y: 87, left: 10, top: 42 },
-  Riverwest: { x: 218, y: 98, left: 235, top: 85 },
-  'Brewers Hill': { x: 178, y: 204, left: 45, top: 178 },
-};
+type Overlay = 'needs' | 'libraries' | 'events' | 'fatal' | 'nonfatal';
 
 export default function MapScreen() {
   const router = useRouter();
+  const active = useContext(TabActive);
+  const { width, height, fontScale } = useWindowDimensions();
   const { state, shared } = useDemo();
-
-  // Map layer visibility.
-  const [visible, setVisible] = useState<Layer[]>([
-    'open',
-    'delivered',
-  ]);
-
-  // Currently selected neighborhood.
-  const [selectedNeighborhood, setSelectedNeighborhood] =
-    useState<Neighborhood | null>(null);
-
-  // Calculate neighborhood counts from shared application state.
+  const [visible, setVisible] = useState<Record<Overlay, boolean>>({
+    needs: true, libraries: false, events: false, fatal: false, nonfatal: false,
+  });
+  const [overlaysExpanded, setOverlaysExpanded] = useState(false);
+  const [areasExpanded, setAreasExpanded] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
   const [category, setCategory] = useState<Category | 'All'>('All');
+  const mapHeight = Math.max(290, Math.min(500, Math.round(height * (width < 900 ? 0.46 : 0.60))));
+  const publicLibraries = usePublicLibraries(active && visible.libraries);
+  const posts = shared.enabled ? shared.data?.posts : state.posts;
+  const events = useMemo(() => visible.events && posts ? communityEventPins(posts) : null, [posts, visible.events]);
+
   const reporting = shared.data?.reporting;
+  const allRows = useMemo(() => shared.enabled ? reporting?.map ?? [] : mapRows(state), [reporting, shared.enabled, state]);
   const sharedRows = category === 'All'
     ? reporting?.map
     : reporting?.mapByCategory?.find((entry) => entry.category === category)?.rows;
-  const rows = sharedRows ?? mapRows(state, category === 'All' ? undefined : category);
-
-  const active = layers.filter((layer) =>
-    visible.includes(layer.key)
+  const rows = useMemo(
+    () => category === 'All' ? allRows : shared.enabled ? sharedRows ?? [] : mapRows(state, category),
+    [allRows, shared.enabled, sharedRows, state, category],
   );
-  // Switches are independent. The last enabled incident layer supplies the fill.
-  const shadeKey = visible.slice().reverse().find((key) => key === 'fatal' || key === 'nonfatal');
-  const shadeLayer = incidentLayers.find((layer) => layer.key === shadeKey);
+  const coveredAreas = useMemo(() => new Set(allRows.filter(({ open, delivered }) =>
+    open > 0 || delivered > 0).map(({ area }) => area)), [allRows]);
+  const reportedRows = useMemo(() => rows.filter(({ area }) => coveredAreas.has(area))
+    .sort((a, b) => a.area.localeCompare(b.area)), [rows, coveredAreas]);
+  const showServiceStats = !shared.enabled || !!sharedRows;
+  const shownIncidents = incidentLayers.filter(({ key }) => visible[key]);
+  const needsShading = useMemo(() => visible.needs
+    ? Object.fromEntries(reportedRows.map(({ area, open }) => [area, needColor(open)]))
+    : null, [reportedRows, visible.needs]);
+  const incidentShading = useMemo(() => {
+    function colors(key: 'fatal' | 'nonfatal') {
+      return Object.fromEntries(Object.entries(historicalIncidents).map(([area, counts]) =>
+        [area, incidentBand(counts[key])[key]]));
+    }
+    return { fatal: visible.fatal ? colors('fatal') : null, nonfatal: visible.nonfatal ? colors('nonfatal') : null };
+  }, [visible.fatal, visible.nonfatal]);
+  const selectedCounts = reportedRows.find(({ area }) => area === selected);
+  const counts = selected
+    ? selectedCounts
+    : {
+        open: rows.reduce((total, item) => total + item.open, 0),
+        delivered: rows.reduce((total, item) => total + item.delivered, 0),
+      };
+  const incidentCounts = Object.entries(historicalIncidents).find(([area]) => area === selected)?.[1];
+  const providers = selected ? directory.filter((partner) => partner.area === selected) : [];
 
-  // Filter totals when a neighborhood is selected.
-  const displayedRows = selectedNeighborhood
-    ? rows.filter((row) => row.area === selectedNeighborhood)
-    : rows;
+  const toggleNeighborhood = useCallback(async (area: string | null) => {
+    setSelected((current) => current === area ? null : area);
+  }, []);
+  const openEvent = useCallback(async (id: string) => {
+    router.push({ pathname: '/community-post/[id]', params: { id, from: 'map' } });
+  }, [router]);
 
-  function toggle(key: Layer) {
-    setVisible((old) =>
-      old.includes(key)
-        ? old.filter((layer) => layer !== key)
-        : [...old, key]
-    );
-  }
-
-  // Selecting the same neighborhood again clears selection.
-  function selectNeighborhood(area: Neighborhood) {
-    setSelectedNeighborhood((current) =>
-      current === area ? null : area
-    );
-  }
-
-  function clearSelection() {
-    setSelectedNeighborhood(null);
+  function overlaySwitch(key: Overlay, label: string) {
+    return <ToggleRow
+      key={key}
+      label={label}
+      value={visible[key]}
+      onChange={(enabled) => setVisible((current) => ({ ...current, [key]: enabled }))}
+    />;
   }
 
   return (
-    <Page title="Community map">
+    <Page title="Map">
       <Columns
         main={
-          <Card style={{ padding: 0, overflow: 'hidden' }}>
-            <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-              <Copy kind="label" tint={color.pine}>
-                MILWAUKEE · NORTH SIDE
-              </Copy>
+          <Card style={styles.mapPanel}>
+            <MapLegend
+              needs={visible.needs && reportedRows.length > 0 ? category : null}
+              incidents={shownIncidents}
+              events={!!events?.length}
+              libraries={visible.libraries && publicLibraries.length > 0}
+            />
+            <View style={{ height: mapHeight }}>
+              <MilwaukeeMap
+                selected={selected}
+                needs={needsShading}
+                shading={incidentShading}
+                libraries={visible.libraries ? publicLibraries : null}
+                events={events}
+                onSelect={toggleNeighborhood}
+                onOpenEvent={openEvent}
+                dom={{
+                  useExpoDOMWebView: false,
+                  scrollEnabled: false,
+                  style: styles.mapFrame,
+                }}
+              />
             </View>
-
-            {/* Map and interactive neighborhood overlays */}
-            <View
-              style={{
-                width: '100%',
-                aspectRatio: 1.5,
-                backgroundColor: '#DAE8E4',
-                position: 'relative',
-              }}
-            >
-              {/* SVG map */}
-              <Svg
-                width="100%"
-                height="100%"
-                viewBox="0 0 360 240"
-              >
-                {/* Neighborhood boundaries */}
-                {boundaries.map((b) => {
-                  const counts = rows.find((row) => row.area === b.name);
-                  const fill = shadeLayer
-                    ? incidentBand(counts?.[shadeLayer.key])[shadeLayer.key]
-                    : counts ? '#CEE4DB' : '#E5EAE7';
-                  return (
-                    <Path
-                      key={b.name}
-                      d={b.path}
-                      fill={fill}
-                      stroke={shadeLayer ? '#788484' : '#FCFBF3'}
-                      strokeWidth={1.4}
-                    />
-                  );
-                })}
-
-                {/* Neighborhood markers and labels */}
-                {rows.map(({ area, ...counts }) => {
-                  const p = pins[area];
-                  const selected = selectedNeighborhood === area;
-
-                  return (
-                    <G key={area}>
-                      {/* Connector line */}
-                      <Line
-                        x1={p.x}
-                        y1={p.y}
-                        x2={p.left + 45}
-                        y2={p.top + 14}
-                        stroke={selected ? '#17634B' : color.pine}
-                        strokeWidth={selected ? 2.5 : 1.4}
-                      />
-
-                      {/* Neighborhood marker */}
-                      <Circle
-                        cx={p.x}
-                        cy={p.y}
-                        r={selected ? 7 : 4}
-                        fill={selected ? '#17634B' : color.pine}
-                        stroke="white"
-                        strokeWidth={2}
-                      />
-
-                      {/* Neighborhood label */}
-                      <Rect
-                        x={p.left}
-                        y={p.top}
-                        width={109}
-                        height={
-                          24 + 17 * Math.ceil(active.length / 3)
-                        }
-                        rx={5}
-                        fill={selected ? '#E0F0E7' : '#FFFFFF'}
-                        stroke={selected ? '#17634B' : '#B3C6B6'}
-                        strokeWidth={selected ? 2.5 : 1}
-                      />
-
-                      {/* Neighborhood name */}
-                      <MapText
-                        x={p.left + 6}
-                        y={p.top + 15}
-                        fontFamily="sans-serif"
-                        fontSize={12}
-                        fontWeight="bold"
-                        fill={color.ink}
-                      >
-                        {area}
-                        {selected ? ' ✓' : ''}
-                      </MapText>
-
-                      {/* Visible layer counts */}
-                      {active.map((layer, i) => (
-                        <MapText
-                          key={layer.key}
-                          x={p.left + 6 + (i % 3) * 34}
-                          y={
-                            p.top +
-                            32 +
-                            Math.floor(i / 3) * 17
-                          }
-                          fontFamily="sans-serif"
-                          fontSize={11}
-                          fontWeight="bold"
-                          fill={layer.ink}
-                        >
-                          {layer.symbol}
-                          {counts[layer.key] ?? '—'}
-                        </MapText>
-                      ))}
-                    </G>
-                  );
-                })}
-              </Svg>
-
-              {/* Interactive neighborhood touch targets */}
-              {rows.map(({ area, ...counts }) => {
-                const p = pins[area];
-                const selected = selectedNeighborhood === area;
-
-                const labelHeight =
-                  24 + 17 * Math.ceil(active.length / 3);
-
-                return (
-                  <Pressable
-                    key={area}
-                    onPress={() => selectNeighborhood(area)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select ${area}` + (shadeLayer
-                      ? `, ${shadeLayer.label}, ${incidentPeriod}, ${counts[shadeLayer.key] ?? noIncidentData.label}`
-                      : '')}
-                    accessibilityState={{ selected }}
-                    style={{
-                      position: 'absolute',
-                      left: `${((p.left - 5) / 360) * 100}%`,
-                      top: `${((p.top - 5) / 240) * 100}%`,
-                      width: `${(119 / 360) * 100}%`,
-                      height: `${((labelHeight + 10) / 240) * 100}%`,
-                      backgroundColor: 'transparent',
-                      zIndex: 2,
-                    }}
-                  />
-                );
-              })}
-            </View>
-
-            {/* Map attribution */}
-            <View
-              style={{
-                paddingHorizontal: 16,
-                paddingBottom: 14,
-                gap: 8,
-              }}
-            >
-              {shadeLayer && (
-                <View style={{ gap: 6 }}>
-                  <Copy kind="strong">Shading · {shadeLayer.label} · {incidentPeriod}</Copy>
-                  <View style={wrap}>
-                    {[...incidentBands, noIncidentData].map((band) => (
-                      <View key={band.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <View style={{
-                          width: 16, height: 16, borderRadius: 3, borderWidth: 1,
-                          borderColor: '#687474', backgroundColor: band[shadeLayer.key],
-                        }} />
-                        <Copy kind="small">{band.label}</Copy>
-                      </View>
-                    ))}
-                  </View>
-                  {incidentLayers.every((layer) => visible.includes(layer.key)) && (
-                    <Copy kind="small">Both counts are shown. Shading follows the last incident layer turned on.</Copy>
-                  )}
-                </View>
-              )}
-              <Copy kind="small" tint={color.muted}>
-                City of Milwaukee DCD and ITMD-GIS
-                {shadeLayer
-                  ? ' · Incident totals from the Milwaukee Homicide Review Commission'
-                  : ''}
-              </Copy>
+            <View style={styles.overlayControls}>
+              <Disclosure label="Map overlays" expanded={overlaysExpanded} onToggle={() => setOverlaysExpanded((current) => !current)}>
+                {overlaySwitch('needs', 'Open needs')}
+                {overlaySwitch('events', 'Community events')}
+                {overlaySwitch('libraries', 'Public libraries')}
+                {incidentLayers.map(({ key, label }) => overlaySwitch(key, label))}
+              </Disclosure>
             </View>
           </Card>
         }
         side={
           <Card>
-            <View style={[wrap, { justifyContent: 'space-between' }]}>
-              <Copy kind="strong">Map layers</Copy>
-              <SelectMenu
-                label="Service category"
-                value={category}
-                options={serviceOptions}
-                onChange={setCategory}
-              />
+            <View style={styles.overviewHeader}>
+              <View style={styles.overviewTitle}>
+                <Copy kind="title">Service activity</Copy>
+                <Copy kind="small" tint={color.muted}>
+                  {selected ?? (coveredAreas.size ? `${coveredAreas.size} neighborhoods` : 'All neighborhoods')} · All time
+                </Copy>
+              </View>
+              {showServiceStats && (
+                <SelectMenu label="Service category" value={category} options={serviceOptions} onChange={setCategory} />
+              )}
             </View>
-
-            <View>
-              {layers.map((layer) => (
-                <ToggleRow
-                  key={layer.key}
-                  label={layer.label}
-                  value={visible.includes(layer.key)}
-                  onChange={() => toggle(layer.key)}
-                  leading={
-                    <Copy
-                      kind="strong"
-                      tint={layer.ink}
-                      style={{
-                        width: 18,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {layer.symbol}
-                    </Copy>
-                  }
-                />
+            {showServiceStats && counts && (
+              <View style={styles.metrics}>
+                {metrics.map(({ key, label, ink }) => (
+                  <View key={key} style={[styles.metric, { flexBasis: 75 * fontScale }]}>
+                    <Copy kind="title" tint={ink} style={styles.metricValue}>{counts[key]}</Copy>
+                    <Copy kind="small" tint={color.muted}>{label}</Copy>
+                  </View>
+                ))}
+              </View>
+            )}
+            {showServiceStats && !counts && <Copy kind="small" tint={color.muted}>No service activity recorded here.</Copy>}
+            {!selected && reportedRows.length > 0 && (
+              <Copy kind="small" tint={color.muted}>Tap a neighborhood to see its totals.</Copy>
+            )}
+            {shared.enabled && !shared.data && (
+              <Btn label="Sign in to view service stats" secondary onPress={() => router.push('/settings')} />
+            )}
+            {shared.data && !sharedRows && (
+              <Copy kind="small" tint={color.muted}>Service stats are unavailable for this category.</Copy>
+            )}
+            {selected && shownIncidents.length > 0 && <View style={styles.provider}>
+              <Copy kind="strong">Incidents · {incidentPeriod}</Copy>
+              {shownIncidents.map(({ key, label, ink }) => (
+                <Copy key={key} kind="small" tint={ink}>{label} · {incidentCounts?.[key] ?? noIncidentData.label}</Copy>
               ))}
-            </View>
+            </View>}
+            {selected && showServiceStats && providers.map((partner) => (
+              <View key={partner.id} style={styles.provider}>
+                <Copy kind="strong">{partner.name}</Copy>
+                <Copy kind="small" tint={color.muted}>{partner.categories.join(' · ')}</Copy>
+                <Btn label={'Request help from ' + partner.name} secondary onPress={() =>
+                  router.push({ pathname: '/ask', params: { partner: partner.id } })}
+                />
+              </View>
+            ))}
+            {shownIncidents.length > 0 && (
+              <Copy kind="small" tint={color.muted}>Milwaukee Homicide Review Commission</Copy>
+            )}
+            {reportedRows.length > 0 && (
+              <View style={styles.sectionDivider}>
+                <Disclosure label="Browse neighborhoods" expanded={areasExpanded} onToggle={() => setAreasExpanded((current) => !current)}>
+                  <SelectionRow label="All neighborhoods" selected={selected === null} onPress={() => setSelected(null)} />
+                  {reportedRows.map(({ area, open, delivered }) => (
+                    <SelectionRow
+                      key={area}
+                      label={area}
+                      detail={open + ' open · ' + delivered + ' delivered'}
+                      selected={area === selected}
+                      onPress={() => toggleNeighborhood(area)}
+                    />
+                  ))}
+                </Disclosure>
+              </View>
+            )}
           </Card>
         }
       />
-
-      {/* Neighborhood totals */}
-      {selectedNeighborhood && (
-        <Card>
-          <Copy kind="title">Providers in {selectedNeighborhood}</Copy>
-          {directory.filter((partner) => partner.area === selectedNeighborhood).map((partner) => (
-            <View key={partner.id} style={{ gap: 6 }}>
-              <Copy kind="strong">{partner.name}</Copy>
-              <Copy>{partner.categories.join(' · ')}</Copy>
-              <Btn label={`Request help from ${partner.name}`} secondary onPress={() =>
-                router.push({ pathname: '/ask', params: { partner: partner.id } })
-              } />
-            </View>
-          ))}
-        </Card>
-      )}
-      <Card>
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <Copy kind="title">Neighborhood totals</Copy>
-
-          {selectedNeighborhood && (
-            <Copy kind="small" tint={color.pine}>
-              Selected
-            </Copy>
-          )}
-        </View>
-
-        {/* Current selection information */}
-        {selectedNeighborhood && (
-          <View style={{ marginTop: 8 }}>
-            <Copy kind="small" tint={color.muted}>
-              Showing {selectedNeighborhood}
-            </Copy>
-          </View>
-        )}
-
-        {!active.length && (
-          <Copy>Select a layer to see counts.</Copy>
-        )}
-
-        {/* Neighborhood rows */}
-        {active.length > 0 &&
-          displayedRows.map((r) => {
-            const selected = selectedNeighborhood === r.area;
-
-            return (
-              <Pressable
-                key={r.area}
-                onPress={() => selectNeighborhood(r.area)}
-                accessibilityRole="button"
-                accessibilityLabel={`Select ${r.area} neighborhood totals. ` +
-                  active.map((layer) => `${layer.label} ${r[layer.key] ?? noIncidentData.label}`).join(', ') +
-                  (shadeLayer ? `. Incident totals for ${incidentPeriod}.` : '')}
-                accessibilityState={{ selected }}
-                style={{
-                  borderTopWidth: 1,
-                  borderColor: selected ? color.pine : color.line,
-                  borderWidth: selected ? 1 : 0,
-                  padding: 10,
-                  gap: 4,
-                  marginTop: 10,
-                  backgroundColor: selected ? '#E0F0E7' : 'transparent',
-                  borderRadius: 6,
-                }}
-              >
-                <Copy kind="strong">{r.area}</Copy>
-
-                <View style={wrap}>
-                  {active.map((layer) => (
-                    <Copy
-                      key={layer.key}
-                      kind="small"
-                      tint={layer.ink}
-                    >
-                      {layer.symbol} {layer.label} · {r[layer.key] ?? noIncidentData.label}
-                      {(layer.key === 'fatal' || layer.key === 'nonfatal') && ` (${incidentPeriod})`}
-                    </Copy>
-                  ))}
-                </View>
-              </Pressable>
-            );
-          })}
-
-        {/* Clear neighborhood selection */}
-        {selectedNeighborhood && (
-          <View style={{ marginTop: 12 }}>
-            <Pressable
-              onPress={clearSelection}
-              accessibilityRole="button"
-              accessibilityLabel="Show all neighborhoods"
-              style={{
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderWidth: 1,
-                borderColor: color.pine,
-                borderRadius: 6,
-                alignItems: 'center',
-              }}
-            >
-              <Copy kind="strong" tint={color.pine}>
-                Show all neighborhoods
-              </Copy>
-            </Pressable>
-          </View>
-        )}
-      </Card>
     </Page>
   );
 }
+
+const styles = StyleSheet.create({
+  mapPanel: { overflow: 'hidden', padding: 0, gap: 0 },
+  mapFrame: { flex: 1, backgroundColor: '#e8eee5' },
+  overlayControls: { paddingHorizontal: 14 },
+  overviewHeader: { ...wrap, justifyContent: 'space-between', gap: 4 },
+  overviewTitle: { flexShrink: 1, gap: 2 },
+  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  metric: { flexGrow: 1, flexShrink: 1, minWidth: 0, padding: 9, backgroundColor: color.sand, borderRadius: 8 },
+  metricValue: { fontVariant: ['tabular-nums'] },
+  provider: { gap: 4, alignItems: 'flex-start' },
+  sectionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: color.line },
+});

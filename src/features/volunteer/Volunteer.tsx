@@ -124,7 +124,7 @@ export function VolunteerActivity() {
     <Card>
       <Copy kind="title">Winter essentials drive</Copy>
       <Copy kind="strong">{role.name}</Copy>
-      <Copy>{event.when} · {event.where}</Copy>
+      <Copy>{event.when} · {event.venue.name}</Copy>
       <Copy>{role.instructions}</Copy>
       {signup.minutes === undefined ? (
         <Btn label="Cancel volunteer signup" secondary onPress={() => run({ type: 'cancel-volunteer' })} />

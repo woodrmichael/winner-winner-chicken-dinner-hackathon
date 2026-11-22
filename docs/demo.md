@@ -11,4 +11,8 @@
 
 On the presentation laptop, run `npm run export:web`, then `npm run preview`. Open the address it prints in a private browser window to rehearse with the starting records. Keep a local recording as backup.
 
+Demo service activity is fictional. The same seeded referrals drive Activity, Map and Impact. They cover 26 neighborhoods, from Havenwoods and Silver Spring on the north side to Wilson Park and Tippecanoe on the south side, with a mix of pending requests, partial deliveries and completed work. Existing workspaces pick up the additional records on load by ID. The city boundaries and library locations come from public sources.
+
+The winter essentials drive, meal kit packing and donation sorting are fictional community events at real Milwaukee venues. The winter drive ties into the apartment-fire recovery scenario. Event maps show the public meeting location. Clothing and ride requests appear in neighborhood totals, with household details confined to authorized referral views. Use a fresh or reset demo workspace for the latest event copy.
+
 The submission owner sends the team’s GitHub link through the event workspace by **11 am Central, Sunday, November 22, 2026**. Target 10:30 am and check the confirmation email for presentation order. [Organizer brief](https://msoe-maic.com/library/?nav=Competitions&article=HacksGiving-ComForce-MKE-2026)

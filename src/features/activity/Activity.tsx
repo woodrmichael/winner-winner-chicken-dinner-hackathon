@@ -94,7 +94,7 @@ export default function Activity() {
     );
   }
   return (
-    <Page title={partnerView ? (workerWaiting ? 'Activity' : 'Partner inbox') : 'Referral activity'}>
+    <Page title={partnerView && !workerWaiting ? 'Partner inbox' : 'Activity'}>
       {identity ? (
         <Copy kind="strong" tint={color.muted}>
           {identity}

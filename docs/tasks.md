@@ -14,6 +14,7 @@ Community is where neighbors offer items and organize activities. A resident wit
 - [x] **1.4 Follow a public neighborhood group.** From Community, a resident joins a group, publishes an offer to it and finds the offer under My groups. Leaving removes the group from that feed. Its public posts remain visible to other neighbors.
 - [x] **1.5 Save a post for later.** Save the winter drive, reload the app and find it under **Saved** in Community. Removing the bookmark removes it from Saved.
 - [x] **1.6 Search community posts.** Search `coat` to find “Kids’ coats available” on the Community board. Search **My groups** for a post from a joined neighborhood. Private referrals stay in Activity.
+- [x] **1.7 Use one compact header on phones.** Switch among the four tabs and compare heading size and gutters. Swipe left from the right edge to open Settings. Switch roles and tap Done to return to the same screen. Open Share report from Impact and repeat with larger system text. [PR #8](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/8)
 
 ## 2. Resource matching
 
@@ -47,12 +48,18 @@ In Activity, the receiving partner sees the message and the details the resident
 
 ## 4. Milwaukee map
 
-The map lets a resident or coordinator select a neighborhood and read its totals in the list. For service activity, the map uses the neighborhood a resident chose to share. The historical violence layers use a separate reporting period. The next changes help people find a local provider, identify unmet needs and interpret those historical counts.
+Residents and coordinators can explore Milwaukee streets and select a reporting neighborhood to see assistance, providers and historical incident totals. Service activity uses the neighborhood a resident chose to share. Historical incident layers show their own reporting period.
 
 - [x] **4.1 Select a neighborhood and see its totals.** Select Harambee on the map or in the list to see the same neighborhood totals. Layer switches and the list view remain available. Completed by paladugup. [Neighborhood selection commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/ba0083c)
 - [x] **4.2 Find a named resource on the map.** Completed by Corbin Langfeldt. Select a neighborhood with directory resources to see the partners there and what each offers. Choosing a provider opens the private request review with that partner selected. The resident can change their choice before sending. [PR #3](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/3)
 - [x] **4.3 Show where help is still needed.** Completed by Corbin Langfeldt. For a selected neighborhood, let a coordinator compare outstanding needs and deliveries by category. In a neighborhood with an open ride and a completed coat delivery, filtering to transportation should show the open ride alone. Show aggregate neighborhood counts and keep household locations private. [PR #4](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/4)
 - [x] **4.4 Make historical violence counts readable.** Completed by Corbin Langfeldt. Give homicide and nonfatal shooting layers distinct colors and a legend that explains the shading. A reader switching layers should be able to identify the neighborhood, reporting period and count, and distinguish a recorded zero from a missing observation. [Milwaukee data sources](sources.md) [PR #2](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/2)
+
+- [x] **4.5 Interactive Milwaukee street map.** Drag and pinch to explore the city and tap a neighborhood. Switch to Community and back and check that the map keeps its position and selection and the Community cover image stays loaded. Repeat on web and Expo Go. [PR #8](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/8)
+- [x] **4.6 Simplify map controls and neighborhood stats.** After 4.5. On a phone, confirm the logo stays visible in the tab bar. Select Harambee and tap it again to deselect it. Check that Service activity names the area and period. Filter to Transportation and verify the completed coat delivery is excluded. Toggle both incident overlays and check the dated legend above the map, then open request review from a named provider. [PR #8](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/8)
+- [x] **4.7 Add cached public map data.** After 4.5. Select Public libraries, open a branch and check its address against Milwaukee Public Library. Reopen the map with the City feed unavailable and confirm the public locations still open. [PR #8](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/8)
+- [x] **4.8 Map public community events.** After 1.3 and 4.5. Open the winter drive from Community to see Moody Park, its street address and a map directly on the page. Enable Community events and Public libraries together on Map, then tap the winter drive pin to open that same event. Show the related clothing and ride requests only in neighborhood totals. [PR #8](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/8)
+- [x] **4.9 Broaden service activity coverage.** After 4.3. Open Map in an existing workspace and check 26 neighborhoods have service totals, including Havenwoods and Jackson Park. Compare the totals to the shared workspace reports and check that loading again adds each record once. [PR #8](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/8)
 
 ## 5. Impact and presentation
 

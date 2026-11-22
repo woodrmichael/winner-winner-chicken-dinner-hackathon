@@ -1,1 +1,1 @@
-export { default } from '../src/features/community/Community';
+export { TabRoute as default } from '../src/ui/RetainedTab';

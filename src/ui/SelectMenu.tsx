@@ -1,8 +1,9 @@
-import { useRef, useState, type ComponentRef } from 'react';
+import { useContext, useRef, useState, type ComponentRef } from 'react';
 import { ChevronDown } from 'lucide-react-native';
 import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SelectionRow } from './SelectionRows';
+import { TabActive } from './RetainedTab';
 import { Copy, color, row } from './kit';
 
 type Anchor = { x: number; y: number; width: number; height: number };
@@ -31,6 +32,8 @@ export function SelectMenu<T extends string | number | null>({
 }) {
   const trigger = useRef<ComponentRef<typeof View>>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
+  const active = useContext(TabActive);
+  if (!active && anchor) setAnchor(null);
   const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const close = () => setAnchor(null);
@@ -69,7 +72,7 @@ export function SelectMenu<T extends string | number | null>({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={selected ? `${label}, ${selected.label}` : label}
-        accessibilityState={{ expanded: Boolean(anchor) }}
+        aria-expanded={Boolean(anchor)}
         onPress={open}
         style={({ pressed }) => [styles.trigger, pressed && { opacity: 0.65 }]}
       >
@@ -84,7 +87,7 @@ export function SelectMenu<T extends string | number | null>({
           <ChevronDown color={color.pine} size={15} />
         </View>
       </Pressable>
-      {placement && (
+      {active && placement && (
         <Modal transparent visible animationType="none" onRequestClose={close}>
           <View style={styles.layer} accessibilityViewIsModal>
             <Pressable

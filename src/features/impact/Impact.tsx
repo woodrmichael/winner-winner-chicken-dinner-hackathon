@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useContext, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { Check, ChevronRight, HandHeart, Share } from 'lucide-react-native';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { useMobileHeaderAction } from '../../ui/MobileHeaderAction';
+import { TabActive } from '../../ui/RetainedTab';
 import { SelectMenu } from '../../ui/SelectMenu';
 import { Btn, Card, Columns, Copy, Page, ProgressBar, color, row, wrap } from '../../ui/kit';
 import { directory } from '../matching/directory';
@@ -16,12 +16,13 @@ const providerOptions = [
   ...directory.map(({ id, name }) => ({ value: id, label: name })),
 ];
 
-export default function Impact() {
+export default function Impact({ period }: { period?: string }) {
   const router = useRouter();
-  const { period } = useLocalSearchParams<{ period?: string }>();
+  const active = useContext(TabActive);
   const [provider, setProvider] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
-  const { month, months, completeReport, report } = useImpactReport(period, provider);
+  if (!active && showShare) setShowShare(false);
+  const { month, months, completeReport, report, requiresSignIn } = useImpactReport(period, provider);
   const periods = useMemo(
     () => [...months, null].map((value) => ({ value, label: periodName(value) })),
     [months],
@@ -29,14 +30,18 @@ export default function Impact() {
   const { width, fontScale } = useWindowDimensions();
   const wide = width >= 1024;
   const programCount = completeReport.programDeliveries.length;
-  const shareAction = useMemo(() => (
-    <Btn label="Share report" icon={Share} iconOnly quiet onPress={() => setShowShare(true)} />
-  ), []);
-  useMobileHeaderAction(shareAction);
+
+  if (requiresSignIn) {
+    return <Page title="Impact"><Card>
+      <Copy>Sign in to see your workspace reports.</Copy>
+      <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />
+    </Card></Page>;
+  }
 
   return (
     <Page
-      title="Our impact"
+      title="Impact"
+      mobileRight={<Btn label="Share report" icon={Share} iconOnly quiet onPress={() => setShowShare(true)} />}
       right={width >= 900 ? (
         <Btn label="Share report" icon={Share} secondary onPress={() => setShowShare(true)} />
       ) : undefined}
@@ -115,7 +120,7 @@ export default function Impact() {
           </>
         }
       />
-      {showShare && (
+      {active && showShare && (
         <ReportShare report={report} programDeliveries={programCount} onClose={() => setShowShare(false)} />
       )}
     </Page>

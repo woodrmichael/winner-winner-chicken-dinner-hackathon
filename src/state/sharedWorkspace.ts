@@ -1,48 +1,48 @@
 import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import type { CommunityCommand, ReferralCommand, WorkspaceCommand } from '../domain/types';
+import { withResponse, workspaceApiUrl } from '../shared/http';
 import type { SharedSnapshot } from '../shared/workspace';
-
-const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/+$/, '');
 
 class ApiError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 
-async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  let response: Response;
+async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<{ data: T; etag: string | null } | null> {
   try {
-    response = await fetch(apiUrl + path, {
+    return await withResponse(workspaceApiUrl + path, {
       ...options,
       headers: {
+        ...options.headers,
         ...(options.body && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
       },
-      signal: controller.signal,
+    }, 8000, async (response) => {
+      if (response.status === 304) return null;
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new ApiError(response.status, body.error ?? 'The workspace is unavailable.');
+      }
+      return { data: await response.json() as T, etag: response.headers.get('ETag') };
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
     throw new Error('Can’t reach the shared workspace. Check that the server is running.');
-  } finally {
-    clearTimeout(timeout);
   }
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new ApiError(response.status, body.error ?? 'The workspace is unavailable.');
-  }
-  return response.json();
 }
 
 export function useSharedWorkspace() {
   const [data, setData] = useState<SharedSnapshot>();
   const [connectionError, setConnectionError] = useState('');
   const token = useRef<string | undefined>(undefined);
+  const revision = useRef(-1);
+  const cacheTag = useRef<string | null>(null);
 
-  function receive(session: string, workspace: SharedSnapshot) {
-    if (token.current !== session) return;
-    setData((previous) => (
-      token.current === session && (!previous || workspace.revision >= previous.revision) ? workspace : previous
-    ));
+  function receive(session: string, workspace: SharedSnapshot, etag: string | null) {
+    if (token.current !== session || workspace.revision < revision.current) return;
+    revision.current = workspace.revision;
+    cacheTag.current = etag;
+    setData(workspace);
     setConnectionError('');
   }
 
@@ -50,6 +50,7 @@ export function useSharedWorkspace() {
     if (token.current !== session) return;
     if (error instanceof ApiError && error.status === 401) {
       token.current = undefined;
+      cacheTag.current = null;
       setData(undefined);
       setConnectionError('Your session expired. Sign in again.');
     } else if (!(error instanceof ApiError) || error.status >= 500) {
@@ -58,35 +59,50 @@ export function useSharedWorkspace() {
   }
 
   useEffect(() => {
-    if (!apiUrl) return;
+    if (!workspaceApiUrl) return;
     let busy = false;
-    const interval = setInterval(async () => {
+    let foreground = AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
+    async function poll() {
       const session = token.current;
-      if (!session || busy) return;
+      if (!session || busy || !foreground) return;
       busy = true;
       try {
-        receive(session, await request<SharedSnapshot>('/workspace', {}, session));
+        const response = await request<SharedSnapshot>('/workspace', {
+          headers: cacheTag.current ? { 'If-None-Match': cacheTag.current } : undefined,
+        }, session);
+        if (response) receive(session, response.data, response.etag);
+        else if (session === token.current) setConnectionError('');
       } catch (error) {
         handleError(error, session);
       } finally {
         busy = false;
       }
-    }, 2000);
-    return () => clearInterval(interval);
+    }
+    const subscription = AppState.addEventListener('change', (status) => {
+      foreground = status === 'active';
+      if (foreground) void poll();
+    });
+    const interval = setInterval(poll, 2000);
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+    };
   }, []);
 
   async function signIn(username: string, password: string) {
     const result = await request<{ token: string; workspace: SharedSnapshot }>('/session', {
       method: 'POST', body: JSON.stringify({ username, password }),
     });
-    token.current = result.token;
-    setData(result.workspace);
-    setConnectionError('');
+    if (!result) throw new Error('The workspace could not start a session.');
+    token.current = result.data.token;
+    revision.current = -1;
+    receive(result.data.token, result.data.workspace, null);
   }
 
   async function signOut() {
     const session = token.current;
     token.current = undefined;
+    cacheTag.current = null;
     setData(undefined);
     setConnectionError('');
     if (session) await request('/session', { method: 'DELETE' }, session).catch(() => {});
@@ -96,14 +112,15 @@ export function useSharedWorkspace() {
     const session = token.current;
     if (!session) throw new Error('Sign in through Settings to use the shared workspace.');
     try {
-      receive(session, await request<SharedSnapshot>('/commands', {
+      const response = await request<SharedSnapshot>('/commands', {
         method: 'POST', body: JSON.stringify(command),
-      }, session));
+      }, session);
+      if (response) receive(session, response.data, null);
     } catch (error) {
       handleError(error, session);
       throw error;
     }
   }
 
-  return { enabled: !!apiUrl, data, connectionError, signIn, signOut, run };
+  return { enabled: !!workspaceApiUrl, data, connectionError, signIn, signOut, run };
 }

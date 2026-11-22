@@ -21,7 +21,7 @@ export function Disclosure({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={detail ? label + '. ' + detail : label}
-        accessibilityState={{ expanded }}
+        aria-expanded={expanded}
         onPress={onToggle}
         style={({ pressed }) => [
           row,

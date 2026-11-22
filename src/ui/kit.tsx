@@ -70,11 +70,13 @@ export function Page({
   children,
   title,
   right,
+  mobileRight,
   titleAccessory,
   back,
 }: PropsWithChildren<{
   title: string;
   right?: ReactNode;
+  mobileRight?: ReactNode;
   titleAccessory?: ReactNode;
   back?: ReactNode;
 }>) {
@@ -91,14 +93,15 @@ export function Page({
         style={{
           width: '100%',
           maxWidth: 1150,
-          padding: wide ? 36 : 18,
-          gap: 20,
-          paddingBottom: 48,
+          paddingHorizontal: wide ? 36 : 18,
+          paddingTop: wide ? 36 : 14,
+          gap: wide ? 20 : 16,
+          paddingBottom: wide ? 48 : 24,
         }}
       >
         {back && <View style={{ marginBottom: -14 }}>{back}</View>}
-        <View style={[wrap, { justifyContent: 'space-between', columnGap: 12 }]}>
-          <View style={[wrap, { flexShrink: 1, rowGap: 4, columnGap: wide ? 16 : 12 }]}>
+        <View style={[wide ? wrap : row, { justifyContent: 'space-between', columnGap: 10 }]}>
+          <View style={[wrap, { flexShrink: 1, minWidth: 0, rowGap: 4, columnGap: wide ? 16 : 10 }]}>
             <Text
               accessibilityRole="header"
               style={{
@@ -106,8 +109,8 @@ export function Page({
                 fontFamily: systemFont,
                 fontWeight: '700',
                 letterSpacing: -0.9,
-                fontSize: wide ? 42 : 34,
-                lineHeight: wide ? 52 : 42,
+                fontSize: wide ? 42 : 28,
+                lineHeight: wide ? 52 : 36,
                 flexShrink: 1,
               }}
             >
@@ -116,6 +119,11 @@ export function Page({
             {titleAccessory}
           </View>
           {wide && right}
+          {!wide && mobileRight && (
+            <View style={[row, { gap: 2, flexShrink: 0 }]}>
+              {mobileRight}
+            </View>
+          )}
         </View>
         {!wide && right}
         {children}

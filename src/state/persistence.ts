@@ -13,7 +13,7 @@ import type {
   Service,
   SharedDetails,
 } from '../domain/types';
-import { categories, neighborhoods } from '../domain/types';
+import { categories, neighborhoods, serviceNeighborhoods } from '../domain/types';
 import { directory } from '../features/matching/directory';
 
 import { decodeEntries } from '../features/partnerships/ledger';
@@ -109,7 +109,7 @@ function isShared(value: unknown): value is SharedDetails {
   return (
     record(value) &&
     [value.firstName, value.callback].every((item) => item === undefined || isText(item)) &&
-    (value.neighborhood === undefined || includes(neighborhoods, value.neighborhood)) &&
+    (value.neighborhood === undefined || includes(serviceNeighborhoods, value.neighborhood)) &&
     Object.keys(value).every((key) => ['firstName', 'callback', 'neighborhood'].includes(key))
   );
 }

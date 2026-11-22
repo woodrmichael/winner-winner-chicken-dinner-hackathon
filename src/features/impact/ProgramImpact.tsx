@@ -14,11 +14,18 @@ export default function ProgramImpact() {
   const router = useRouter();
   const { period } = useLocalSearchParams<{ period?: string }>();
   const [historyLimit, setHistoryLimit] = useState(0);
-  const { report } = useImpactReport(period);
+  const { report, requiresSignIn } = useImpactReport(period);
   const deliveries = report.programDeliveries;
   const { book } = useSupport();
   const pledges = book?.pledges.filter((p) => p.project === 'drive') ?? [];
   const project = projects.find((p) => p.id === 'drive')!;
+
+  if (requiresSignIn) {
+    return <Page title={project.event}><Card>
+      <Copy>Sign in to see program funding and deliveries.</Copy>
+      <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />
+    </Card></Page>;
+  }
 
   return (
     <Page

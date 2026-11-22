@@ -11,6 +11,7 @@ import { SavePostButton } from './SavePostButton';
 import { projects, funding } from '../partnerships/ledger';
 import { ProjectFunding } from '../partnerships/ProjectFunding';
 import { useSupport } from '../partnerships/useSupport';
+import VenueMap from '../map/VenueMap';
 import { VolunteerOptions } from '../volunteer/Volunteer';
 
 function OfferThread({ post }: { post: Post }) {
@@ -60,6 +61,8 @@ function EventDetails({ postId }: { postId: string }) {
   if (!event) return null;
   const joined = state.community.joinedEvents.includes(postId);
   const sharedDrive = shared.enabled && postId === 'drive';
+  const { venue } = event;
+  const [longitude, latitude] = venue.coordinates;
 
   return (
     <>
@@ -67,8 +70,18 @@ function EventDetails({ postId }: { postId: string }) {
         <Copy kind="title">Event details</Copy>
         <Copy kind="strong">When</Copy>
         <Copy>{event.when}</Copy>
-        <Copy kind="strong">Where</Copy>
-        <Copy>{event.where}</Copy>
+        <View style={{ gap: 3 }}>
+          <Copy kind="strong">{venue.name}</Copy>
+          <Copy kind="small" tint={color.muted}>{venue.address}</Copy>
+        </View>
+        <View style={{ height: 176, borderRadius: 10, overflow: 'hidden' }}>
+          <VenueMap
+            name={venue.name}
+            longitude={longitude}
+            latitude={latitude}
+            dom={{ useExpoDOMWebView: false, scrollEnabled: false, style: { flex: 1 } }}
+          />
+        </View>
         <Copy kind="strong">What to bring</Copy>
         <Copy>{event.bring}</Copy>
         {!sharedDrive && (
@@ -100,7 +113,7 @@ function EventDetails({ postId }: { postId: string }) {
 }
 
 export default function PostDetails() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const router = useRouter();
   const { state, role, run, shared } = useDemo();
   const post = state.posts.find((item) =>
@@ -112,7 +125,11 @@ export default function PostDetails() {
   const [body, setBody] = useState(post?.body ?? '');
   const [reason, setReason] = useState('');
   const [feedback, setFeedback] = useState('');
-  const back = <Btn label="Back to Community" secondary onPress={() => router.navigate('/')} />;
+  const back = <Btn
+    label={from === 'map' ? 'Back to Map' : 'Back to Community'}
+    secondary
+    onPress={() => router.navigate(from === 'map' ? '/map' : '/')}
+  />;
   const actorId = shared.data?.account.id ?? residentId;
   const isAuthor = !!post?.authorId && post.authorId === actorId;
   const status = post?.status ?? 'active';

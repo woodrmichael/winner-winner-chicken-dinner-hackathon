@@ -1,10 +1,13 @@
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { isWorkspaceCommand, type Account } from '../src/shared/workspace';
+import { publicLibrariesPath } from '../src/shared/publicLibraries';
+import { reportingMonth } from '../src/features/impact/report';
 import { object, parseCommand } from './commands';
 import { WorkspaceError } from './referral-access';
 import { applySharedSupport, applySharedCommunity, applySharedReferral, applyWorkspaceCommand, snapshot, type StoredAccount, type Workspace } from './workspace';
 import { isCommunityCommand } from '../src/domain/model';
+import { createPublicLibraryCache } from './public-map';
 
 const lifetime = 8 * 60 * 60 * 1000;
 const dummyHash = '00000000000000000000000000000000:' + '0'.repeat(64);
@@ -42,12 +45,14 @@ function json(response: ServerResponse, status: number, value: unknown) {
 export function createApi(initial: Workspace, persist: (workspace: Workspace) => void) {
   let workspace = initial;
   let revision = 0;
-  const sessions = new Map<string, { accountId: string; expires: number }>();
+  const sessions = new Map<string, { accountId: string; expires: number; cacheId: string }>();
   const attempts = new Map<string, { count: number; expires: number }>();
+  const getPublicLibraries = createPublicLibraryCache();
 
   return createServer(async (request, response) => {
     response.setHeader('Access-Control-Allow-Origin', '*');
-    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, If-None-Match');
+    response.setHeader('Access-Control-Expose-Headers', 'ETag');
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     response.setHeader('Cache-Control', 'no-store');
     if (request.method === 'OPTIONS') {
@@ -56,6 +61,13 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
     }
 
     try {
+      if (request.url === publicLibrariesPath && request.method === 'GET') {
+        const libraries = await getPublicLibraries();
+        response.setHeader('Cache-Control', 'public, max-age=300');
+        json(response, 200, libraries);
+        return;
+      }
+
       if (request.url === '/session' && request.method === 'POST') {
         const { username, password } = object(await body(request));
         const now = Date.now();
@@ -73,7 +85,7 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
           throw new WorkspaceError(401, 'Username or password is incorrect.');
         }
         const token = randomBytes(32).toString('hex');
-        sessions.set(token, { accountId: account.id, expires: now + lifetime });
+        sessions.set(token, { accountId: account.id, expires: now + lifetime, cacheId: randomBytes(12).toString('hex') });
         json(response, 200, { token, workspace: snapshot(workspace, account, revision) });
         return;
       }
@@ -87,12 +99,19 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
       const account = session && session.expires > Date.now()
         ? workspace.accounts.find(({ id }) => id === session.accountId)
         : undefined;
-      if (!token || !account) throw new WorkspaceError(401, 'Sign in to open your workspace.');
+      if (!token || !session || !account) throw new WorkspaceError(401, 'Sign in to open your workspace.');
       if (request.url === '/session' && request.method === 'DELETE') {
         sessions.delete(token);
         json(response, 200, {});
       } else if (request.url === '/workspace' && request.method === 'GET') {
-        json(response, 200, snapshot(workspace, account, revision));
+        const now = new Date();
+        const etag = '"' + session.cacheId + '-' + revision + '-' + reportingMonth(now) + '"';
+        response.setHeader('ETag', etag);
+        if (request.headers['if-none-match']?.split(',').some((tag) => tag.trim() === etag)) {
+          response.writeHead(304).end();
+        } else {
+          json(response, 200, snapshot(workspace, account, revision, now));
+        }
       } else if (request.url === '/commands' && request.method === 'POST') {
         const cmd = parseCommand(command, account.details);
         let updated: Workspace;

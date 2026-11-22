@@ -33,6 +33,7 @@ export type Workspace = {
 export type StoredWorkspace = Omit<Workspace, 'communication'> & { communication?: Communication };
 export const sampleResidentAccount = 'alex';
 const reportCache = new WeakMap<Referral[], { month: number; reports: ImpactReports }>();
+const mapReportCache = new WeakMap<Referral[], Pick<SharedSnapshot['reporting'], 'map' | 'mapByCategory'>>();
 
 export function restoreCommunication(stored: StoredWorkspace): Workspace {
   const demo = seedState(sampleResidentAccount);
@@ -81,8 +82,7 @@ function isOrganizer(account: Account) {
   return adminPartner(account) === program.providerId;
 }
 
-function sharedImpactReports(workspace: Workspace) {
-  const now = new Date();
+function sharedImpactReports(workspace: Workspace, now: Date) {
   const month = reportingMonth(now);
   const cached = reportCache.get(workspace.referrals);
   if (cached?.month === month) return cached.reports;
@@ -91,7 +91,7 @@ function sharedImpactReports(workspace: Workspace) {
   return reports;
 }
 
-export function snapshot(workspace: Workspace, account: StoredAccount, revision: number): SharedSnapshot {
+export function snapshot(workspace: Workspace, account: StoredAccount, revision: number, now = new Date()): SharedSnapshot {
   const { passwordHash: _passwordHash, ...publicAccount } = account;
   const partner = approvedPartner(account);
   const admin = adminPartner(account);
@@ -130,9 +130,8 @@ export function snapshot(workspace: Workspace, account: StoredAccount, revision:
     },
     reporting: {
       impact: impact(workspace),
-      impactReports: sharedImpactReports(workspace),
-      map: mapRows(workspace),
-      mapByCategory: categories.map((category) => ({ category, rows: mapRows(workspace, category) })),
+      impactReports: sharedImpactReports(workspace, now),
+      ...sharedMapReports(workspace),
       projectDeliveries: projectDeliveryCounts(deliveredServices(workspace)),
       programServices: deliveredServices(workspace).flatMap(({ category, providerId, deliveredAt, programId }) =>
         programId === program.id ? [{ category, providerId, deliveredAt }] : [],
@@ -153,6 +152,17 @@ export function applySharedSupport(workspace: Workspace, account: Account, entry
     throw new WorkspaceError(403, 'Coordinator access is required.');
   const supportEntries = appendEntry(workspace.supportEntries, entry);
   return supportEntries === workspace.supportEntries ? workspace : { ...workspace, supportEntries };
+}
+
+function sharedMapReports(workspace: Workspace) {
+  const cached = mapReportCache.get(workspace.referrals);
+  if (cached) return cached;
+  const reports = {
+    map: mapRows(workspace),
+    mapByCategory: categories.map((category) => ({ category, rows: mapRows(workspace, category) })),
+  };
+  mapReportCache.set(workspace.referrals, reports);
+  return reports;
 }
 
 export function applySharedReferral(workspace: Workspace, account: Account, cmd: ReferralCommand): Workspace {

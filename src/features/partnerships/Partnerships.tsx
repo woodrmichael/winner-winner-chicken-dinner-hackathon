@@ -58,7 +58,7 @@ export default function Partnerships() {
       {!view ? <>
         <View style={{ gap: 4 }}>
           <Copy kind="strong">Organized by {project.organizer}</Copy>
-          {event && <><Copy>{event.when}</Copy><Copy tint={color.muted}>{event.where}</Copy></>}
+          {event && <><Copy>{event.when}</Copy><Copy tint={color.muted}>{event.venue.name}</Copy></>}
         </View>
         <View style={{ gap: 8 }}>
           <Btn label="Offer support" stretch onPress={() => open('offer')} />

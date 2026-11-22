@@ -5,7 +5,7 @@ import { applyReferralCommand, outstandingNeeds } from './referrals';
 import { historicalIncidents, program } from './seed';
 import {
   categories,
-  neighborhoods,
+  serviceNeighborhoods,
   type Category,
   type CommunityCommand,
   type DemoState,
@@ -72,7 +72,7 @@ export function mapRows(state: Pick<DemoState, 'referrals'>, category?: Category
     neighborhood: referral.assignments.find(({ shared }) => shared.neighborhood)?.shared
       .neighborhood,
   }));
-  return neighborhoods.map((area) => {
+  return serviceNeighborhoods.map((area) => {
     const local = referralsWithNeighborhood
       .filter(({ neighborhood }) => neighborhood === area)
       .map(({ referral }) => referral);
