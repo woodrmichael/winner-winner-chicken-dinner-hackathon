@@ -1,6 +1,8 @@
-import { useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
+import { useRef, useState, type ComponentRef, type PropsWithChildren, type ReactNode, type Ref } from 'react';
 import {
   Platform,
+  AccessibilityInfo,
+  Animated,
   Pressable,
   StyleSheet,
   ScrollView,
@@ -13,6 +15,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
+import { confirmFeedback, tapFeedback } from './feedback';
 
 export const color = {
   bg: '#F5F5F7',
@@ -73,16 +76,19 @@ export function Page({
   mobileRight,
   titleAccessory,
   back,
+  scrollRef,
 }: PropsWithChildren<{
   title: string;
   right?: ReactNode;
   mobileRight?: ReactNode;
   titleAccessory?: ReactNode;
   back?: ReactNode;
+  scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
 }>) {
   const wide = useWindowDimensions().width >= 900;
   return (
     <ScrollView
+      ref={scrollRef}
       style={{ flex: 1, backgroundColor: color.bg }}
       contentContainerStyle={{ alignItems: 'center' }}
       keyboardShouldPersistTaps="handled"
@@ -162,6 +168,7 @@ export function Btn({
   quiet = false,
   stretch = false,
   disabled = false,
+  celebrate = false,
 }: {
   label: string;
   onPress: () => unknown;
@@ -172,17 +179,31 @@ export function Btn({
   quiet?: boolean;
   stretch?: boolean;
   disabled?: boolean;
+  celebrate?: boolean;
 }) {
   const lock = useRef(false);
+  const [scale] = useState(() => celebrate ? new Animated.Value(1) : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   async function press() {
     if (lock.current) return;
     lock.current = true;
+    tapFeedback();
     setBusy(true);
     setError('');
     try {
       await onPress();
+      if (celebrate) {
+        confirmFeedback();
+        if (scale) void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+          if (reduced) return;
+          const useNativeDriver = Platform.OS !== 'web';
+          Animated.sequence([
+            Animated.timing(scale, { toValue: 1.04, duration: 110, useNativeDriver }),
+            Animated.timing(scale, { toValue: 1, duration: 160, useNativeDriver }),
+          ]).start();
+        }).catch(() => {});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save. Try again.');
     } finally {
@@ -191,8 +212,10 @@ export function Btn({
     }
   }
   const fg = secondary || quiet ? color.pine : '#FFF';
+  const Wrapper = scale ? Animated.View : View;
   return (
-    <View style={{ flexShrink: 1, maxWidth: '100%', gap: error ? 4 : 0 }}>
+    <Wrapper style={[{ flexShrink: 1, maxWidth: '100%', gap: error ? 4 : 0 },
+      scale && { transform: [{ scale }] }]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={iconOnly ? label : undefined}
@@ -229,7 +252,7 @@ export function Btn({
           {error}
         </Text>
       ) : null}
-    </View>
+    </Wrapper>
   );
 }
 export function ProgressBar({ value, total }: { value: number; total: number }) {

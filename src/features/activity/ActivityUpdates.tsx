@@ -9,23 +9,23 @@ import { partnerName } from '../matching/directory';
 import { formatActivityTime } from './ReferralDetails';
 
 const labels: Record<ActivityUpdate['kind'], string> = {
-  'new-referral': 'new referral',
-  accepted: 'referral acceptance',
-  reply: 'private reply',
-  'proposed-handoff': 'proposed handoff',
+  'new-referral': 'New request',
+  accepted: 'Request accepted',
+  reply: 'New message',
+  'proposed-handoff': 'New partner suggested',
 };
 
-export function ActivityUpdates({ updates }: { updates: ActivityUpdate[] }) {
+export function ActivityUpdates({ updates, compact = false }: { updates: ActivityUpdate[]; compact?: boolean }) {
   const { run, state } = useDemo();
   const router = useRouter();
   const [expanded, setExpanded] = useState<boolean>();
   const unread = updates.filter((update) => !update.read);
   if (!updates.length) return null;
-  const open = expanded ?? unread.length > 0;
+  const open = expanded ?? (!compact && unread.length > 0);
   const recent = [...unread, ...updates.filter((update) => update.read).slice(0, 3)];
 
   return (
-    <Card>
+    <Card style={compact ? { paddingVertical: 3 } : undefined}>
       <Disclosure label="Referral updates"
         detail={unread.length ? `${unread.length} unread` : 'Recent updates'}
         expanded={open}
@@ -36,8 +36,8 @@ export function ActivityUpdates({ updates }: { updates: ActivityUpdate[] }) {
         <View key={update.id} style={{ gap: 5, paddingTop: 8, borderTopWidth: 1, borderColor: color.line }}>
           <Copy kind="small" tint={color.muted}>{formatActivityTime(update.at)} · {update.read ? 'Read' : 'Unread'}</Copy>
           <Btn
-            label={`Open ${update.read ? '' : 'unread '}${labels[update.kind]} · ${partnerName(state.partners, update.partnerId)}`}
-            secondary
+            label={`${labels[update.kind]} · ${partnerName(state.partners, update.partnerId)}`}
+            quiet
             onPress={async () => {
               if (!update.read) await run({ type: 'mark-activity-read', updateId: update.id });
               router.push({

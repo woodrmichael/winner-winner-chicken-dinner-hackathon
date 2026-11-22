@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Copy, color } from './kit';
+import { tapFeedback } from './feedback';
 
 export function Segments<T extends string>({
   options,
@@ -35,7 +36,10 @@ export function Segments<T extends string>({
             key={option}
             accessibilityRole="radio"
             accessibilityState={{ checked: selected }}
-            onPress={() => onChange(option)}
+            onPress={() => {
+              if (!selected) tapFeedback();
+              onChange(option);
+            }}
             style={({ pressed }) => ({
               flex: 1,
               flexBasis: stacked ? '40%' : 0,

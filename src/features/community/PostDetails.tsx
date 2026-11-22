@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Linking, View } from 'react-native';
+import { View } from 'react-native';
 import { Image } from 'expo-image';
 import type { Post } from '../../domain/types';
 import { newId, now, useDemo } from '../../state/Demo';
@@ -14,8 +14,10 @@ import { SavePostButton } from './SavePostButton';
 import { projects, funding } from '../partnerships/ledger';
 import { ProjectFunding } from '../partnerships/ProjectFunding';
 import { useSupport } from '../partnerships/useSupport';
-import VenueMap from '../map/VenueMap';
+import { Disclosure } from '../../ui/Disclosure';
+import { EventSignup } from './EventSignup';
 import { VolunteerOptions } from '../volunteer/Volunteer';
+import VenueMap from '../map/VenueMap';
 
 function OfferThread({ post }: { post: Post }) {
   const { state, run, shared } = useDemo();
@@ -27,7 +29,7 @@ function OfferThread({ post }: { post: Post }) {
 
   return (
     <Card>
-      <Copy kind="title">Offer replies</Copy>
+      <Copy kind="title">Replies</Copy>
       {replies.length === 0 && <Copy tint={color.muted}>No replies yet.</Copy>}
       {replies.map((reply) => (
         <View
@@ -42,7 +44,6 @@ function OfferThread({ post }: { post: Post }) {
         </View>
       ))}
       {account && <>
-      <Copy kind="small" tint={color.muted}>Replying as {account.name}</Copy>
       <Field label="Public reply" value={body} change={setBody} multiline />
       <Btn
         label="Post reply"
@@ -58,60 +59,31 @@ function OfferThread({ post }: { post: Post }) {
 }
 
 function EventDetails({ postId }: { postId: string }) {
-  const { state, run, shared } = useDemo();
   const router = useRouter();
   const { book, coordinator } = useSupport();
   const project = projects.find((p) => p.id === postId);
   const teamPlaces = funding(book?.pledges.filter((p) => p.project === postId) ?? []).volunteers;
   const event = communityEvents.get(postId);
   if (!event) return null;
-  const joined = state.community.joinedEvents.includes(postId);
   const sharedDrive = postId === 'drive';
   const { venue } = event;
-  const [longitude, latitude] = venue.coordinates;
 
   return (
     <>
       <Card>
-        <Copy kind="title">Event details</Copy>
-        <Copy kind="strong">When</Copy>
-        <Copy>{event.when}</Copy>
+        <Copy kind="strong">{event.when}</Copy>
         <View style={{ gap: 3 }}>
           <Copy kind="strong">{venue.name}</Copy>
           <Copy kind="small" tint={color.muted}>{venue.address}</Copy>
         </View>
-        {!sharedDrive && (
-          <>
-            <View accessibilityLiveRegion="polite" style={{ gap: 4 }}>
-              <Copy kind="strong">{event.volunteers + Number(joined) + teamPlaces} volunteers</Copy>
-              {joined && shared.data?.account.kind === 'resident' && <Copy tint={color.pine}>You’ve joined this event.</Copy>}
-            </View>
-            {shared.data?.account.kind === 'resident' && <Btn
-              label={joined ? 'Cancel signup' : 'Join event'}
-              secondary={joined}
-              stretch
-              onPress={() => run({ type: 'event-rsvp', postId, joined: !joined })}
-            />}
-          </>
-        )}
+        <EventSignup postId={postId} controls={!sharedDrive} />
+        <VenueMap name={venue.name} />
+        <View style={{ gap: 3 }}>
+          <Copy kind="strong">What to bring</Copy>
+          <Copy>{event.bring}</Copy>
+        </View>
       </Card>
       {sharedDrive && <VolunteerOptions openSettings={() => router.navigate('/settings')} />}
-      <Card>
-        <Copy kind="title">Plan your visit</Copy>
-        <Copy kind="strong">What to bring</Copy>
-        <Copy>{event.bring}</Copy>
-        <View style={{ height: 176, borderRadius: 10, overflow: 'hidden' }}>
-          <VenueMap
-            name={venue.name}
-            longitude={longitude}
-            latitude={latitude}
-            dom={{ useExpoDOMWebView: false, scrollEnabled: false, style: { flex: 1 } }}
-          />
-        </View>
-        <Btn label="Get directions" secondary onPress={() =>
-          Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`)
-        } />
-      </Card>
       {project && <Card>
         <Copy kind="title">Project support</Copy>
         <Copy>Organized by {project.organizer}</Copy>
@@ -141,6 +113,8 @@ export default function PostDetails() {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(post?.title ?? '');
   const [body, setBody] = useState(post?.body ?? '');
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reported, setReported] = useState(false);
   const [reason, setReason] = useState('');
   const [feedback, setFeedback] = useState('');
   const origin = from === 'map' ? { path: '/map', title: 'Map' } as const
@@ -212,26 +186,25 @@ export default function PostDetails() {
                 )}
               </View>
             )}
-            {post.kind === 'Offer' && role === 'Resident' && (
-              <View style={{ gap: 8, marginTop: 8 }}>
-                <Field label="Report reason" value={reason} change={setReason} multiline />
-                <Btn label="Report post" secondary disabled={!reason.trim()} onPress={async () => {
-                  await run({
-                    type: 'report-post',
-                    id: newId(),
-                    postId: post.id,
-                    reporterId: actorId,
-                    reason,
-                    at: now(),
-                  });
-                  setReason('');
-                  setFeedback('Report submitted for moderator review.');
-                }} />
-              </View>
-            )}
             {feedback ? <Copy kind="small" tint={color.pine}>{feedback}</Copy> : null}
           </Card>
           {post.kind === 'Offer' && <OfferThread key={`${post.id}:${actorId}`} post={post} />}
+          {post.kind === 'Offer' && role === 'Resident' && (
+            <Card>
+              <Disclosure label="Report offer" expanded={reportOpen} onToggle={() => setReportOpen(!reportOpen)}>
+                <Field label="Report reason" value={reason} change={setReason} multiline />
+                <Btn label="Submit report" secondary disabled={!reason.trim()} onPress={async () => {
+                  await run({
+                    type: 'report-post', id: newId(), postId: post.id, reporterId: actorId, reason, at: now(),
+                  });
+                  setReason('');
+                  setReportOpen(false);
+                  setReported(true);
+                }} />
+              </Disclosure>
+              {reported && <Copy kind="small" tint={color.pine}>Report submitted for moderator review.</Copy>}
+            </Card>
+          )}
           {post.kind === 'Event' && <EventDetails postId={post.id} />}
         </>
       )}

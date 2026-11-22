@@ -103,7 +103,7 @@ export default function MilwaukeeMap({
         container: element,
         style: styleUrl,
         bounds: homeBounds,
-        fitBoundsOptions: homeOptions,
+        fitBoundsOptions: { ...homeOptions, padding: 20 },
         minZoom: 9,
         maxZoom: 19,
         attributionControl: false,

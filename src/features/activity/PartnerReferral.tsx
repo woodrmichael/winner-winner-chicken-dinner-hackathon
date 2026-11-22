@@ -2,7 +2,7 @@ import { WorkerAssignment } from './WorkerAssignment';
 import { suggestService } from './serviceNote';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { ClipboardCheck } from 'lucide-react-native';
+import { CalendarDays, ClipboardCheck, LockKeyhole } from 'lucide-react-native';
 import { otherProviders, type partnerInbox } from '../../domain/referrals';
 import { projects } from '../partnerships/ledger';
 import type { Appointment, Category, ReferralAssignment } from '../../domain/types';
@@ -10,14 +10,12 @@ import { newId, now, useDemo } from '../../state/Demo';
 import { Disclosure } from '../../ui/Disclosure';
 import { Segments } from '../../ui/Segments';
 import { SelectionRow, ToggleRow } from '../../ui/SelectionRows';
-import { Btn, Card, Copy, Field, color, wrap } from '../../ui/kit';
+import { Btn, Card, Copy, Field, color, row, wrap } from '../../ui/kit';
 import { listWords, partnerName } from '../matching/directory';
 import {
-  AppointmentDetails,
-  AssignmentHistory,
-  ConversationLink,
   ReferralDetails,
-  SharedWith,
+  RequestTimeline,
+  RequestStatus,
   needName,
 } from './ReferralDetails';
 
@@ -42,7 +40,14 @@ function Delivery({
   const category = categories.includes(selected) ? selected : categories[0];
   const eligible = projects.find((p) => p.providerId === assignment.partnerId && p.category === category);
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: 8 }}>
+      <Copy kind="strong">Service delivered{categories.length === 1 ? ' · ' + needName(category) : ''}</Copy>
+      {categories.length > 1 && (
+        <Segments options={categories} value={category} onChange={setSelected} label={needName} />
+      )}
+      {eligible && (
+        <ToggleRow label={`Count toward ${eligible.name}`} value={link} onChange={setLink} />
+      )}
       <Field label="Worker note (optional)" multiline value={note} change={(value) => { setNote(value); setReviewed(false); setSuggestion(''); }} placeholder="Dropped off the coats today. Ride still needed." />
       {!!note.trim() && <>
         <Btn label="Suggest service from note" secondary onPress={() => {
@@ -57,17 +62,10 @@ function Delivery({
         }} />
         {!!suggestion && <Copy>{suggestion}</Copy>}
       </>}
-      <Copy kind="small">Provider · {partnerName(assignment.partnerId)}</Copy>
-      <Copy kind="strong">Service delivered{categories.length === 1 ? ' · ' + category : ''}</Copy>
-      {categories.length > 1 && (
-        <Segments options={categories} value={category} onChange={setSelected} label={needName} />
-      )}
-      {eligible && (
-        <ToggleRow label={`Count toward ${eligible.name}`} value={link} onChange={setLink} />
-      )}
       <View style={wrap}>
         <Btn
           label="Record completed service"
+          celebrate
           disabled={!!note.trim() && !reviewed}
           onPress={async () => {
             await run({
@@ -132,6 +130,7 @@ function Schedule({ assignment, close }: { assignment: ReferralAssignment; close
       <View style={wrap}>
         <Btn
           label="Save appointment"
+          celebrate
           disabled={!appointment.date.trim() || !appointment.time.trim()}
           onPress={() =>
             save({ ...appointment, date: appointment.date.trim(), time: appointment.time.trim() })
@@ -213,7 +212,46 @@ function ProviderResponse({
   );
 }
 
-export function PartnerReferralDetails({ ticket }: { ticket: Ticket }) {
+export function PartnerReferralSummary({ ticket }: { ticket: Ticket }) {
+  const { assignment } = ticket;
+  const sharedDetails = [
+    { label: 'First name', value: assignment.shared.firstName },
+    { label: 'Contact number', value: assignment.shared.callback },
+    { label: 'Neighborhood', value: assignment.shared.neighborhood },
+  ].filter(({ value }) => value);
+
+  return (
+    <Card>
+      <View style={[wrap, { justifyContent: 'space-between' }]}>
+        <View style={[row, { gap: 6 }]}>
+          <LockKeyhole size={14} color={color.muted} />
+          <Copy kind="small" tint={color.muted}>Private request</Copy>
+        </View>
+        <RequestStatus status={ticket.status} />
+      </View>
+      <Copy kind="strong">Resident’s request</Copy>
+      <Copy>{assignment.message}</Copy>
+      {!!sharedDetails.length && <View style={{ gap: 4, borderTopWidth: 1, borderColor: color.line, paddingTop: 8 }}>
+        {sharedDetails.map(({ label, value }) => <View key={label} style={[wrap, { justifyContent: 'space-between' }]}>
+          <Copy kind="small" tint={color.muted}>{label}</Copy><Copy kind="small">{value}</Copy>
+        </View>)}
+      </View>}
+      <ReferralDetails outstanding={ticket.outstanding} />
+      {ticket.routed.map(({ category, partnerId }) => (
+        <Copy key={category} kind="small">
+          {needName(category)} with {partnerName(partnerId)}
+        </Copy>
+      ))}
+      {ticket.proposedCategories.length > 0 && (
+        <Copy kind="small">
+          Awaiting resident approval · {listWords(ticket.proposedCategories.map(needName))}
+        </Copy>
+      )}
+    </Card>
+  );
+}
+
+export function PartnerReferralTimeline({ ticket }: { ticket: Ticket }) {
   const { run, state } = useDemo();
   const [action, setAction] = useState<Action | null>(null);
   const [more, setMore] = useState(false);
@@ -230,35 +268,19 @@ export function PartnerReferralDetails({ ticket }: { ticket: Ticket }) {
   };
   const activeAction = action && canShowAction[action] ? action : null;
   const close = () => setAction(null);
+  const accepted = ticket.status === 'Accepted';
+  const moreActions = accepted || canShowAction.handoff || canShowAction.decline;
+  const hasActions = ticket.canRespond || canShowAction.delivery || canSchedule || moreActions;
+  const actionTitle = ticket.canRespond ? 'Awaiting acceptance' : canShowAction.delivery ? 'Delivery pending' : 'Manage request';
 
-  return (
-    <View style={{ gap: 10 }}>
-      <Copy>{assignment.message}</Copy>
-      {(ticket.status === 'Closed' || ticket.status === 'Declined') && (
-        <Copy kind="strong" tint={color.pine}>
-          {ticket.status}
-        </Copy>
-      )}
-      <SharedWith assignment={assignment} />
-      <ReferralDetails outstanding={ticket.outstanding} services={ticket.services} />
-      {ticket.routed.map(({ category, partnerId }) => (
-        <Copy key={category} kind="small">
-          {needName(category)} with {partnerName(partnerId)}
-        </Copy>
-      ))}
-      <AssignmentHistory assignment={assignment} />
-      {ticket.status === 'Accepted' && <WorkerAssignment key={assignment.assignedWorker?.id ?? 'unassigned'} assignment={assignment} />}
-      {assignment.appointment && ticket.actionable.length > 0 && (
-        <AppointmentDetails appointment={assignment.appointment} />
-      )}
-      {ticket.proposedCategories.length > 0 && (
-        <Copy kind="small">
-          Awaiting resident approval · {listWords(ticket.proposedCategories.map(needName))}
-        </Copy>
-      )}
+  return <RequestTimeline assignments={[assignment]} upcoming={ticket.actionable.length ? [assignment] : []}
+    services={ticket.services} currentPartnerId={assignment.partnerId}>
+    {hasActions && <View style={{ gap: 8 }}>
+      <Copy kind="strong">{actionTitle}</Copy>
       {!activeAction && ticket.canRespond && (
         <Btn
           label="Accept referral"
+          celebrate
           onPress={() =>
             run({
               type: 'accept',
@@ -293,22 +315,18 @@ export function PartnerReferralDetails({ ticket }: { ticket: Ticket }) {
       )}
       {!activeAction && (
         <>
-          {canShowAction.delivery && (
-            <Btn
-              label="Record delivery"
-              icon={ClipboardCheck}
-              onPress={() => setAction('delivery')}
-            />
-          )}
-          {(canSchedule || canShowAction.handoff || canShowAction.decline) && (
+          {(canShowAction.delivery || canSchedule) && <View style={wrap}>
+            {canShowAction.delivery && (
+              <Btn label="Record delivery" icon={ClipboardCheck} onPress={() => setAction('delivery')} />
+            )}
+            {canSchedule && (
+              <Btn label={assignment.appointment ? 'Reschedule pickup or visit' : 'Schedule pickup or visit'}
+                icon={CalendarDays} secondary onPress={() => setAction('schedule')} />
+            )}
+          </View>}
+          {moreActions && (
             <Disclosure label="More actions" expanded={more} onToggle={() => setMore(!more)}>
-              {canSchedule && (
-                <Btn
-                  label={assignment.appointment ? 'Reschedule' : 'Schedule pickup or visit'}
-                  quiet
-                  onPress={() => setAction('schedule')}
-                />
-              )}
+              {accepted && <WorkerAssignment key={assignment.assignedWorker?.id ?? 'unassigned'} assignment={assignment} />}
               {canShowAction.handoff && (
                 <Btn label="Suggest another partner" quiet onPress={() => setAction('handoff')} />
               )}
@@ -319,33 +337,6 @@ export function PartnerReferralDetails({ ticket }: { ticket: Ticket }) {
           )}
         </>
       )}
-    </View>
-  );
-}
-
-export function PartnerReferral({
-  ticket,
-  expanded,
-  onToggle,
-}: {
-  ticket: Ticket;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const title = ticket.outstanding.length
-    ? listWords(ticket.outstanding.map(needName))
-    : listWords(ticket.services.map(({ category }) => needName(category))) || ticket.status;
-  return (
-    <Card style={{ paddingVertical: 10 }}>
-      <Disclosure
-        label={title}
-        detail={[ticket.assignment.assignedWorker && 'Assigned to ' + ticket.assignment.assignedWorker.name, expanded ? undefined : ticket.assignment.message].filter(Boolean).join(' · ') || undefined}
-        expanded={expanded}
-        onToggle={onToggle}
-      >
-        <PartnerReferralDetails ticket={ticket} />
-        <ConversationLink assignment={ticket.assignment} />
-      </Disclosure>
-    </Card>
-  );
+    </View>}
+  </RequestTimeline>;
 }

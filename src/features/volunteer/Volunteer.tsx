@@ -83,7 +83,7 @@ export function VolunteerOptions({ openSettings }: { openSettings: () => void })
                     onPress={() => run({ type: 'cancel-volunteer' })} />}
                 </>
               ) : account.kind === 'resident' && !signup && (
-                <Btn label={`Reserve ${role.name.toLowerCase()}`} disabled={full}
+                <Btn label={`Reserve ${role.name.toLowerCase()}`} disabled={full} celebrate
                   onPress={() => run({ type: 'reserve-volunteer', roleId: role.id })} />
               )}
               {organizer && <RoleEditor role={role} />}

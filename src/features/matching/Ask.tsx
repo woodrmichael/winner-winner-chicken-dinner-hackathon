@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronDown, ChevronUp, Plus, X } from 'lucide-react-native';
+import { Building2, ChevronDown, ChevronUp, LockKeyhole, Plus, X } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { detailsToShare } from '../../domain/referrals';
 import { profile } from '../../domain/seed';
@@ -9,7 +9,7 @@ import { newId, now, useDemo } from '../../state/Demo';
 import { Disclosure } from '../../ui/Disclosure';
 import { BackButton } from '../../ui/BackButton';
 import { Btn, Card, Copy, Field, Page, color, row, wrap } from '../../ui/kit';
-import { ShareDetails, shareSummary, type ShareKey } from './ShareDetails';
+import { ShareDetails, type ShareKey } from './ShareDetails';
 import {
   approvedPartners,
   eligibleForNewReferral,
@@ -87,7 +87,7 @@ function RequestForm({
   const [recipient, setRecipient] = useState(initialPartner ?? '');
   const [shared, setShared] = useState<ShareKey[]>([]);
   const [partnerOpen, setPartnerOpen] = useState(false);
-  const [sharingOpen, setSharingOpen] = useState(false);
+  const [showMatch, setShowMatch] = useState(false);
   const [editingMessage, setEditingMessage] = useState(false);
   const [draftPreviewOpen, setDraftPreviewOpen] = useState(true);
   const [addNeedOpen, setAddNeedOpen] = useState(false);
@@ -209,17 +209,6 @@ function RequestForm({
     return 'Accepting new referrals';
   }
 
-  function selectedSummary(partner: Partner) {
-    return [
-      matchExplanation(partner),
-      coverageLine(partner),
-      partner.pickup,
-      availabilityLine(partner),
-    ]
-      .filter(Boolean)
-      .join(' · ');
-  }
-
   function areaPreference(text = message, keys: ShareKey[] = shared) {
     return preferredAreaFrom(
       text || originalWording || description,
@@ -287,7 +276,7 @@ function RequestForm({
     const partner = initialPartner ? recipient : next.matches[0]?.partner.id ?? '';
     setRecipient(partner);
     setPartnerOpen(!partner || next.matches.length === 0);
-    setSharingOpen(false);
+    setShowMatch(false);
     setEditingMessage(false);
     setShared([]);
     setStep('review');
@@ -421,117 +410,58 @@ function RequestForm({
           </Copy>
         </Card>
       ) : null}
-      <Card style={{ gap: 4 }}>
-        <Copy kind="small" tint={color.muted}>
-          Send to
-        </Copy>
-        <Copy kind="small" tint={color.muted}>
-          Compare services, coverage areas, and pickup arrangements, then pick one recipient.
-        </Copy>
-        <Disclosure
-          label={selected?.name ?? 'Choose a partner'}
-          detail={
-            selected
-              ? selectedSummary(selected)
-              : noAutomaticMatches
-                ? 'No automatic matches found. Select a partner manually.'
-                : result.source === 'keywords'
-                  ? 'Model unavailable. Select a partner below.'
-                  : 'Select a partner below.'
-          }
-          expanded={listExpanded}
-          onToggle={() => setPartnerOpen(!partnerOpen)}
-        >
-          <View accessibilityRole="radiogroup" accessibilityLabel="Available partners">
-            {!ordered.length ? (
-              <Copy kind="small" tint={color.muted}>
-                No partners are accepting these needs right now. Rephrase your request or ask a
-                provider to reopen those services.
-              </Copy>
-            ) : null}
-            {ordered.map((partner) => {
-              const selectedPartner = activeRecipient === partner.id;
-              const availability = availabilityLine(partner);
-              const availabilityPaused = availability !== 'Accepting new referrals';
-              return (
-                <Pressable
-                  key={partner.id}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: selectedPartner }}
-                  accessibilityLabel={`${partner.name}. ${matchExplanation(partner)}. ${coverageLine(partner)}. Pickup: ${partner.pickup}. ${availability}`}
-                  onPress={() => {
-                    setRecipient(partner.id);
-                    setPartnerOpen(false);
-                  }}
-                  style={({ pressed }) => ({
-                    gap: 4,
-                    paddingVertical: 10,
-                    borderTopWidth: 1,
-                    borderColor: color.line,
-                    backgroundColor: pressed ? color.bg : undefined,
-                  })}
-                >
-                  <View style={[row, { justifyContent: 'space-between', alignItems: 'flex-start' }]}>
-                    <Copy kind={selectedPartner ? 'strong' : 'body'} style={{ flex: 1 }}>
-                      {partner.name}
-                    </Copy>
-                    {selectedPartner ? (
-                      <Copy kind="small" tint={color.pine}>
-                        Selected
-                      </Copy>
-                    ) : null}
-                  </View>
-                  <Copy kind="small" tint={color.muted}>
-                    {matchExplanation(partner)}
-                  </Copy>
-                  <Copy kind="small" tint={color.ink}>
-                    {coverageLine(partner)}
-                  </Copy>
-                  <Copy kind="small" tint={color.muted}>
-                    Pickup: {partner.pickup}
-                  </Copy>
-                  <Copy kind="small" tint={availabilityPaused ? color.rust : color.muted}>
-                    {availability}
-                  </Copy>
-                </Pressable>
-              );
-            })}
-            {unavailable.length ? (
-              <View style={{ gap: 4, paddingTop: 12 }}>
-                <Copy kind="strong">Temporarily unavailable for these needs</Copy>
-                <Copy kind="small" tint={color.muted}>
-                  These providers still appear so you can see why they are paused. Pick an accepting
-                  partner above to send your referral.
-                </Copy>
-                {unavailable.map((partner) => (
-                  <View
-                    key={`paused-${partner.id}`}
-                    accessibilityLabel={`${partner.name}. ${pausedServiceLine(partner, result.needs)}. ${coverageLine(partner)}. Pickup: ${partner.pickup}`}
-                    style={{
-                      gap: 4,
-                      paddingVertical: 10,
-                      borderTopWidth: 1,
-                      borderColor: color.line,
-                      opacity: 0.85,
-                    }}
-                  >
-                    <Copy kind="body">{partner.name}</Copy>
-                    <Copy kind="small" tint={color.rust}>
-                      {pausedServiceLine(partner, result.needs)}
-                    </Copy>
-                    <Copy kind="small" tint={color.muted}>
-                      {coverageLine(partner)}
-                    </Copy>
-                    <Copy kind="small" tint={color.muted}>
-                      Pickup: {partner.pickup}
-                    </Copy>
-                  </View>
-                ))}
-              </View>
-            ) : null}
+      {initialPartner && !originalWording ? (
+        <Card>
+          <Field
+            label="Your message"
+            multiline
+            value={message}
+            placeholder="What do you need?"
+            change={syncFromMessage}
+          />
+        </Card>
+      ) : (
+        <Card style={{ gap: 2 }}>
+          <View style={[wrap, { justifyContent: 'space-between' }]}>
+            <Copy kind="strong">Your message</Copy>
+            <Btn
+              label={editingMessage ? 'Done' : 'Edit message'}
+              quiet
+              onPress={() => setEditingMessage(!editingMessage)}
+            />
           </View>
-        </Disclosure>
-      </Card>
+          {editingMessage ? (
+            <Field label="Message to share" multiline value={message} change={syncFromMessage} />
+          ) : (
+            <Copy>{message}</Copy>
+          )}
+          {draftReady ? (
+            <>
+              <Copy kind="small" tint={color.muted}>
+                A suggested draft is ready. Preview it below, then apply it or keep your own words.
+              </Copy>
+              <Disclosure
+                label="Suggested draft"
+                detail="Preview only—your message stays unchanged until you apply it."
+                expanded={draftPreviewOpen}
+                onToggle={() => setDraftPreviewOpen(!draftPreviewOpen)}
+              >
+                <Copy kind="small">{suggestedDraft}</Copy>
+              </Disclosure>
+              <View style={wrap}>
+                <Btn label="Use suggested draft" onPress={() => applyMessageNow(suggestedDraft)} />
+                {message !== originalWording ? (
+                  <Btn
+                    label="Keep my wording"
+                    secondary
+                    onPress={() => applyMessageNow(originalWording)}
+                  />
+                ) : null}
+              </View>
+            </>
+          ) : null}
+        </Card>
+      )}
       <Card style={addNeedOpen ? { zIndex: 20, overflow: 'visible' } : undefined}>
         <Copy kind="strong">Needs identified</Copy>
         <Copy kind="small" tint={color.muted}>
@@ -636,67 +566,129 @@ function RequestForm({
           </View>
         </View>
       </Card>
-      {initialPartner && !originalWording ? (
-        <Card>
-          <Field
-            label="Your message"
-            multiline
-            value={message}
-            placeholder="What do you need?"
-            change={syncFromMessage}
-          />
-        </Card>
-      ) : (
-        <Card style={{ gap: 2 }}>
-          <View style={[wrap, { justifyContent: 'space-between' }]}>
-            <Copy kind="strong">Your message</Copy>
-            <Btn
-              label={editingMessage ? 'Done' : 'Edit message'}
-              quiet
-              onPress={() => setEditingMessage(!editingMessage)}
-            />
+      <Card>
+        <Copy kind="title">{selected && liveMatches[0]?.partner.id === selected.id ? 'Suggested organization' : 'Organization'}</Copy>
+        {selected && <>
+          <View style={[row, { alignItems: 'flex-start' }]}>
+            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: color.pale,
+              alignItems: 'center', justifyContent: 'center' }}>
+              <Building2 size={22} color={color.pine} />
+            </View>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Copy kind="strong">{selected.name}</Copy>
+              <Copy kind="small" tint={color.muted}>{listWords(selected.categories)}</Copy>
+            </View>
           </View>
-          {editingMessage ? (
-            <Field label="Message to share" multiline value={message} change={syncFromMessage} />
-          ) : (
-            <Copy>{message}</Copy>
-          )}
-          {draftReady ? (
-            <>
-              <Copy kind="small" tint={color.muted}>
-                A suggested draft is ready. Preview it below, then apply it or keep your own words.
-              </Copy>
-              <Disclosure
-                label="Suggested draft"
-                detail="Preview only—your message stays unchanged until you apply it."
-                expanded={draftPreviewOpen}
-                onToggle={() => setDraftPreviewOpen(!draftPreviewOpen)}
-              >
-                <Copy kind="small">{suggestedDraft}</Copy>
-              </Disclosure>
-              <View style={wrap}>
-                <Btn label="Use suggested draft" onPress={() => applyMessageNow(suggestedDraft)} />
-                {message !== originalWording ? (
-                  <Btn
-                    label="Keep my wording"
-                    secondary
-                    onPress={() => applyMessageNow(originalWording)}
-                  />
-                ) : null}
-              </View>
-            </>
-          ) : null}
-        </Card>
-      )}
-      <Card style={{ paddingVertical: 10 }}>
-        <Disclosure
-          label="Sharing options"
-          detail={shareSummary(shared)}
-          expanded={sharingOpen}
-          onToggle={() => setSharingOpen(!sharingOpen)}
+          <Btn label={showMatch ? 'Hide match details' : 'Why this match?'} quiet onPress={() => setShowMatch(!showMatch)} />
+          {showMatch && <>
+            <Copy>{matchExplanation(selected)}</Copy>
+            <Copy kind="small" tint={color.muted}>{coverageLine(selected)}. {selected.pickup}</Copy>
+            <Copy kind="small" tint={color.muted}>{availabilityLine(selected)}</Copy>
+          </>}
+        </>}
+        <Disclosure label={selected ? 'Change organization' : 'Choose an organization'}
+          expanded={listExpanded}
+          onToggle={() => setPartnerOpen(!partnerOpen)}
         >
-          <ShareDetails selected={shared} onChange={changeShared} showHeading={false} />
+          <View accessibilityRole="radiogroup" accessibilityLabel="Available partners">
+            {!ordered.length ? (
+              <Copy kind="small" tint={color.muted}>
+                No partners are accepting these needs right now. Rephrase your request or ask a
+                provider to reopen those services.
+              </Copy>
+            ) : null}
+            {ordered.map((partner) => {
+              const selectedPartner = activeRecipient === partner.id;
+              const availability = availabilityLine(partner);
+              const availabilityPaused = availability !== 'Accepting new referrals';
+              return (
+                <Pressable
+                  key={partner.id}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selectedPartner }}
+                  accessibilityLabel={`${partner.name}. ${matchExplanation(partner)}. ${coverageLine(partner)}. Pickup: ${partner.pickup}. ${availability}`}
+                  onPress={() => {
+                    setRecipient(partner.id);
+                    setPartnerOpen(false);
+                  }}
+                  style={({ pressed }) => ({
+                    gap: 4,
+                    paddingVertical: 10,
+                    borderTopWidth: 1,
+                    borderColor: color.line,
+                    backgroundColor: pressed ? color.bg : undefined,
+                  })}
+                >
+                  <View style={[row, { justifyContent: 'space-between', alignItems: 'flex-start' }]}>
+                    <Copy kind={selectedPartner ? 'strong' : 'body'} style={{ flex: 1 }}>
+                      {partner.name}
+                    </Copy>
+                    {selectedPartner ? (
+                      <Copy kind="small" tint={color.pine}>
+                        Selected
+                      </Copy>
+                    ) : null}
+                  </View>
+                  <Copy kind="small" tint={color.muted}>
+                    {matchExplanation(partner)}
+                  </Copy>
+                  <Copy kind="small" tint={color.ink}>
+                    {coverageLine(partner)}
+                  </Copy>
+                  <Copy kind="small" tint={color.muted}>
+                    Pickup: {partner.pickup}
+                  </Copy>
+                  <Copy kind="small" tint={availabilityPaused ? color.rust : color.muted}>
+                    {availability}
+                  </Copy>
+                </Pressable>
+              );
+            })}
+            {unavailable.length ? (
+              <View style={{ gap: 4, paddingTop: 12 }}>
+                <Copy kind="strong">Temporarily unavailable for these needs</Copy>
+                <Copy kind="small" tint={color.muted}>
+                  These providers still appear so you can see why they are paused. Pick an accepting
+                  partner above to send your referral.
+                </Copy>
+                {unavailable.map((partner) => (
+                  <View
+                    key={`paused-${partner.id}`}
+                    accessibilityLabel={`${partner.name}. ${pausedServiceLine(partner, result.needs)}. ${coverageLine(partner)}. Pickup: ${partner.pickup}`}
+                    style={{
+                      gap: 4,
+                      paddingVertical: 10,
+                      borderTopWidth: 1,
+                      borderColor: color.line,
+                      opacity: 0.85,
+                    }}
+                  >
+                    <Copy kind="body">{partner.name}</Copy>
+                    <Copy kind="small" tint={color.rust}>
+                      {pausedServiceLine(partner, result.needs)}
+                    </Copy>
+                    <Copy kind="small" tint={color.muted}>
+                      {coverageLine(partner)}
+                    </Copy>
+                    <Copy kind="small" tint={color.muted}>
+                      Pickup: {partner.pickup}
+                    </Copy>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
         </Disclosure>
+      </Card>
+      <Card>
+        <Copy kind="title">Information to share</Copy>
+        <ShareDetails selected={shared} onChange={changeShared} showHeading={false} />
+        <View style={row}>
+          <LockKeyhole size={15} color={color.muted} />
+          <Copy kind="small" tint={color.muted} style={{ flex: 1 }}>
+            Your message and selected details go to this organization.
+          </Copy>
+        </View>
       </Card>
       <View style={{ gap: 8 }}>
         {!message.trim() ? (
@@ -708,6 +700,7 @@ function RequestForm({
           <Btn
             label="Send referral"
             stretch
+            celebrate
             disabled={!activeRecipient || !message.trim()}
             onPress={async () => {
               const text = message.trim();

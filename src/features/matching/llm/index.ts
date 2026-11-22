@@ -6,10 +6,7 @@ export type { LlmClient } from './client';
 export type { DraftResult, MatchResult, MatchSource, PartnerMatch } from './types';
 export { detectNeighborhood, interpretNeeds, rankPartners } from './demoClient';
 
-/**
- * Returns the active LLM client. Demo hardcoding for now;
- * replace with a real provider when an API key/backend is available.
- */
+/** Uses local request interpretation and the current organization directory. */
 export function getLlmClient(partners?: Partner[]): LlmClient {
   return createDemoLlmClient(550, partners);
 }

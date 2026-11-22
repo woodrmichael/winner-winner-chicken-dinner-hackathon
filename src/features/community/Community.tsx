@@ -1,15 +1,17 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ArrowRight, CalendarDays, HandHeart, MapPin, Plus, Search, Shirt } from 'lucide-react-native';
-import { View, useWindowDimensions } from 'react-native';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { now, useDemo } from '../../state/Demo';
 import { Btn, Card, Copy, Field, Page, color, row, wrap } from '../../ui/kit';
 import { SelectMenu } from '../../ui/SelectMenu';
+import { tapFeedback } from '../../ui/feedback';
 import { neighborhoods, type Post } from '../../domain/types';
 import { communityEvents, communityFeed, type CommunityView } from './model';
 import { PostTimestamp } from './PostTimestamp';
 import { postPhoto } from './postPhotos';
+import { EventSignup } from './EventSignup';
 import { SavePostButton } from './SavePostButton';
 
 type FeedFilter = 'all' | Post['kind'] | 'groups' | 'saved';
@@ -30,63 +32,57 @@ function Bulletin({ post, wide }: { post: Post; wide: boolean }) {
   const featured = post.id === 'drive';
   const event = post.kind === 'Event' ? communityEvents.get(post.id) : undefined;
   const photo = postPhoto(post.id);
+  function openPost() {
+    router.push({ pathname: '/community-post/[id]', params: { id: post.id, from: 'community' } });
+  }
+
+  const image = photo && (
+    <View style={wide && featured ? { width: '43%', minHeight: 200 } : { height: featured ? 198 : 152 }}>
+      <Image source={photo.source} accessibilityLabel={photo.description}
+        contentFit="cover" cachePolicy="memory-disk" transition={0}
+        style={{ width: '100%', height: '100%' }} />
+    </View>
+  );
+  const contents = (
+    <View style={{ flex: wide ? 1 : undefined, padding: 17, paddingBottom: 9, gap: 7 }}>
+      <View style={wrap}>
+        {post.kind === 'Event' ? <CalendarDays size={15} color={color.pine} />
+          : post.kind === 'Offer' ? <Shirt size={15} color={color.pine} />
+          : <HandHeart size={15} color={color.pine} />}
+        <Copy kind="label" tint={color.pine}>{post.group ?? post.kind.toUpperCase()}</Copy>
+        {post.kind === 'Offer' && post.status === 'fulfilled' &&
+          <Copy kind="label" tint={color.rust}>FULFILLED</Copy>}
+        <Copy kind="small" tint={color.muted}>{post.author}</Copy>
+      </View>
+      <Copy kind="title" style={featured ? { fontSize: 26 } : undefined}>{post.title}</Copy>
+      <Copy>{post.body}</Copy>
+      {event ? <View style={wrap}>
+        <MapPin size={15} color={color.muted} />
+        <Copy kind="small" tint={color.muted}>{event.venue.name} · {event.when}</Copy>
+      </View> : <PostTimestamp date={post.date} />}
+    </View>
+  );
   return (
-    <Card style={{ padding: 0, overflow: 'hidden', flex: wide && !featured ? 1 : undefined, flexDirection: wide && featured ? 'row' : 'column' }}>
-      {photo && (
-        <View style={wide && featured ? { width: '43%', minHeight: 225 } : { height: featured ? 198 : 152 }}>
-          <Image
-            source={photo.source}
-            accessibilityLabel={photo.description}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={0}
-            style={{ width: '100%', height: '100%' }}
-          />
-        </View>
-      )}
-      <View style={{ flex: wide ? 1 : undefined, padding: 17, gap: 7 }}>
-        <View style={wrap}>
-          {post.kind === 'Event' ? (
-            <CalendarDays size={15} color={color.pine} />
-          ) : post.kind === 'Offer' ? (
-            <Shirt size={15} color={color.pine} />
-          ) : (
-            <HandHeart size={15} color={color.pine} />
-          )}
-          <Copy kind="label" tint={color.pine}>
-            {post.group ?? post.kind.toUpperCase()}
-          </Copy>
-          {post.kind === 'Offer' && post.status === 'fulfilled' && (
-            <Copy kind="label" tint={color.rust}>FULFILLED</Copy>
-          )}
-          <Copy kind="small" tint={color.muted}>
-            · {post.author}
-          </Copy>
-        </View>
-        <Copy kind="title" style={featured ? { fontSize: 26 } : undefined}>
-          {post.title}
-        </Copy>
-        <Copy>{post.body}</Copy>
-        {event && (
-          <View style={wrap}>
-            <MapPin size={15} color={color.muted} />
-            <Copy kind="small" tint={color.muted}>
-              {event.venue.name} · {event.when}
-            </Copy>
+    <Card style={{ padding: 0, gap: 0, overflow: 'hidden', flex: wide && !featured ? 1 : undefined }}>
+      {event ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={`Open ${post.title}`}
+          onPress={() => { tapFeedback(); openPost(); }}
+          style={({ pressed }) => ({
+            flex: wide ? 1 : undefined,
+            flexDirection: wide && featured ? 'row' : 'column',
+            opacity: pressed ? 0.82 : 1,
+          })}>
+          {image}
+          {contents}
+        </Pressable>
+      ) : <>{image}{contents}</>}
+      <View style={{ paddingHorizontal: 17, paddingBottom: 12 }}>
+        {event ? <EventSignup postId={post.id} feed /> : (
+          <View style={[wrap, { justifyContent: 'flex-end' }]}>
+            <SavePostButton postId={post.id} />
+            {post.kind === 'Offer' && <Btn label="View offer" icon={ArrowRight} secondary onPress={openPost} />}
           </View>
         )}
-        {!event && <PostTimestamp date={post.date} />}
-        <View style={[wrap, { justifyContent: 'flex-end', marginTop: wide ? 'auto' : 4 }]}>
-          <SavePostButton postId={post.id} />
-          {(event || post.kind === 'Offer') && (
-            <Btn
-              label={event ? 'View event' : 'View offer and replies'}
-              icon={ArrowRight}
-              secondary
-              onPress={() => router.push({ pathname: '/community-post/[id]', params: { id: post.id, from: 'community' } })}
-            />
-          )}
-        </View>
       </View>
     </Card>
   );
@@ -200,8 +196,15 @@ export default function Community({ view }: { view?: string }) {
     groups: state.community.groups.length ? 'No posts in your groups yet.' : 'Join a neighborhood group to see its posts here.',
     saved: 'Save a post to find it here later.',
   };
-  const featured = posts.find((post) => post.id === 'drive');
-  const feed = posts.filter((post) => post !== featured);
+  const postRows = posts.reduce<Post[][]>((rows, post) => {
+    const last = rows.at(-1);
+    if (wide && post.id !== 'drive' && last?.length === 1 && last[0].id !== 'drive') {
+      last.push(post);
+    } else {
+      rows.push([post]);
+    }
+    return rows;
+  }, []);
   const actions = (
     <View style={wrap}>
       {partner ? (
@@ -226,13 +229,14 @@ export default function Community({ view }: { view?: string }) {
       </View>
       {showSearch && <Field label="Search posts" value={query} change={(text) => updateSearch(text, true)} placeholder="Coats, winter drive, pantry" />}
       {activeView === 'groups' && !searching && <GroupDirectory />}
-      {featured && <Bulletin post={featured} wide={wide} />}
-      {wide ? feed.filter((_, index) => index % 2 === 0).map((post, index) => (
+      {postRows.map(([post, next]) => !wide || post.id === 'drive' ? (
+        <Bulletin key={post.id} post={post} wide={wide} />
+      ) : (
         <View key={post.id} style={{ flexDirection: 'row', gap: 14 }}>
           <Bulletin post={post} wide />
-          {feed[index * 2 + 1] ? <Bulletin post={feed[index * 2 + 1]} wide /> : <View style={{ flex: 1 }} />}
+          {next ? <Bulletin post={next} wide /> : <View style={{ flex: 1 }} />}
         </View>
-      )) : feed.map((post) => <Bulletin key={post.id} post={post} wide={false} />)}
+      ))}
       {!posts.length && <View accessibilityLiveRegion="polite">
         <Copy tint={color.muted}>{searching ? 'No posts match your search.' : emptyFeed[activeView]}</Copy>
       </View>}

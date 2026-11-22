@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import {
-  actionableNeeds,
   currentAssignment,
   otherProviders,
   outstandingNeeds,
@@ -15,11 +14,9 @@ import { Btn, Card, Copy, Field, color, wrap } from '../../ui/kit';
 import { partnerName } from '../matching/directory';
 import { ShareDetails, type ShareKey } from '../matching/ShareDetails';
 import {
-  AppointmentDetails,
-  AssignmentHistory,
-  ConversationLink,
   ReferralDetails,
   SharedWith,
+  RequestStatus,
   needName,
 } from './ReferralDetails';
 
@@ -148,10 +145,8 @@ const detailSection = { borderTopWidth: 1, borderColor: color.line, paddingTop: 
 
 export function ResidentReferral({
   referral,
-  showConversationLinks = false,
 }: {
   referral: Referral;
-  showConversationLinks?: boolean;
 }) {
   const [initial, ...additional] = referral.assignments;
   const outstanding = outstandingNeeds(referral);
@@ -159,23 +154,15 @@ export function ResidentReferral({
   return (
     <Card>
       <View style={[wrap, { justifyContent: 'space-between' }]}>
-        <Copy kind="title">{partnerName(initial.partnerId)}</Copy>
-        <Copy kind="strong" tint={color.pine}>
-          {status(referral)}
-        </Copy>
+        <Copy kind="strong">Your request</Copy>
+        <RequestStatus status={status(referral)} />
       </View>
       <Copy>{initial.message}</Copy>
       <SharedWith assignment={initial} />
       <ReferralDetails
         outstanding={outstanding}
-        services={referral.services}
         withdrawn={referral.withdrawn}
       />
-      <AssignmentHistory assignment={initial} />
-      {initial.appointment && actionableNeeds(referral, initial).length > 0 && (
-        <AppointmentDetails appointment={initial.appointment} />
-      )}
-      {showConversationLinks && <ConversationLink assignment={initial} />}
       {additional.map((assignment) => (
         <View key={assignment.id} style={detailSection}>
           <Copy kind="strong">
@@ -183,11 +170,7 @@ export function ResidentReferral({
           </Copy>
           <Copy>{assignment.message}</Copy>
           <SharedWith assignment={assignment} />
-          <AssignmentHistory assignment={assignment} />
-          {assignment.appointment && actionableNeeds(referral, assignment).length > 0 && (
-            <AppointmentDetails appointment={assignment.appointment} />
-          )}
-          {showConversationLinks && <ConversationLink assignment={assignment} />}
+
         </View>
       ))}
       {proposals.map((proposal) => (

@@ -12,6 +12,7 @@ export function SavePostButton({ postId }: { postId: string }) {
       icon={Bookmark}
       iconOnly
       fillIcon={saved}
+      celebrate
       secondary
       onPress={() => run({ type: 'save-post', postId, saved: !saved })}
     />

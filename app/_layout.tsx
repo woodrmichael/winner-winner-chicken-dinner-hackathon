@@ -11,9 +11,11 @@ import { Keyboard, Platform, Pressable, StatusBar, StyleSheet, View, useWindowDi
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityScreen, Community, Impact, MapScreen, warmNavigation } from '../src/features/navigation/tabScreens';
 import { warmPostPhotos } from '../src/features/community/postPhotos';
+import { warmVenueMaps } from '../src/features/map/VenueMap';
 import { SettingsDrawer, SettingsEdge } from '../src/features/settings/SettingsDrawer';
 import { DemoProvider, useDemo } from '../src/state/Demo';
 import { AppMark } from '../src/ui/AppMark';
+import { tapFeedback } from '../src/ui/feedback';
 import { RetainedTab } from '../src/ui/RetainedTab';
 import { Card, Copy, Page, color, row } from '../src/ui/kit';
 
@@ -61,6 +63,7 @@ function Shell() {
   }, [pathname, view, period]);
   useEffect(() => {
     warmPostPhotos();
+    warmVenueMaps();
     warmNavigation();
   }, []);
   const openSettings = useCallback(() => {
@@ -115,6 +118,7 @@ function Shell() {
             onLongPress={settingsShortcut ? openSettings : undefined}
             onPress={() => {
               if (pathname === path) return;
+              tapFeedback();
               Keyboard.dismiss();
               const params = path === '/' ? { view: tabParams.current.view }
                 : path === '/impact' ? { period: tabParams.current.period } : {};

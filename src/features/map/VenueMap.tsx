@@ -1,61 +1,45 @@
-'use dom';
+import { Image, type ImageRef } from 'expo-image';
+import { Link } from 'expo-router';
+import { View } from 'react-native';
+import { color, wrap } from '../../ui/kit';
 
-import type { DOMProps } from 'expo/dom';
-import * as MapLibre from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
-import { useEffect, useRef, useState } from 'react';
-import { styleUrl, workerUrl } from './basemap';
-import { MapCredits } from './MapCredits';
+const previews: Partial<Record<string, number>> = {
+  'Moody Park': require('../../../assets/venue-maps/moody-park.webp'),
+  'Central Library': require('../../../assets/venue-maps/central-library.webp'),
+  'Martin Luther King Library': require('../../../assets/venue-maps/king-library.webp'),
+  'Bay View Library': require('../../../assets/venue-maps/bay-view-library.webp'),
+  'East Library': require('../../../assets/venue-maps/east-library.webp'),
+  'Atkinson Library': require('../../../assets/venue-maps/atkinson-library.webp'),
+  'Capitol Library': require('../../../assets/venue-maps/capitol-library.webp'),
+};
 
-export default function VenueMap({ name, longitude, latitude }: {
-  name: string;
-  longitude: number;
-  latitude: number;
-  dom?: DOMProps;
-}) {
-  const container = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+const credits = [
+  { label: '© OpenStreetMap', url: 'https://www.openstreetmap.org/copyright' },
+  { label: '© OpenMapTiles', url: 'https://openmaptiles.org/' },
+  { label: 'OpenFreeMap', url: 'https://openfreemap.org/' },
+] as const;
 
-  useEffect(() => {
-    const element = container.current;
-    if (!element) return;
+const decoded = new Map<number, ImageRef>();
+let warmup: Promise<unknown> | undefined;
 
-    let map: MapLibre.Map;
-    try {
-      MapLibre.setWorkerUrl(workerUrl);
-      map = new MapLibre.Map({
-        container: element,
-        style: styleUrl,
-        center: [longitude, latitude],
-        zoom: 15.5,
-        interactive: false,
-        attributionControl: false,
-      });
-    } catch {
-      element.replaceChildren();
-      const frame = window.requestAnimationFrame(() => setStatus('unavailable'));
-      return () => window.cancelAnimationFrame(frame);
-    }
-    const timer = window.setTimeout(() => setStatus('unavailable'), 12000);
-    map.once('idle', () => {
-      window.clearTimeout(timer);
-      new MapLibre.Marker({ color: '#005e50' }).setLngLat([longitude, latitude]).addTo(map);
-      setStatus('ready');
-    });
-    const observer = new ResizeObserver(() => map.resize());
-    observer.observe(element);
-    return () => {
-      window.clearTimeout(timer);
-      observer.disconnect();
-      map.remove();
-    };
-  }, [latitude, longitude]);
+export function warmVenueMaps() {
+  warmup ??= Promise.allSettled(Object.values(previews).map(async (source) => {
+    if (source) decoded.set(source, await Image.loadAsync(source));
+  }));
+  return warmup;
+}
 
-  return (
-    <div className="milwaukee-map" role="region" aria-label={'Map of ' + name}>
-      <div ref={container} className="milwaukee-map-canvas" inert={status !== 'ready'} />
-      {status === 'ready' && <MapCredits />}
-      {status === 'unavailable' && <span className="milwaukee-map-status" role="status">Map preview unavailable</span>}
-    </div>
-  );
+export default function VenueMap({ name }: { name: string }) {
+  const source = previews[name];
+  if (source === undefined) return null;
+
+  return <View style={{ gap: 4 }}>
+    <Image source={decoded.get(source) ?? source} accessibilityLabel={`Map of ${name}`}
+      contentFit="cover" cachePolicy="memory-disk" transition={0}
+      style={{ width: '100%', height: 176, borderRadius: 10, backgroundColor: '#e8eee5' }} />
+    <View style={[wrap, { gap: 8, justifyContent: 'flex-end' }]}>
+      {credits.map(({ label, url }) => <Link key={url} href={url} target="_blank"
+        style={{ fontSize: 11, color: color.muted, textDecorationLine: 'underline' }}>{label}</Link>)}
+    </View>
+  </View>;
 }

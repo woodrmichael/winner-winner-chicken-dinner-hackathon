@@ -44,7 +44,7 @@ export function shouldOfferDraft(text: string, needs: Category[]): boolean {
   return true;
 }
 
-/** Demo flag: set false to force the keyword fallback path. */
+/** Controls use of the request interpretation client. */
 export let modelAvailable = true;
 
 export function setModelAvailable(available: boolean) {
@@ -70,7 +70,7 @@ export function isVagueRequest(text: string): boolean {
   return getLlmClient().isVague(text);
 }
 
-/** Simulated model: uses only the request text. Rejects when unavailable. */
+/** Interprets request text and ranks partners in the current directory. */
 export async function matchWithModel(
   text: string,
   waitMs = 550,

@@ -34,7 +34,7 @@ export default function MapScreen() {
   const { width, height, fontScale } = useWindowDimensions();
   const { state, shared } = useDemo();
   const [visible, setVisible] = useState<Record<Overlay, boolean>>({
-    needs: true, libraries: false, events: false, fatal: false, nonfatal: false,
+    needs: true, libraries: false, events: true, fatal: false, nonfatal: false,
   });
   const [overlaysExpanded, setOverlaysExpanded] = useState(false);
   const [areasExpanded, setAreasExpanded] = useState(false);

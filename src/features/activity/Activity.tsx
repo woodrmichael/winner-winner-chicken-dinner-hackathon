@@ -1,81 +1,36 @@
-import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
-import { Segments } from '../../ui/Segments';
-import type { partnerInbox } from '../../domain/referrals';
+import { outstandingNeeds, status } from '../../domain/referrals';
 import { useDemo } from '../../state/Demo';
-import { Disclosure } from '../../ui/Disclosure';
-import { Btn, Card, Copy, Page } from '../../ui/kit';
+import { Btn, Card, Copy, Page, color, wrap } from '../../ui/kit';
 import { ActivityUpdates } from './ActivityUpdates';
-import { PartnerReferral } from './PartnerReferral';
-import { ResidentReferral } from './ResidentReferral';
+import { listWords, partnerName } from '../matching/directory';
+import { formatActivityTime, needName, RequestStatus } from './ReferralDetails';
 import { SavedEvents } from './SavedEvents';
 import { VolunteerActivity } from '../volunteer/Volunteer';
+import { PartnerInbox } from './PartnerInbox';
 
-const inboxSections = [
-  { title: 'Awaiting response', statuses: ['Sent'] },
-  { title: 'Accepted cases', statuses: ['Accepted'] },
-  { title: 'Completed history', statuses: ['Completed', 'Declined', 'Closed'] },
-];
-
-function PartnerTickets({ tickets }: { tickets: ReturnType<typeof partnerInbox> }) {
-  const { shared } = useDemo();
-  const [scope, setScope] = useState<'Team' | 'Assigned to me'>('Team');
-  const [openTicket, setOpenTicket] = useState('');
-  const [showHistory, setShowHistory] = useState(false);
-  if (!tickets.length) {
-    return (
-      <Card>
-        <Copy kind="title">No referrals for this partner</Copy>
-      </Card>
-    );
-  }
-
-  const visible = scope === 'Assigned to me' ? tickets.filter((t) => t.assignment.assignedWorker?.id === shared.data?.account.id) : tickets;
-  return <>
-    <Segments options={['Team', 'Assigned to me'] as const} value={scope} onChange={setScope} label={(v) => v} />
-    {!visible.length && <Copy>No referrals assigned to you.</Copy>}
-    {inboxSections.map((section) => {
-    const cases = visible.filter((ticket) => section.statuses.includes(ticket.status));
-    if (!cases.length) return null;
-    const rows = cases.map((ticket) => (
-      <PartnerReferral
-        key={ticket.assignment.id}
-        ticket={ticket}
-        expanded={openTicket === ticket.assignment.id}
-        onToggle={() =>
-          setOpenTicket(openTicket === ticket.assignment.id ? '' : ticket.assignment.id)
-        }
-      />
-    ));
-    if (section.title === 'Completed history') {
-      return (
-        <Card key={section.title}>
-          <Disclosure
-            label={section.title}
-            detail={`${cases.length} referrals`}
-            expanded={showHistory}
-            onToggle={() => setShowHistory(!showHistory)}
-          >
-            <View style={{ gap: 12 }}>{rows}</View>
-          </Disclosure>
-        </Card>
-      );
-    }
-
-    return (
-      <View key={section.title} style={{ gap: 12 }}>
-        <View accessible accessibilityRole="header">
-          <Copy kind="strong">{section.title}</Copy>
-        </View>
-        {rows}
-      </View>
-    );
-  })}</>;
+function RequestCard({ id, title, message, state, date }: {
+  id: string; title: string; message: string; state: string; date: string;
+}) {
+  const router = useRouter();
+  return <Card>
+    <View style={[wrap, { justifyContent: 'space-between' }]}>
+      <Copy kind="strong">{title}</Copy>
+      <RequestStatus status={state} />
+    </View>
+    <Copy numberOfLines={2}>{message}</Copy>
+    <View style={[wrap, { justifyContent: 'space-between' }]}>
+      <Copy kind="small" tint={color.muted}>{formatActivityTime(date)}</Copy>
+      <Btn label="View request" secondary onPress={() => router.push({
+        pathname: '/activity/referral/[id]', params: { id },
+      })} />
+    </View>
+  </Card>;
 }
 
 export default function Activity() {
-  const { partnerId, shared } = useDemo();
+  const { partnerId, shared, state } = useDemo();
   const router = useRouter();
   const account = shared.data?.account;
   const partnerView = account?.kind === 'worker';
@@ -95,7 +50,7 @@ export default function Activity() {
     <Page title={partnerView && !workerWaiting ? 'Partner inbox' : 'Activity'}>
       <VolunteerActivity />
       {shared.connectionError ? <Copy>{shared.connectionError}</Copy> : null}
-      {shared.data && !workerWaiting && <ActivityUpdates updates={shared.data.updates ?? []} />}
+      {shared.data && !workerWaiting && <ActivityUpdates updates={shared.data.updates ?? []} compact={partnerView} />}
       {account.kind === 'resident' && <SavedEvents />}
       {workerWaiting ? (
         <Card>
@@ -103,12 +58,16 @@ export default function Activity() {
           <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />
         </Card>
       ) : partnerView ? (
-        <PartnerTickets key={partnerId} tickets={shared.data?.inbox ?? []} />
+        <PartnerInbox key={account.id + ':' + partnerId} tickets={shared.data?.inbox ?? []}
+          organization={partnerName(state.partners, partnerId)} workerId={account.id} />
       ) : residentTickets.length ? (
         <>
         <View accessibilityRole="header"><Copy kind="title">Your requests</Copy></View>
         {residentTickets.map((ticket) => (
-          <ResidentReferral key={ticket.id} referral={ticket} showConversationLinks />
+          <RequestCard key={ticket.id} id={ticket.assignments[0].id}
+            title={partnerName(state.partners, ticket.assignments[0].partnerId)}
+            message={listWords(outstandingNeeds(ticket).map(needName)) || ticket.assignments[0].message}
+            state={status(ticket)} date={ticket.sentAt} />
         ))}
         </>
       ) : (
