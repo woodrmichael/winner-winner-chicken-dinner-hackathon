@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { seedState, withDemoReferrals } from '../src/domain/seed';
 import { decode } from '../src/state/persistence';
 import { createApi, withPassword } from './api';
-import { createWorkspace, demoAccounts, restoreCommunication, sampleResidentAccount, type StoredWorkspace, type Workspace } from './workspace';
+import { createWorkspace, demoAccounts, restoreCommunication, sampleResidentAccount, type StoredWorkspace, type Workspace } from '../src/shared/workspaceModel';
 
 const path = resolve(process.env.COMFORCE_API_DATA ?? '.comforce/workspace.json');
 const host = process.env.COMFORCE_API_HOST ?? '127.0.0.1';

@@ -6,13 +6,12 @@ import { defaultReportMonth, impactReport, reportKey, reportMonths, selectedRepo
 const emptyReferrals: Referral[] = [];
 
 export function useImpactReport(period: string | undefined, provider: string | null = null) {
-  const { state, shared } = useDemo();
+  const { shared } = useDemo();
   const stored = shared.data?.reporting.impactReports;
-  const referrals = shared.enabled ? emptyReferrals : state.referrals;
-  const requiresSignIn = shared.enabled && !shared.data;
+  const requiresSignIn = !shared.data;
 
   return useMemo(() => {
-    const source = { referrals };
+    const source = { referrals: emptyReferrals };
     const months = stored?.months ?? reportMonths(source);
     const month = selectedReportMonth(period, months, stored?.defaultMonth ?? defaultReportMonth(source));
     const sharedPeriod = stored?.periods[reportKey(month)];
@@ -21,5 +20,5 @@ export function useImpactReport(period: string | undefined, provider: string | n
       ? sharedPeriod?.byProvider[provider] ?? impactReport(source, month, provider)
       : completeReport;
     return { months, month, completeReport, report, requiresSignIn };
-  }, [period, provider, referrals, stored, requiresSignIn]);
+  }, [period, provider, stored, requiresSignIn]);
 }

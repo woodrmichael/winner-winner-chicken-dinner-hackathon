@@ -1,5 +1,5 @@
-import type { Referral, ReferralAssignment } from '../src/domain/types';
-import type { Account } from '../src/shared/workspace';
+import type { Referral, ReferralAssignment } from '../domain/types';
+import type { Account } from '../shared/workspace';
 
 export class WorkspaceError extends Error {
   constructor(readonly status: number, message: string) {

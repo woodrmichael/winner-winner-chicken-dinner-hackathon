@@ -10,7 +10,7 @@ import {
   type WorkspaceCommand,
 } from '../src/domain/types';
 import { referralMessageLimit } from '../src/shared/workspace';
-import { WorkspaceError } from './referral-access';
+import { WorkspaceError } from '../src/shared/referralAccess';
 
 function invalid(): never {
   throw new WorkspaceError(400, 'Invalid workspace command.');

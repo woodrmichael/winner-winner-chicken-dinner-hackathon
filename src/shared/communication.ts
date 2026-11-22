@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto';
-import type { ReferralCommand, WorkspaceCommand } from '../src/domain/types';
-import type { Account, ActivityUpdate, ReferralMessage } from '../src/shared/workspace';
-import { assignmentScope, participant, WorkspaceError } from './referral-access';
-import type { Workspace } from './workspace';
+import { newId } from './id';
+import type { ReferralCommand, WorkspaceCommand } from '../domain/types';
+import type { Account, ActivityUpdate, ReferralMessage } from './workspace';
+import { assignmentScope, participant, WorkspaceError } from './referralAccess';
+import type { Workspace } from './workspaceModel';
 
 type Audience = 'resident' | 'partner';
 type StoredMessage = Omit<ReferralMessage, 'sentByYou'> & { senderId: string; requestId: string };
@@ -17,7 +17,7 @@ function addUpdate(
   audience: Audience,
   at = new Date().toISOString(),
 ): Workspace {
-  const update: StoredUpdate = { id: randomUUID(), kind, assignmentId, audience, at, readBy: [] };
+  const update: StoredUpdate = { id: newId(), kind, assignmentId, audience, at, readBy: [] };
   return {
     ...workspace,
     communication: { ...workspace.communication, updates: [update, ...workspace.communication.updates] },
@@ -92,7 +92,7 @@ export function applyCommunicationCommand(
 
   const at = new Date().toISOString();
   const message: StoredMessage = {
-    id: randomUUID(),
+    id: newId(),
     requestId: command.messageId,
     assignmentId: command.assignmentId,
     senderId: account.id,

@@ -7,6 +7,7 @@ import { profile } from '../../domain/seed';
 import type { Category, Partner } from '../../domain/types';
 import { newId, now, useDemo } from '../../state/Demo';
 import { Disclosure } from '../../ui/Disclosure';
+import { BackButton } from '../../ui/BackButton';
 import { Btn, Card, Copy, Field, Page, color, row, wrap } from '../../ui/kit';
 import { ShareDetails, shareSummary, type ShareKey } from './ShareDetails';
 import {
@@ -18,7 +19,7 @@ import {
   pausedServiceLine,
   serviceAvailability,
 } from './directory';
-import { example } from './match';
+import { RequestVoice } from './RequestVoice';
 import {
   draftReferral,
   findResources,
@@ -35,10 +36,27 @@ import {
 type Step = 'describe' | 'clarify' | 'review';
 
 const emptyMatch: MatchResult = { needs: [], matches: [], source: 'model' };
+const quickRequests = [
+  { label: 'Clothing', text: 'I need help finding clothing.' },
+  { label: 'Food', text: 'I need groceries or a meal.' },
+  { label: 'A ride', text: 'I need a ride.' },
+];
 
 export default function Ask() {
   const { partner } = useLocalSearchParams<{ partner?: string }>();
-  const { state } = useDemo();
+  const { state, shared } = useDemo();
+  const router = useRouter();
+  const account = shared.data?.account;
+  if (account?.kind !== 'resident') {
+    return (
+      <Page title="Ask for help" back={<BackButton onPress={() => router.canGoBack() ? router.back() : router.replace('/')} />}>
+        <Card>
+          <Copy>Open a resident profile to send a private referral.</Copy>
+          <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />
+        </Card>
+      </Page>
+    );
+  }
   const partners = approvedPartners(state.partners);
   const initialPartner = partners.find((entry) => entry.id === partner)?.id;
   return (
@@ -57,10 +75,11 @@ function RequestForm({
   initialPartner?: string;
   partners: Partner[];
 }) {
-  const { run, shared: workspace, setRole, setPartnerId } = useDemo();
+  const { run, shared: workspace } = useDemo();
   const router = useRouter();
   const [step, setStep] = useState<Step>(initialPartner ? 'review' : 'describe');
   const [description, setDescription] = useState('');
+  const [listening, setListening] = useState(false);
   const [clarification, setClarification] = useState('');
   const [originalWording, setOriginalWording] = useState('');
   const [suggestedDraft, setSuggestedDraft] = useState('');
@@ -74,6 +93,20 @@ function RequestForm({
   const [addNeedOpen, setAddNeedOpen] = useState(false);
   const [result, setResult] = useState<MatchResult>(emptyMatch);
   const matchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function appendDescription(text: string) {
+    setDescription((current) => current.includes(text) ? current : [current.trim(), text].filter(Boolean).join(' '));
+  }
+
+  function leaveRequest() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }
+
+  function editRequest() {
+    setDescription(originalWording || message);
+    setStep('describe');
+  }
 
   useEffect(
     () => () => {
@@ -286,20 +319,9 @@ function RequestForm({
     );
   }
 
-  if (workspace.enabled && workspace.data?.account.kind !== 'resident') {
-    return (
-      <Page title="Ask for help">
-        <Card>
-          <Copy>Sign in as a resident to send a private referral.</Copy>
-          <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />
-        </Card>
-      </Page>
-    );
-  }
-
   if (step === 'describe') {
     return (
-      <Page title="Ask for help">
+      <Page title="Ask for help" back={<BackButton onPress={leaveRequest} />}>
         <Card>
           <Field
             label="What do you need?"
@@ -307,12 +329,14 @@ function RequestForm({
             value={description}
             change={setDescription}
             placeholder="Clothing, groceries, or a ride…"
+            editable={!listening}
           />
-          <View style={wrap}>
+          <RequestVoice value={description} update={setDescription} listening={listening}
+            setListening={setListening}>
             <Btn
               label="Find resources"
               stretch
-              disabled={!description.trim()}
+              disabled={listening || !description.trim()}
               onPress={async () => {
                 const text = description.trim();
                 if (isVagueRequest(text)) {
@@ -324,16 +348,23 @@ function RequestForm({
                 await openReview(text, next, text);
               }}
             />
-            <Btn label="Clothing and a ride" secondary onPress={() => setDescription(example)} />
-          </View>
+          </RequestVoice>
         </Card>
+        <View style={{ gap: 6 }}>
+          <Copy kind="small" tint={color.muted}>Quick actions</Copy>
+          <View style={wrap}>
+            {quickRequests.map(({ label, text }) => (
+              <Btn key={label} label={label} icon={Plus} secondary disabled={listening} onPress={() => appendDescription(text)} />
+            ))}
+          </View>
+        </View>
       </Page>
     );
   }
 
   if (step === 'clarify') {
     return (
-      <Page title="A little more detail">
+      <Page title="A little more detail" back={<BackButton label="Back to your request" onPress={() => setStep('describe')} />}>
         <Card>
           <Copy>What kind of help do you need?</Copy>
           <Copy kind="small" tint={color.muted}>
@@ -366,14 +397,6 @@ function RequestForm({
                 await openReview(wording, { needs: [], matches: [], source: 'model' }, wording);
               }}
             />
-            <Btn
-              label="Back"
-              secondary
-              onPress={() => {
-                setStep('describe');
-                setClarification('');
-              }}
-            />
           </View>
         </Card>
       </Page>
@@ -381,7 +404,7 @@ function RequestForm({
   }
 
   return (
-    <Page title="Review referral">
+    <Page title="Review referral" back={<BackButton onPress={initialPartner && !description ? leaveRequest : editRequest} />}>
       {noAutomaticMatches ? (
         <Card>
           <Copy kind="strong">No automatic matches found</Copy>
@@ -713,18 +736,13 @@ function RequestForm({
                 shared: detailsToShare(shared, workspace.data?.account.details),
                 at: now(),
               });
-              setPartnerId(activeRecipient);
-              setRole('Resident');
               router.replace('/activity');
             }}
           />
           <Btn
             label="Edit request"
             secondary
-            onPress={() => {
-              setDescription(originalWording || message);
-              setStep('describe');
-            }}
+            onPress={editRequest}
           />
         </View>
       </View>

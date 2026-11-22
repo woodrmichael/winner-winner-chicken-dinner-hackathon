@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { Segments } from '../../ui/Segments';
-import { partnerInbox, residentTimeline } from '../../domain/referrals';
+import type { partnerInbox } from '../../domain/referrals';
 import { useDemo } from '../../state/Demo';
 import { Disclosure } from '../../ui/Disclosure';
-import { Btn, Card, Copy, Page, color } from '../../ui/kit';
+import { Btn, Card, Copy, Page } from '../../ui/kit';
 import { ActivityUpdates } from './ActivityUpdates';
-import { partnerName } from '../matching/directory';
 import { PartnerReferral } from './PartnerReferral';
 import { ResidentReferral } from './ResidentReferral';
+import { SavedEvents } from './SavedEvents';
 import { VolunteerActivity } from '../volunteer/Volunteer';
 
 const inboxSections = [
@@ -33,7 +33,7 @@ function PartnerTickets({ tickets }: { tickets: ReturnType<typeof partnerInbox> 
 
   const visible = scope === 'Assigned to me' ? tickets.filter((t) => t.assignment.assignedWorker?.id === shared.data?.account.id) : tickets;
   return <>
-    {shared.enabled && <Segments options={['Team', 'Assigned to me'] as const} value={scope} onChange={setScope} label={(v) => v} />}
+    <Segments options={['Team', 'Assigned to me'] as const} value={scope} onChange={setScope} label={(v) => v} />
     {!visible.length && <Copy>No referrals assigned to you.</Copy>}
     {inboxSections.map((section) => {
     const cases = visible.filter((ticket) => section.statuses.includes(ticket.status));
@@ -75,15 +75,13 @@ function PartnerTickets({ tickets }: { tickets: ReturnType<typeof partnerInbox> 
 }
 
 export default function Activity() {
-  const { state, role, partnerId, shared } = useDemo();
+  const { partnerId, shared } = useDemo();
   const router = useRouter();
   const account = shared.data?.account;
-  const partnerView = shared.enabled ? account?.kind === 'worker' : role === 'Partner';
-  const residentTickets = shared.enabled ? shared.data?.referrals ?? [] : residentTimeline(state);
+  const partnerView = account?.kind === 'worker';
+  const residentTickets = shared.data?.referrals ?? [];
   const workerWaiting = account?.kind === 'worker' && account.membership?.status !== 'approved';
-  const organization = partnerView && partnerId ? partnerName(partnerId) : undefined;
-  const identity = [account?.name, organization].filter(Boolean).join(' · ');
-  if (shared.enabled && !account) {
+  if (!account) {
     return (
       <Page title="Activity">
         <Card>
@@ -95,25 +93,24 @@ export default function Activity() {
   }
   return (
     <Page title={partnerView && !workerWaiting ? 'Partner inbox' : 'Activity'}>
-      {identity ? (
-        <Copy kind="strong" tint={color.muted}>
-          {identity}
-        </Copy>
-      ) : null}
       <VolunteerActivity />
       {shared.connectionError ? <Copy>{shared.connectionError}</Copy> : null}
       {shared.data && !workerWaiting && <ActivityUpdates updates={shared.data.updates ?? []} />}
+      {account.kind === 'resident' && <SavedEvents />}
       {workerWaiting ? (
         <Card>
           <Copy>{account.membership ? 'Your organization membership is awaiting approval.' : 'Request an organization membership to open its inbox.'}</Copy>
           <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />
         </Card>
       ) : partnerView ? (
-        <PartnerTickets key={partnerId} tickets={shared.enabled ? shared.data?.inbox ?? [] : partnerInbox(state, partnerId)} />
+        <PartnerTickets key={partnerId} tickets={shared.data?.inbox ?? []} />
       ) : residentTickets.length ? (
-        residentTickets.map((ticket) => (
-          <ResidentReferral key={ticket.id} referral={ticket} showConversationLinks={shared.enabled} />
-        ))
+        <>
+        <View accessibilityRole="header"><Copy kind="title">Your requests</Copy></View>
+        {residentTickets.map((ticket) => (
+          <ResidentReferral key={ticket.id} referral={ticket} showConversationLinks />
+        ))}
+        </>
       ) : (
         <Card>
           <Copy kind="title">Your requests will appear here</Copy>

@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { referralMessageLimit } from '../../shared/workspace';
 import { newId, useDemo } from '../../state/Demo';
 import { Btn, Card, Copy, Field, Page, color } from '../../ui/kit';
+import { BackButton } from '../../ui/BackButton';
 import { partnerName } from '../matching/directory';
 import { PartnerReferralDetails } from './PartnerReferral';
 import { formatActivityTime } from './ReferralDetails';
@@ -46,16 +47,16 @@ function PrivateThread({ assignmentId, partnerId }: { assignmentId: string; part
 
 export default function ReferralConversation() {
   const { id, focus } = useLocalSearchParams<{ id: string; focus?: string }>();
-  const { shared } = useDemo();
+  const { shared, state } = useDemo();
   const router = useRouter();
-  const back = <Btn label="Back to Activity" secondary onPress={() => router.navigate('/activity')} />;
+  const back = <BackButton label="Back to Activity" onPress={() => router.navigate('/activity')} />;
   const referral = shared.data?.referrals.find((entry) => entry.assignments.some((assignment) => assignment.id === id));
   const ticket = shared.data?.inbox.find((entry) => entry.assignment.id === id);
   const assignment = ticket?.assignment ?? referral?.assignments.find((entry) => entry.id === id);
 
   if (!assignment) {
     return (
-      <Page title="Referral unavailable" right={back}>
+      <Page title="Referral unavailable" back={back}>
         <Card>
           <Copy>{shared.data ? 'This referral is unavailable to your account.' : 'Sign in to open this referral.'}</Copy>
           {!shared.data && <Btn label="Open Settings" onPress={() => router.navigate('/settings')} />}
@@ -65,13 +66,13 @@ export default function ReferralConversation() {
   }
 
   const thread = (
-    <PrivateThread key={`thread:${assignment.id}`} assignmentId={assignment.id} partnerId={assignment.partnerId} />
+    <PrivateThread key={`thread:${shared.data?.account.id}:${assignment.id}`} assignmentId={assignment.id} partnerId={assignment.partnerId} />
   );
   return (
-    <Page title={`${partnerName(assignment.partnerId)} referral`} right={back}>
+    <Page title={`${partnerName(state.partners, assignment.partnerId)} referral`} back={back}>
       {focus === 'messages' && thread}
       {ticket && <Card><PartnerReferralDetails key={assignment.id} ticket={ticket} /></Card>}
-      {referral && <ResidentReferral key={`referral:${referral.id}`} referral={referral} />}
+      {referral && <ResidentReferral key={`referral:${referral.id}`} referral={referral} showConversationLinks />}
       {focus !== 'messages' && thread}
     </Page>
   );

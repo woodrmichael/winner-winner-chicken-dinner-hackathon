@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { useCallback, useContext, useMemo, useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { mapRows } from '../../domain/model';
 import { communityEventPins } from '../../domain/demoCommunity';
 import { historicalIncidents } from '../../domain/seed';
 import { categories, type Category } from '../../domain/types';
@@ -27,6 +26,7 @@ const serviceOptions = (['All', ...categories] as const).map((value) => ({
   label: value === 'All' ? 'All services' : value,
 }));
 type Overlay = 'needs' | 'libraries' | 'events' | 'fatal' | 'nonfatal';
+const noRows: NonNullable<ReturnType<typeof useDemo>['shared']['data']>['reporting']['map'] = [];
 
 export default function MapScreen() {
   const router = useRouter();
@@ -42,23 +42,20 @@ export default function MapScreen() {
   const [category, setCategory] = useState<Category | 'All'>('All');
   const mapHeight = Math.max(290, Math.min(500, Math.round(height * (width < 900 ? 0.46 : 0.60))));
   const publicLibraries = usePublicLibraries(active && visible.libraries);
-  const posts = shared.enabled ? shared.data?.posts : state.posts;
+  const posts = shared.data?.posts;
   const events = useMemo(() => visible.events && posts ? communityEventPins(posts) : null, [posts, visible.events]);
 
   const reporting = shared.data?.reporting;
-  const allRows = useMemo(() => shared.enabled ? reporting?.map ?? [] : mapRows(state), [reporting, shared.enabled, state]);
+  const allRows = reporting?.map ?? noRows;
   const sharedRows = category === 'All'
     ? reporting?.map
     : reporting?.mapByCategory?.find((entry) => entry.category === category)?.rows;
-  const rows = useMemo(
-    () => category === 'All' ? allRows : shared.enabled ? sharedRows ?? [] : mapRows(state, category),
-    [allRows, shared.enabled, sharedRows, state, category],
-  );
+  const rows = sharedRows ?? noRows;
   const coveredAreas = useMemo(() => new Set(allRows.filter(({ open, delivered }) =>
     open > 0 || delivered > 0).map(({ area }) => area)), [allRows]);
   const reportedRows = useMemo(() => rows.filter(({ area }) => coveredAreas.has(area))
     .sort((a, b) => a.area.localeCompare(b.area)), [rows, coveredAreas]);
-  const showServiceStats = !shared.enabled || !!sharedRows;
+  const showServiceStats = !!sharedRows;
   const shownIncidents = incidentLayers.filter(({ key }) => visible[key]);
   const needsShading = useMemo(() => visible.needs
     ? Object.fromEntries(reportedRows.map(({ area, open }) => [area, needColor(open)]))
@@ -163,7 +160,7 @@ export default function MapScreen() {
             {!selected && reportedRows.length > 0 && (
               <Copy kind="small" tint={color.muted}>Tap a neighborhood to see its totals.</Copy>
             )}
-            {shared.enabled && !shared.data && (
+            {!shared.data && (
               <Btn label="Sign in to view service stats" secondary onPress={() => router.push('/settings')} />
             )}
             {shared.data && !sharedRows && (
@@ -183,9 +180,9 @@ export default function MapScreen() {
                 <Btn label="View profile" quiet onPress={() =>
                   router.push({ pathname: '/partner/[id]', params: { id: partner.id } })}
                 />
-                <Btn label={'Request help from ' + partner.name} secondary onPress={() =>
+                {shared.data?.account.kind !== 'worker' && <Btn label={'Request help from ' + partner.name} secondary onPress={() =>
                   router.push({ pathname: '/ask', params: { partner: partner.id } })}
-                />
+                />}
               </View>
             ))}
             {shownIncidents.length > 0 && (

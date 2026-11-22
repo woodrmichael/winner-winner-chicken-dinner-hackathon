@@ -16,19 +16,13 @@ import { EditPartner } from './EditPartner';
 export default function PartnerProfile() {
   const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const router = useRouter();
-  const { state, run, role, partnerId, shared } = useDemo();
+  const { state, run, shared } = useDemo();
   const partner = state.partners.find((entry) => entry.id === id);
-  const isModerator = shared.enabled
-    ? shared.data?.account.moderator === true
-    : role === 'Moderator';
-  const isOrgAdmin =
-    !!partner &&
-    partner.listingStatus === 'approved' &&
-    (shared.enabled
-      ? shared.data?.account.membership?.admin === true &&
-        shared.data.account.membership.partnerId === partner.id &&
-        shared.data.account.membership.status === 'approved'
-      : role === 'Partner' && partnerId === partner.id);
+  const account = shared.data?.account;
+  const membership = account?.membership;
+  const isModerator = account?.moderator === true;
+  const isOrgAdmin = !!partner && membership?.admin === true &&
+    membership.status === 'approved' && membership.partnerId === partner.id;
   const canManageAvailability =
     !!partner &&
     partner.listingStatus === 'approved' &&
@@ -165,7 +159,7 @@ export default function PartnerProfile() {
         />
       ) : null}
       <View style={wrap}>
-        {partner.listingStatus === 'approved' ? (
+        {partner.listingStatus === 'approved' && account?.kind !== 'worker' ? (
           <Btn
             label={`Request help from ${partner.name}`}
             stretch

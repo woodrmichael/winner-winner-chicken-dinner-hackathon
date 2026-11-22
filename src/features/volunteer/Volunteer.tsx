@@ -82,7 +82,7 @@ export function VolunteerOptions({ openSettings }: { openSettings: () => void })
                   {signup.minutes === undefined && <Btn label="Cancel volunteer signup" secondary
                     onPress={() => run({ type: 'cancel-volunteer' })} />}
                 </>
-              ) : !signup && (
+              ) : account.kind === 'resident' && !signup && (
                 <Btn label={`Reserve ${role.name.toLowerCase()}`} disabled={full}
                   onPress={() => run({ type: 'reserve-volunteer', roleId: role.id })} />
               )}

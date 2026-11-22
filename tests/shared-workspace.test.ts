@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import test, { type TestContext } from 'node:test';
 import { createApi, withPassword } from '../server/api';
-import { createWorkspace, demoAccounts, restoreCommunication, type Workspace } from '../server/workspace';
+import { createWorkspace, demoAccounts, restoreCommunication, type Workspace } from '../src/shared/workspaceModel';
 import type { SharedSnapshot } from '../src/shared/workspace';
 
 async function fixture(t: TestContext) {

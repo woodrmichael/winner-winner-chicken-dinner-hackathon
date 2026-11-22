@@ -8,7 +8,7 @@ export function WorkerAssignment({ assignment }: { assignment: ReferralAssignmen
   const { shared, run } = useDemo();
   const [selected, setSelected] = useState<string | null>(assignment.assignedWorker?.id ?? null);
   const [saved, setSaved] = useState('');
-  if (!shared.enabled || !shared.data) return null;
+  if (!shared.data) return null;
   const workers = shared.data.workers;
   const options = [{ value: null, label: 'Unassigned' }, ...workers.map(({ id, name }) => ({ value: id, label: name }))];
   return <>

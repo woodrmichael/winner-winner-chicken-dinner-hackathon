@@ -7,7 +7,7 @@ import { Btn, Card, Copy, Field } from '../../ui/kit';
 import { PendingListings } from '../directory/PendingListings';
 import { approvedPartners, partnerName } from '../matching/directory';
 
-export function SharedAccount() {
+export function SharedAccount({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const { shared, run, state } = useDemo();
   const [username, setUsername] = useState('');
@@ -71,9 +71,10 @@ export function SharedAccount() {
           <Btn
             label="Manage service availability"
             quiet
-            onPress={() =>
-              router.push({ pathname: '/partner/[id]', params: { id: membership.partnerId } })
-            }
+            onPress={() => {
+              onNavigate?.();
+              router.push({ pathname: '/partner/[id]', params: { id: membership.partnerId } });
+            }}
           />
         </Card>
       )}
@@ -83,8 +84,8 @@ export function SharedAccount() {
         </Card>
       ) : null}
       <Card>
-        <Btn label="Browse partner directory" quiet onPress={() => router.push('/directory')} />
-        <Btn label="Submit an organization" quiet onPress={() => router.push('/partner/submit')} />
+        <Btn label="Browse partner directory" quiet onPress={() => { onNavigate?.(); router.push('/directory'); }} />
+        <Btn label="Submit an organization" quiet onPress={() => { onNavigate?.(); router.push('/partner/submit'); }} />
       </Card>
     </>
   );

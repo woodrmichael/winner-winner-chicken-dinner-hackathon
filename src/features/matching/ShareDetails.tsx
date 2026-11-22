@@ -1,6 +1,5 @@
 import { View } from 'react-native';
 import { shareFields } from '../../domain/referrals';
-import { profile } from '../../domain/seed';
 import { useDemo } from '../../state/Demo';
 import type { SharedDetails } from '../../domain/types';
 import { ToggleRow } from '../../ui/SelectionRows';
@@ -29,7 +28,7 @@ export function ShareDetails({
   showHeading?: boolean;
 }) {
   const { shared } = useDemo();
-  const details: SharedDetails = shared.enabled ? shared.data?.account.details ?? {} : profile;
+  const details: SharedDetails = shared.data?.account.details ?? {};
   return (
     <View style={{ gap: 6 }}>
       {showHeading && <Copy kind="strong">Optional details to share</Copy>}

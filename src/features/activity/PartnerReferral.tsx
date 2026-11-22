@@ -332,7 +332,6 @@ export function PartnerReferral({
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const { shared } = useDemo();
   const title = ticket.outstanding.length
     ? listWords(ticket.outstanding.map(needName))
     : listWords(ticket.services.map(({ category }) => needName(category))) || ticket.status;
@@ -345,7 +344,7 @@ export function PartnerReferral({
         onToggle={onToggle}
       >
         <PartnerReferralDetails ticket={ticket} />
-        {shared.enabled && <ConversationLink assignment={ticket.assignment} />}
+        <ConversationLink assignment={ticket.assignment} />
       </Disclosure>
     </Card>
   );

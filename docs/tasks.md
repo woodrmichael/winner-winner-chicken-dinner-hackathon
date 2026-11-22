@@ -16,6 +16,10 @@ Community is where neighbors offer items and organize activities. A resident wit
 - [x] **1.6 Search community posts.** Search `coat` to find “Kids’ coats available” on the Community board. Search **My groups** for a post from a joined neighborhood. Private referrals stay in Activity.
 - [x] **1.7 Use one compact header on phones.** Switch among the four tabs and compare heading size and gutters. Swipe left from the right edge to open Settings. Switch roles and tap Done to return to the same screen. Open Share report from Impact and repeat with larger system text. [PR #8](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/8)
 
+- [ ] **1.8 Simplify Community and event actions.** After 1.7. Claimed by `codex/two-demo-views`. Find the winter drive from Community, filter to Events, search for a repair café, open it and join. Check its photo and the bookmark beside View event. Open a bookmarked event from Saved events in Activity and return there. Private requests and updates stay in Activity. Swipe left from the right edge to open Settings.
+
+- [ ] **1.9 Keep position and media when changing screens.** After 1.7 and 1.8. Claimed by `codex/two-demo-views`. Filter Community to Events, scroll to a photographed event and open it. Return to the same scroll position, then switch tabs and return. The feed image should remain mounted and the event photo should appear without a second fade.
+
 ## 2. Resource matching
 
 From **Community → Ask for help**, a resident can describe a situation without knowing which organization handles it. Today the app uses keywords to suggest directory partners. The resident can choose a different partner, review the message, and decide whether to include their first name, callback number, or neighborhood. The matching work below helps someone reach a partner that covers the help they still need.
@@ -30,6 +34,8 @@ From **Community → Ask for help**, a resident can describe a situation without
 - [x] **2.8 Explain when no single partner covers every need.** After 2.6. For food and a ride, show a short tip such as that no organization covers both and the resident should pick who to contact first, alongside the complementary partner suggestions.
 - [x] **2.9 Let residents add needs on review.** After 2.2. From a ride-only review, add Food (or another missing category). Needs update, partners re-rank, and a refreshed suggested draft becomes available without restarting Ask for help.
 - [x] **2.10 Handle requests with no automatic matches.** After 2.1. For a request the directory cannot match automatically, show that no automatic matches were found and ask the resident to rephrase their request or select a partner manually. The full directory stays available for manual selection.
+
+- [ ] **2.11 Enter a request by voice.** After 2.1 and 2.2. Claimed by `codex/two-demo-views`. Open Ask for help and tap the mic icon. On a supported browser or a configured shared workspace in Expo Go, watch the transcript update while speaking. Stop, edit the text, find resources, and use the back arrow to return to your wording. Without a transcription connection, Expo Go displays a brief status.
 
 ## 3. Referral coordination
 
@@ -111,6 +117,8 @@ The offline demo switches roles on one device. The [shared workspace](../README.
 
 - [x] **9.1 Open a referral from the right account.** Show the active person and organization. Send a request as a resident on one device, accept it as an approved worker on another, and verify that the resident sees the update. Check that an unrelated signed-in account cannot read the same referral or record a delivery against it.
 - [x] **9.2 Approve a worker to act for an organization.** After 9.1. A worker requests membership or accepts an invitation. While approval is pending, the worker cannot open the partner inbox. After an authorized administrator approves membership, the worker can handle that organization’s referrals.
+
+- [ ] **9.3 Rehearse from two profiles on one phone.** After 9.1, 8.1, 8.2 and 10.2. Claimed by `codex/two-demo-views`. Send a winter referral as Alex, then switch to Morgan to accept it, reply privately and record delivery. Return to Alex to see the same conversation and completed request. Check that resident actions and partner tools follow the active profile.
 
 Ben Nguyen verified cross-device referral access and worker approval on iPhone and PC. [Shared workspace commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/526b591)
 

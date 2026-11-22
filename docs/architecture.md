@@ -1,8 +1,8 @@
 # Architecture
 
-Each feature shares one Expo Router app. The offline rehearsal uses a device-local workspace. With `EXPO_PUBLIC_API_URL` set, the app sends referral, membership and volunteer commands to the shared server. A referral represents one resident request. It contains partner assignments, requested categories and deliveries credited to the partner that provided each service.
+Each feature shares one Expo Router app. The offline rehearsal uses a device-local workspace with Alex Rivera as the resident and Morgan Chen as the Winter Care Collective administrator. Both modes use the [workspace model](../src/shared/workspaceModel.ts) to authorize commands and project Activity, conversations, volunteering and reporting by account. With `EXPO_PUBLIC_API_URL` set, the app sends commands to the shared server and uses its signed-in accounts. A referral represents one resident request. It contains partner assignments, requested categories and deliveries credited to the partner that provided each service.
 
-The partner directory lives on the workspace as `partners` (seeded from [directory helpers](../src/features/matching/directory.ts)). Each partner record includes services, coverage areas, pickup arrangements, per-service availability, and listing status. Community posts, bookmarks and offer replies stay on the current device. Shared referrals appear for authorized users across devices.
+The partner directory lives on the workspace as `partners` (seeded from [directory helpers](../src/features/matching/directory.ts)). Each partner record includes services, coverage areas, pickup arrangements, per-service availability, and listing status. The local workspace persists Community and Activity on one device. In the shared workspace, public posts and authorized referrals are available across devices.
 
 | Change | Start here |
 | --- | --- |
@@ -11,9 +11,13 @@ The partner directory lives on the workspace as `partners` (seeded from [directo
 | Referral lifecycle | [Types and commands](../src/domain/types.ts) define the contract. [Referral model](../src/domain/referrals.ts) implements transitions and private read functions. [Domain model](../src/domain/model.ts) exposes aggregate reads. |
 | Save, load or reset | [Provider](../src/state/Demo.tsx) queues writes. [Decoder](../src/state/persistence.ts) validates saved state. [Seed](../src/domain/seed.ts) defines the starting workspace. |
 
+### Request transcription
+
+In Expo Go, the mic streams mono PCM through the shared workspace API to OpenAI Realtime when the server has an `OPENAI_API_KEY`. The server issues short-lived, single-use WebSocket tickets to signed-in residents and keeps the provider key in its environment. Requests have a time limit. The app puts partial and final transcripts in the editable request field. Microphone audio is forwarded and does not enter workspace storage. In browsers with speech recognition, the mic uses the browser service.
+
 ## Business partnerships
 
-Community event details and the Impact program open project partnerships. Offers and inquiries can be submitted by any signed-in account. The winter organizer reviews private inquiries and offers, confirms support, and records pledges and payments. In the local workspace, use the winter partner or moderator view in Settings for coordinator actions.
+Community event details and the Impact program open project partnerships. Offers and inquiries can be submitted by any signed-in account. The winter organizer reviews private inquiries and offers, confirms support, and records pledges and payments. In the local workspace, switch to the Partner profile in Settings for coordinator actions.
 
 Partnership commands store amounts in integer cents. A confirmed offer becomes one pledge with the offer ID. Payments reference that pledge and cannot exceed its outstanding balance. Partial payments are allocated proportionally across supplies and operations, rounded on cumulative receipts. Business volunteer commitments count toward project staffing separately from individual role reservations and attended hours. Existing winter funding opens with Juniper Market’s recorded balance. Its original purpose is unknown and reported separately from allocated receipts. Earlier device and server snapshots need no migration to display it.
 
@@ -52,7 +56,7 @@ A screen supplies an ID and timestamp, then awaits `run(command)`. The provider 
 - `propose-handoff` gives the resident a proposed recipient, category and reason. `respond-handoff` can create one assignment for that category. The recipient gets the reviewed reason and freshly opted-in fields. The original message and contact details stay with the original assignment.
 - `decline-service` records a provider’s reason for a category. The resident can use `seek-provider` to send a reviewed message to another provider or `withdraw-need` to close that category.
 - `complete` requires acceptance and an outstanding category the assignment handles. Each delivery stores its category, assignment, provider, time and optional program. Repeating acceptance, approval or delivery preserves the original record.
-- AsyncStorage uses the existing key `comforce-connect/demo/v1`. The v2 decoder upgrades v1 records to one original assignment and preserves every old delivery. A requested category without a delivery stays open after migration. Older snapshots without community state or bookmarks load with empty defaults for those fields. Settings holds the referral view, partner inbox and offer reply identity for the session. Unsent drafts are session state.
+- AsyncStorage uses the existing key `comforce-connect/demo/v1`. The v2 decoder upgrades v1 records to one original assignment and preserves every old delivery. Older snapshots keep saved offers, referrals and bookmarks under Alex’s profile. Local messages, unread updates, volunteer roles and signups are saved alongside those records. Settings switches the active profile for the session. Each launch opens as Alex.
 - The [demo seed](../src/domain/seed.ts) supplies deterministic August–November 2026 requests and deliveries. The [community seed](../src/domain/demoCommunity.ts) pairs sample event posts with their details. On load, missing samples are added by ID so existing device and shared workspaces keep their saved records. On the shared server, Alex’s sample referrals belong to the `alex` account.
 
 ### Shared account and volunteer contracts

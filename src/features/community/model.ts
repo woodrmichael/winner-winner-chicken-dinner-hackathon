@@ -38,6 +38,7 @@ export function applyCommunityCommand(
   state: DemoState,
   cmd: CommunityCommand,
   actorId = residentId,
+  actorName?: string,
 ): DemoState {
   const { community } = state;
   switch (cmd.type) {
@@ -50,7 +51,7 @@ export function applyCommunityCommand(
       const post: Post = {
         id: cmd.id,
         kind: cmd.group ? 'Update' : 'Offer',
-        author: residentAuthor,
+        author: actorName ?? residentAuthor,
         authorId: actorId,
         title: cmd.title.trim(),
         body: cmd.body.trim(),
@@ -65,12 +66,15 @@ export function applyCommunityCommand(
       if (!state.posts.some((post) => post.id === cmd.postId && post.kind === 'Offer')) {
         throw new Error('Choose an offer to reply to.');
       }
-      const { id, postId, from, at } = cmd;
+      const { id, postId, at } = cmd;
+      const from = actorName
+        ? state.posts.some((post) => post.id === postId && post.authorId === actorId) ? 'author' : 'resident'
+        : cmd.from;
       const body = cmd.body.trim();
       if (!body) throw new Error('Write a reply before posting.');
       return {
         ...state,
-        community: { ...community, replies: [...community.replies, { id, postId, from, at, body }] },
+        community: { ...community, replies: [...community.replies, { id, postId, from, at, body, ...(actorName && { authorName: actorName }) }] },
       };
     }
     case 'event-rsvp': {

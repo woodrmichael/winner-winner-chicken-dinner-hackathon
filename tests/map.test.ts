@@ -13,7 +13,8 @@ test('only public visible events with venue details appear on the map', () => {
   const posts = demoPosts();
   const drive = posts.find(({ id }) => id === 'drive')!;
   const pins = communityEventPins(posts);
-  assert.equal(pins.length, 3);
+  assert.equal(pins.length, posts.filter(({ kind }) => kind === 'Event').length);
+  assert.ok(pins.some(({ id }) => id === 'demo-post-bay-view-repair'));
   assert.deepEqual(pins.find(({ id }) => id === drive.id), {
     id: drive.id, title: drive.title, coordinates: communityEvents.get(drive.id)!.venue.coordinates,
   });

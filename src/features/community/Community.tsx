@@ -1,59 +1,50 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ArrowUpRight, CalendarDays, HandHeart, MapPin, Plus, Shirt } from 'lucide-react-native';
-import { Image, View } from 'react-native';
+import { ArrowRight, CalendarDays, HandHeart, MapPin, Plus, Search, Shirt } from 'lucide-react-native';
+import { View, useWindowDimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { now, useDemo } from '../../state/Demo';
-import { impact, residentTimeline } from '../../domain/model';
-import { outstandingNeeds } from '../../domain/referrals';
-import { Btn, Card, Columns, Copy, Field, Page, color, row, wrap } from '../../ui/kit';
-import { Segments } from '../../ui/Segments';
+import { Btn, Card, Copy, Field, Page, color, row, wrap } from '../../ui/kit';
+import { SelectMenu } from '../../ui/SelectMenu';
 import { neighborhoods, type Post } from '../../domain/types';
 import { communityEvents, communityFeed, type CommunityView } from './model';
 import { PostTimestamp } from './PostTimestamp';
+import { postPhoto } from './postPhotos';
 import { SavePostButton } from './SavePostButton';
 
-const views: Record<CommunityView, string> = {
-  board: 'Community board',
-  groups: 'My groups',
-  saved: 'Saved',
-};
+type FeedFilter = 'all' | Post['kind'] | 'groups' | 'saved';
+const publicFilters: { value: FeedFilter; label: string }[] = [
+  { value: 'all', label: 'All posts' },
+  { value: 'Event', label: 'Events' },
+  { value: 'Offer', label: 'Offers' },
+  { value: 'Update', label: 'Updates' },
+];
+const personalFilters = [
+  ...publicFilters,
+  { value: 'groups', label: 'My groups' },
+  { value: 'saved', label: 'Saved' },
+] satisfies typeof publicFilters;
 
-function Bulletin({ post }: { post: Post }) {
+function Bulletin({ post, wide }: { post: Post; wide: boolean }) {
   const router = useRouter();
   const featured = post.id === 'drive';
   const event = post.kind === 'Event' ? communityEvents.get(post.id) : undefined;
+  const photo = postPhoto(post.id);
   return (
-    <Card style={{ padding: 0, overflow: 'hidden' }}>
-      {featured && (
-        <View style={{ height: 204 }}>
+    <Card style={{ padding: 0, overflow: 'hidden', flex: wide && !featured ? 1 : undefined, flexDirection: wide && featured ? 'row' : 'column' }}>
+      {photo && (
+        <View style={wide && featured ? { width: '43%', minHeight: 225 } : { height: featured ? 198 : 152 }}>
           <Image
-            source={require('../../../assets/clothing-rack.jpg')}
-            accessibilityLabel="Coats and clothing on a rack"
-            resizeMode="cover"
+            source={photo.source}
+            accessibilityLabel={photo.description}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={0}
             style={{ width: '100%', height: '100%' }}
           />
-          <View
-            style={{
-              position: 'absolute',
-              top: 12,
-              left: 12,
-              backgroundColor: '#FFFFFF',
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              alignItems: 'center',
-              borderRadius: 12,
-            }}
-          >
-            <Copy kind="label" tint={color.rust}>
-              NOV
-            </Copy>
-            <Copy kind="title" style={{ lineHeight: 29 }}>
-              21
-            </Copy>
-          </View>
         </View>
       )}
-      <View style={{ padding: 17, gap: 7 }}>
+      <View style={{ flex: wide ? 1 : undefined, padding: 17, gap: 7 }}>
         <View style={wrap}>
           {post.kind === 'Event' ? (
             <CalendarDays size={15} color={color.pine} />
@@ -72,7 +63,7 @@ function Bulletin({ post }: { post: Post }) {
             · {post.author}
           </Copy>
         </View>
-        <Copy kind="title" style={{ fontSize: 25 }}>
+        <Copy kind="title" style={featured ? { fontSize: 26 } : undefined}>
           {post.title}
         </Copy>
         <Copy>{post.body}</Copy>
@@ -84,18 +75,17 @@ function Bulletin({ post }: { post: Post }) {
             </Copy>
           </View>
         )}
-        <View style={[row, { alignItems: 'flex-end' }]}>
-          <View style={{ flex: 1, minWidth: 0, gap: 7 }}>
-            {(event || post.kind === 'Offer') && (
-              <Btn
-                label={event ? 'View event' : 'View offer and replies'}
-                secondary
-                onPress={() => router.push({ pathname: '/community-post/[id]', params: { id: post.id } })}
-              />
-            )}
-            <PostTimestamp date={post.date} />
-          </View>
+        {!event && <PostTimestamp date={post.date} />}
+        <View style={[wrap, { justifyContent: 'flex-end', marginTop: wide ? 'auto' : 4 }]}>
           <SavePostButton postId={post.id} />
+          {(event || post.kind === 'Offer') && (
+            <Btn
+              label={event ? 'View event' : 'View offer and replies'}
+              icon={ArrowRight}
+              secondary
+              onPress={() => router.push({ pathname: '/community-post/[id]', params: { id: post.id, from: 'community' } })}
+            />
+          )}
         </View>
       </View>
     </Card>
@@ -189,101 +179,63 @@ function ModerationQueue() {
 export default function Community({ view }: { view?: string }) {
   const router = useRouter();
   const { state, shared, role } = useDemo();
-  const activeView = view === 'groups' || view === 'saved' ? view : 'board';
-  const [filter, setFilter] = useState<'All' | Post['kind']>('All');
-  const [query, setQuery] = useState('');
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
+  const partner = shared.data?.account.kind === 'worker';
+  const options = partner ? publicFilters : personalFilters;
+  const filter = options.find(({ value }) => value === view)?.value ?? 'all';
+  const activeView: CommunityView = filter === 'groups' || filter === 'saved' ? filter : 'board';
+  const accountId = shared.data?.account.id ?? '';
+  const [searches, setSearches] = useState<Record<string, { query: string; open: boolean }>>({});
+  const { query, open: showSearch } = searches[accountId] ?? { query: '', open: false };
+  function updateSearch(next: string, open: boolean) {
+    setSearches((current) => ({ ...current, [accountId]: { query: next, open } }));
+  }
   const searching = !!query.trim();
   const posts = communityFeed(state, activeView, query).filter(
-    (post) => activeView !== 'board' || filter === 'All' || post.kind === filter,
-  );
+    (post) => activeView !== 'board' || filter === 'all' || post.kind === filter,
+  ).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
   const emptyFeed = {
     board: 'No posts in this category yet.',
-    groups: state.community.groups.length
-      ? 'No posts in your groups yet.'
-      : 'Join a neighborhood group to see its posts here.',
+    groups: state.community.groups.length ? 'No posts in your groups yet.' : 'Join a neighborhood group to see its posts here.',
     saved: 'Save a post to find it here later.',
   };
-  const active = (shared.enabled ? shared.data?.referrals ?? [] : residentTimeline(state))
-    .filter((ticket) => outstandingNeeds(ticket).length > 0).length;
+  const featured = posts.find((post) => post.id === 'drive');
+  const feed = posts.filter((post) => post !== featured);
   const actions = (
     <View style={wrap}>
-      <Btn label="Ask for help" icon={HandHeart} onPress={() => router.push('/ask')} />
-      <Btn label="Post an offer" secondary icon={Plus} onPress={() => router.push('/offer')} />
+      {partner ? (
+        <Btn label="Open inbox" icon={ArrowRight} secondary onPress={() => router.navigate('/activity')} />
+      ) : (
+        <>
+          <Btn label="Ask for help" icon={HandHeart} onPress={() => router.push('/ask')} />
+          <Btn label="Post an offer" quiet icon={Plus} onPress={() => router.push('/offer')} />
+        </>
+      )}
     </View>
   );
-  const stats = shared.enabled ? shared.data?.reporting.impact : impact(state);
-  const requiresSignIn = shared.enabled && !shared.data;
+
   return (
     <Page title="Community" right={actions}>
-      <Columns
-        main={
-          <>
-            {role === 'Moderator' && <ModerationQueue />}
-            <Segments
-              options={['board', 'groups', 'saved'] as const}
-              value={activeView}
-              onChange={(next) => router.setParams({ view: next })}
-              label={(item) => views[item]}
-            />
-            <View style={{ gap: 6 }}>
-              <Field
-                label="Search posts"
-                value={query}
-                change={setQuery}
-                placeholder="Coats, winter drive, pantry…"
-              />
-              {query !== '' && <Btn label="Clear search" secondary onPress={() => setQuery('')} />}
-            </View>
-            {activeView === 'board' && (
-              <Segments
-                options={['All', 'Event', 'Offer', 'Update'] as const}
-                value={filter}
-                onChange={setFilter}
-                label={(item) => (item === 'All' ? 'All posts' : item + 's')}
-              />
-            )}
-            {activeView === 'groups' && !searching && <GroupDirectory />}
-            {posts.length ? (
-              posts.map((post) => <Bulletin key={post.id} post={post} />)
-            ) : (
-              <View accessibilityLiveRegion="polite">
-                <Copy tint={color.muted}>
-                  {searching ? 'No posts match your search.' : emptyFeed[activeView]}
-                </Copy>
-              </View>
-            )}
-          </>
-        }
-        side={
-          <>
-            <Card>
-              <HandHeart color={color.pine} size={24} />
-              <Copy kind="title">Your referrals</Copy>
-              <Copy tint={color.muted}>
-                {requiresSignIn ? 'Sign in to see your referrals.' : active === 0
-                  ? 'No active referrals'
-                  : active + (active === 1 ? ' active referral' : ' active referrals')}
-              </Copy>
-              <Btn label="View activity" secondary onPress={() => router.navigate('/activity')} />
-            </Card>
-            <Card>
-              <Copy kind="label" tint={color.pine}>
-                COMMUNITY IMPACT
-              </Copy>
-              {stats ? <>
-                <Copy kind="title" style={{ fontSize: 42, lineHeight: 48 }}>{stats.delivered}</Copy>
-                <Copy>Services delivered by partners</Copy>
-              </> : <Copy>Sign in to see services delivered by partners.</Copy>}
-              <Btn
-                label="See impact"
-                icon={ArrowUpRight}
-                secondary
-                onPress={() => router.navigate('/impact')}
-              />
-            </Card>
-          </>
-        }
-      />
+      {role === 'Moderator' && <ModerationQueue />}
+      <View style={[row, { justifyContent: 'space-between' }]}>
+        <SelectMenu label="Filter posts" value={filter} options={options} appearance="pill" align="start"
+          onChange={(next) => router.setParams({ view: next })} />
+        <Btn label={showSearch ? 'Close search' : 'Search posts'} icon={Search} quiet
+          onPress={() => updateSearch(showSearch ? '' : query, !showSearch)} />
+      </View>
+      {showSearch && <Field label="Search posts" value={query} change={(text) => updateSearch(text, true)} placeholder="Coats, winter drive, pantry" />}
+      {activeView === 'groups' && !searching && <GroupDirectory />}
+      {featured && <Bulletin post={featured} wide={wide} />}
+      {wide ? feed.filter((_, index) => index % 2 === 0).map((post, index) => (
+        <View key={post.id} style={{ flexDirection: 'row', gap: 14 }}>
+          <Bulletin post={post} wide />
+          {feed[index * 2 + 1] ? <Bulletin post={feed[index * 2 + 1]} wide /> : <View style={{ flex: 1 }} />}
+        </View>
+      )) : feed.map((post) => <Bulletin key={post.id} post={post} wide={false} />)}
+      {!posts.length && <View accessibilityLiveRegion="polite">
+        <Copy tint={color.muted}>{searching ? 'No posts match your search.' : emptyFeed[activeView]}</Copy>
+      </View>}
     </Page>
   );
 }

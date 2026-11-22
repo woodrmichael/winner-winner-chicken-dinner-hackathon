@@ -1,5 +1,5 @@
 import { Slot, useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity,
   ChartNoAxesColumnIncreasing,
@@ -9,9 +9,10 @@ import {
 } from 'lucide-react-native';
 import { Keyboard, Platform, Pressable, StatusBar, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityScreen, Community, Impact, MapScreen } from '../src/features/navigation/tabScreens';
+import { ActivityScreen, Community, Impact, MapScreen, warmNavigation } from '../src/features/navigation/tabScreens';
+import { warmPostPhotos } from '../src/features/community/postPhotos';
 import { SettingsDrawer, SettingsEdge } from '../src/features/settings/SettingsDrawer';
-import { DemoProvider } from '../src/state/Demo';
+import { DemoProvider, useDemo } from '../src/state/Demo';
 import { AppMark } from '../src/ui/AppMark';
 import { RetainedTab } from '../src/ui/RetainedTab';
 import { Card, Copy, Page, color, row } from '../src/ui/kit';
@@ -45,12 +46,23 @@ function Location() {
   );
 }
 function Shell() {
+  const { shared } = useDemo();
+  const accountId = shared.data?.account.id;
   const pathname = usePathname();
-  const { view, period } = useGlobalSearchParams<{ view?: string; period?: string }>();
+  const { view, period, from } = useGlobalSearchParams<{ view?: string; period?: string; from?: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const wide = width >= 900;
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const tabParams = useRef<{ view?: string; period?: string }>({});
+  useEffect(() => {
+    if (pathname === '/') tabParams.current.view = view;
+    if (pathname === '/impact') tabParams.current.period = period;
+  }, [pathname, view, period]);
+  useEffect(() => {
+    warmPostPhotos();
+    warmNavigation();
+  }, []);
   const openSettings = useCallback(() => {
     if (pathname === '/settings') return;
     Keyboard.dismiss();
@@ -78,19 +90,23 @@ function Shell() {
       }}
     >
       {tabs.map(({ name, path, icon: Icon }) => {
+        const label = path === '/activity' && shared.data?.account.kind === 'worker' ? 'Inbox' : name;
         const settingsShortcut = !wide && path === '/';
+        const postPage = pathname.startsWith('/community-post/');
         const selected =
           pathname === path ||
-          (path === '/activity' && pathname.startsWith('/activity/referral/')) ||
+          (path === '/activity' && (pathname.startsWith('/activity/referral/') || (postPage && from === 'activity'))) ||
+          (path === '/map' && postPage && from === 'map') ||
           (path === '/impact' && pathname === '/impact-program') ||
           (path === '/' &&
-            (['/ask', '/offer'].includes(pathname) || pathname.startsWith('/community-post/')));
+            (['/ask', '/offer'].includes(pathname) || (postPage && from !== 'activity' && from !== 'map')));
         return (
           <Pressable
             key={path}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
-            accessibilityLabel={name}
+            aria-selected={selected}
+            accessibilityLabel={label}
             accessibilityHint={settingsShortcut ? 'Press and hold to open settings' : undefined}
             accessibilityActions={settingsShortcut ? [{ name: 'openSettings', label: 'Open settings' }] : undefined}
             onAccessibilityAction={settingsShortcut ? (event) => {
@@ -100,7 +116,9 @@ function Shell() {
             onPress={() => {
               if (pathname === path) return;
               Keyboard.dismiss();
-              router.navigate(path);
+              const params = path === '/' ? { view: tabParams.current.view }
+                : path === '/impact' ? { period: tabParams.current.period } : {};
+              router.navigate({ pathname: path, params });
             }}
             style={({ pressed }) => ({
               flex: wide ? undefined : 1,
@@ -133,7 +151,7 @@ function Shell() {
                 maxWidth: '100%',
               }}
             >
-              {name}
+              {label}
             </Copy>
           </Pressable>
         );
@@ -176,7 +194,7 @@ function Shell() {
             }>
               {() => <MapScreen />}
             </RetainedTab>
-            <RetainedTab active={pathname === '/activity'} fallback={<Page title="Activity" />}>
+            <RetainedTab key={`activity:${accountId}`} active={pathname === '/activity'} fallback={<Page title="Activity" />}>
               {() => <ActivityScreen />}
             </RetainedTab>
             <RetainedTab active={pathname === '/impact'} param={period} fallback={<Page title="Impact" />}>

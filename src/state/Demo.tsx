@@ -1,129 +1,59 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type PropsWithChildren,
-} from 'react';
+import { createContext, useContext, type PropsWithChildren } from 'react';
 import { View } from 'react-native';
-import { applyCommand } from '../domain/model';
-import { residentId, seedState, withDemoSamples } from '../domain/seed';
-import type { Command, DemoState, OfferReply } from '../domain/types';
+import type { DemoState } from '../domain/types';
+import { seedState } from '../domain/seed';
 import { Btn, Copy } from '../ui/kit';
-import { decode, storageKey } from './persistence';
-import { isWorkspaceCommand } from '../shared/workspace';
+import { workspaceApiUrl } from '../shared/http';
+import { useLocalWorkspace, type LocalRole } from './localWorkspace';
 import { useSharedWorkspace } from './sharedWorkspace';
 
 type DemoContext = {
   state: DemoState;
-  shared: ReturnType<typeof useSharedWorkspace>;
-  run: (cmd: Command) => Promise<void>;
+  shared: Omit<ReturnType<typeof useSharedWorkspace>, 'enabled'>;
+  run: ReturnType<typeof useSharedWorkspace>['run'];
+  localProfile?: { role: LocalRole; selectRole: (role: LocalRole) => void };
   partnerId: string;
-  setPartnerId: (id: string) => void;
-  role: 'Resident' | 'Partner' | 'Moderator';
-  setRole: (role: 'Resident' | 'Partner' | 'Moderator') => void;
-  offerReplyFrom: OfferReply['from'];
-  setOfferReplyFrom: (from: OfferReply['from']) => void;
+  role: LocalRole | 'Moderator';
 };
 const Context = createContext<DemoContext | null>(null);
-export const newId = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
+const publicSeed = seedState();
+export { newId } from '../shared/id';
 export const now = () => new Date().toISOString();
 
 export function DemoProvider({ children }: PropsWithChildren) {
-  const shared = useSharedWorkspace();
-  const [state, setState] = useState<DemoState>();
-  const current = useRef<DemoState | undefined>(undefined);
-  const writes = useRef(Promise.resolve());
-  const [error, setError] = useState('');
-  const [role, setRole] = useState<'Resident' | 'Partner' | 'Moderator'>('Resident');
-  const [partnerId, setPartnerId] = useState('winter-team');
-  const [offerReplyFrom, setOfferReplyFrom] = useState<OfferReply['from']>('resident');
-  useEffect(() => {
-    let active = true;
-    AsyncStorage.getItem(storageKey)
-      .then((raw) => {
-        const value = raw === null ? seedState() : withDemoSamples(decode(raw));
-        if (active) {
-          current.current = value;
-          setState(value);
-        }
-      })
-      .catch(() => {
-        if (active) setError('Your workspace couldn’t be opened. Reset it to start again.');
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-  const save = useCallback((cmd?: Parameters<typeof applyCommand>[1]) => {
-    const next = writes.current.then(async () => {
-      const value = cmd && current.current ? applyCommand(
-        current.current,
-        cmd,
-        role === 'Moderator' ? 'moderator' : residentId,
-      ) : seedState();
-      if (value !== current.current) await AsyncStorage.setItem(storageKey, JSON.stringify(value));
-      current.current = value;
-      setState(value);
-      setError('');
-    });
-    writes.current = next.catch(() => {});
-    return next;
-  }, [role]);
-  async function reset() {
-    await save();
-    setRole('Resident');
-    setPartnerId('winter-team');
-    setOfferReplyFrom('resident');
-  }
-  if (!state)
+  const remote = useSharedWorkspace();
+  const local = useLocalWorkspace(!workspaceApiUrl);
+  const shared = remote.enabled ? remote : { ...remote, data: local.data, run: local.run };
+  const account = shared.data?.account;
+  if (!remote.enabled && !account) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
-        <Copy>{error || 'Opening the community board…'}</Copy>
-        {error ? <Btn label="Reset workspace" onPress={reset} /> : null}
+        <Copy>{local.error || 'Opening the community board…'}</Copy>
+        {local.error ? <Btn label="Reset workspace" onPress={local.reset} /> : null}
       </View>
     );
+  }
+
   return (
-    <Context.Provider
-      value={{
-        state: shared.enabled ? {
-          ...state,
-          posts: shared.data?.posts ?? state.posts,
-          community: shared.data?.community ?? state.community,
-          partners: shared.data?.partners ?? state.partners,
-          referrals: [],
-        } : state,
-        shared,
-        run: (cmd) => {
-          if (shared.enabled) return shared.run(cmd);
-          if (cmd.type === 'partnership' && cmd.entry.kind !== 'offer' && cmd.entry.kind !== 'inquiry' &&
-            role !== 'Moderator' && !(role === 'Partner' && partnerId === 'winter-team')) {
-            return Promise.reject(new Error('Choose the coordinator view in Settings to manage support.'));
-          }
-          if (isWorkspaceCommand(cmd)) return Promise.reject(new Error('Open the shared workspace first.'));
-          return save(cmd);
-        },
-        role: shared.enabled
-          ? shared.data?.account.moderator
-            ? 'Moderator'
-            : shared.data?.account.kind === 'worker'
-              ? 'Partner'
-              : 'Resident'
-          : role,
-        setRole,
-        partnerId: shared.enabled ? shared.data?.account.membership?.partnerId ?? '' : partnerId,
-        setPartnerId,
-        offerReplyFrom,
-        setOfferReplyFrom,
-      }}
-    >
+    <Context.Provider value={{
+      state: {
+        version: 2,
+        posts: shared.data?.posts ?? publicSeed.posts,
+        community: shared.data?.community ?? publicSeed.community,
+        partners: shared.data?.partners ?? publicSeed.partners,
+        referrals: [],
+      },
+      shared,
+      run: shared.run,
+      localProfile: remote.enabled ? undefined : { role: local.role, selectRole: local.selectRole },
+      role: account?.moderator ? 'Moderator' : account?.kind === 'worker' ? 'Partner' : 'Resident',
+      partnerId: account?.membership?.partnerId ?? '',
+    }}>
       {children}
     </Context.Provider>
   );
 }
+
 export function useDemo() {
   const context = useContext(Context);
   if (!context) throw new Error('DemoProvider is required');

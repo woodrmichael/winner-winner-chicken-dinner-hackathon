@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { deliveredServices } from '../../domain/model';
 import { useDemo } from '../../state/Demo';
 import { Card, Copy, color } from '../../ui/kit';
 import { SelectMenu } from '../../ui/SelectMenu';
 import { communityEvents } from '../community/model';
 import { partnerName } from '../matching/directory';
-import { cash, funding, projectDeliveryCounts, projects, type Pledge } from './ledger';
+import { cash, funding, projects, type Pledge } from './ledger';
 import { AmountRow, section } from './ProjectFunding';
 
 export function BusinessSummary({ pledges }: { pledges: Pledge[] }) {
-  const { state, shared } = useDemo();
-  const deliveries = shared.enabled ? shared.data?.reporting.projectDeliveries ?? [] : projectDeliveryCounts(deliveredServices(state));
+  const { shared, state } = useDemo();
+  const deliveries = shared.data?.reporting.projectDeliveries ?? [];
   const options = [...new Map(pledges.map((p) => [p.business.toLowerCase(), p.business])).entries()]
     .map(([value, label]) => ({ value, label }));
   const [selection, setSelection] = useState(options[0]?.value);

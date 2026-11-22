@@ -1,45 +1,27 @@
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Share, View } from 'react-native';
 import { Download } from 'lucide-react-native';
-import { categories, type Category, type Service } from '../../domain/types';
+import { categories, type Category } from '../../domain/types';
 import { useDemo } from '../../state/Demo';
 import { Btn, Card, Copy, Field, color, wrap } from '../../ui/kit';
 import { SelectMenu } from '../../ui/SelectMenu';
 import { Segments } from '../../ui/Segments';
 import { partnerName } from '../matching/directory';
-import { periodName, reportingMonth, reportMonths, serviceRecordsCsv } from './report';
-
-type RecordRow = Service & { referralId: string };
+import { periodName, reportingMonth, serviceRecordsCsv } from './report';
 
 export function ServiceRecords() {
-  const { state, role, partnerId, shared, run } = useDemo();
+  const { state, shared, run } = useDemo();
   const [period, setPeriod] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState('');
   const [category, setCategory] = useState<Category>('Clothing');
   const [reason, setReason] = useState('');
   const [feedback, setFeedback] = useState('');
   const account = shared.data?.account;
-  const membershipPartner = account?.membership?.partnerId;
-  const providerId = shared.enabled
-    ? account?.membership?.status === 'approved' ? membershipPartner : undefined
-    : role === 'Partner' ? partnerId : undefined;
-
-  const records = useMemo<RecordRow[]>(() => {
-    if (shared.enabled) return shared.data?.reporting.serviceRecords ?? [];
-    if (!providerId) return [];
-    return state.referrals.flatMap((referral) =>
-      referral.services
-        .filter((service) => service.providerId === providerId)
-        .map((service) => ({ ...service, referralId: referral.id })),
-    );
-  }, [providerId, shared.enabled, shared.data, state.referrals]);
-
-  const months = useMemo(() => {
-    if (shared.enabled) return shared.data?.reporting.impactReports.months ?? reportMonths(state);
-    return reportMonths(state);
-  }, [shared.enabled, shared.data, state]);
+  const providerId = account?.membership?.status === 'approved' ? account.membership.partnerId : undefined;
+  const records = shared.data?.reporting.serviceRecords ?? [];
+  const months = shared.data?.reporting.impactReports.months;
   const options = useMemo(
-    () => [{ value: null, label: 'All time' }, ...months.map((value) => ({ value, label: periodName(value) }))],
+    () => [{ value: null, label: 'All time' }, ...(months ?? []).map((value) => ({ value, label: periodName(value) }))],
     [months],
   );
   const filtered = records.filter((record) =>
@@ -48,7 +30,7 @@ export function ServiceRecords() {
   const active = filtered.filter((record) => !record.voidedAt);
   const selected = records.find((record) => record.id === selectedId);
 
-  function exportCsv() {
+  async function exportCsv() {
     const csv = serviceRecordsCsv(active);
     if (typeof document !== 'undefined') {
       const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -58,11 +40,13 @@ export function ServiceRecords() {
       link.click();
       URL.revokeObjectURL(url);
       setFeedback(`${active.length} service records exported.`);
+    } else {
+      await Share.share({ title: 'Service records CSV', message: csv });
     }
   }
 
   async function correct(voidRecord: boolean) {
-    if (!selected || !providerId) return;
+    if (!selected || !providerId || !account) return;
     await run({
       type: 'correct-service',
       id: selected.referralId,
@@ -71,8 +55,8 @@ export function ServiceRecords() {
       category: voidRecord ? undefined : category,
       void: voidRecord,
       reason,
-      workerId: account?.id ?? 'demo-worker',
-      workerName: account?.name ?? partnerName(providerId),
+      workerId: account.id,
+      workerName: account.name,
       at: new Date().toISOString(),
     });
     setReason('');
@@ -84,7 +68,7 @@ export function ServiceRecords() {
     <Card>
       <Copy kind="title">Service records</Copy>
       <Copy kind="small" tint={color.muted}>
-        Only {partnerName(providerId)} records are shown.
+        {partnerName(state.partners, providerId)}
       </Copy>
       <View style={wrap}>
         <SelectMenu label="Reporting period" value={period} options={options} onChange={setPeriod} />

@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Check, ChevronLeft } from 'lucide-react-native';
-import { Image, StyleSheet, View } from 'react-native';
+import { Check } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, View } from 'react-native';
 import { ProjectFunding, section } from '../partnerships/ProjectFunding';
 import { Btn, Card, Columns, Copy, Page, color, row, wrap } from '../../ui/kit';
+import { BackButton } from '../../ui/BackButton';
+import { postPhoto } from '../community/postPhotos';
 import { funding, cash, projects } from '../partnerships/ledger';
 import { useSupport } from '../partnerships/useSupport';
 import { useImpactReport } from './useImpactReport';
@@ -19,6 +22,7 @@ export default function ProgramImpact() {
   const { book } = useSupport();
   const pledges = book?.pledges.filter((p) => p.project === 'drive') ?? [];
   const project = projects.find((p) => p.id === 'drive')!;
+  const photo = postPhoto('drive', true);
 
   if (requiresSignIn) {
     return <Page title={project.event}><Card>
@@ -31,10 +35,8 @@ export default function ProgramImpact() {
     <Page
       title={project.event}
       back={
-        <Btn
+        <BackButton
           label="Back to impact"
-          icon={ChevronLeft}
-          quiet
           onPress={() => {
             if (router.canGoBack()) router.back();
             else router.replace({ pathname: '/impact', params: period ? { period } : {} });
@@ -45,12 +47,15 @@ export default function ProgramImpact() {
       <Columns
         main={
           <>
-            <Image
-              source={require('../../../assets/clothing-rack.jpg')}
-              accessibilityLabel="Winter clothing ready for distribution"
-              resizeMode="cover"
+            {photo && <Image
+              source={photo.source}
+              accessibilityLabel={photo.description}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              loading="eager"
+              transition={0}
               style={styles.photo}
-            />
+            />}
             <Copy kind="strong">Organized by {project.organizer}</Copy>
             <Btn label="Sponsor this project" stretch onPress={() => router.push({ pathname: '/partnerships', params: { project: project.id, action: 'offer' } })} />
             <Btn label="Team inquiries and project details" quiet onPress={() => router.push({ pathname: '/partnerships', params: { project: project.id } })} />

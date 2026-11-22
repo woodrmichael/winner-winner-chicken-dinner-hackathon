@@ -65,6 +65,7 @@ function isCommunity(value: unknown, posts: Post[]): value is StoredCommunity {
         typeof reply.postId === 'string' &&
         postKinds.get(reply.postId) === 'Offer' &&
         includes(['resident', 'author'], reply.from) &&
+        (reply.authorName === undefined || isText(reply.authorName)) &&
         typeof reply.body === 'string' &&
         !!reply.body.trim() &&
         isDate(reply.at),

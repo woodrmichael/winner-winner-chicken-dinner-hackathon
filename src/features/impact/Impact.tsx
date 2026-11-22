@@ -12,11 +12,13 @@ import { useImpactReport } from './useImpactReport';
 import { ServiceRecords } from './ServiceRecords';
 import { useDemo } from '../../state/Demo';
 import { deliveredServices } from '../../domain/model';
+import { useSupport } from '../partnerships/useSupport';
 
 export default function Impact({ period }: { period?: string }) {
   const router = useRouter();
   const active = useContext(TabActive);
-  const { state } = useDemo();
+  const { state, shared } = useDemo();
+  const { coordinator } = useSupport();
   const [provider, setProvider] = useState<string | null>(null);
   const providers = useMemo(
     () =>
@@ -76,11 +78,10 @@ export default function Impact({ period }: { period?: string }) {
             <Card style={styles.sponsorInvite}>
               <View style={row}>
                 <HandHeart color={color.pine} size={24} />
-                <Copy kind="title" style={styles.fill}>Sponsor a local project</Copy>
+                <Copy kind="title" style={styles.fill}>{coordinator ? 'Winter essentials drive' : 'Sponsor a local project'}</Copy>
               </View>
-              <Copy>Help fund a winter coat, stock a pantry, or bring a volunteer team.</Copy>
+              {!coordinator && <Copy>Help fund a winter coat, stock a pantry, or bring a volunteer team.</Copy>}
               <View style={styles.recent}>
-                <Copy kind="strong">See what community support makes possible</Copy>
                 <Pressable
                   accessibilityRole="link"
                   accessibilityLabel={`View Winter essentials drive, ${programCount} ${programCount === 1 ? 'delivery' : 'deliveries'}`}
@@ -102,9 +103,14 @@ export default function Impact({ period }: { period?: string }) {
                   </Card>
                 </Pressable>
               </View>
-              <Btn label="Choose a project to support" stretch onPress={() => router.push('/partnerships')} />
+              {coordinator ? (
+                <Btn label="Manage project support" stretch onPress={() => router.push({
+                  pathname: '/partnerships', params: { project: 'drive', action: 'coordinator' },
+                })} />
+              ) : (
+                <Btn label="Choose a project to support" stretch onPress={() => router.push('/partnerships')} />
+              )}
             </Card>
-            <ServiceRecords />
             <Card style={styles.assistance}>
               <View style={[wrap, styles.between]}>
                 <Copy kind="title" style={styles.sectionTitle}>Assistance by type</Copy>
@@ -123,6 +129,7 @@ export default function Impact({ period }: { period?: string }) {
                 </View>
               )) : <Copy tint={color.muted}>No deliveries in this selection.</Copy>}
             </Card>
+            <ServiceRecords key={shared.data?.account.id} />
             {wide && <ResponseMetrics report={completeReport} />}
           </>
         }

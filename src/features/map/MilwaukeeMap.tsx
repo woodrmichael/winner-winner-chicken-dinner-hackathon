@@ -295,20 +295,45 @@ export default function MilwaukeeMap({
     const map = readyMap;
     if (status !== 'ready' || !map || mapRef.current !== map || !events) return;
 
-    const pins = events.filter((event) => !libraries?.some((library) => atLibrary(event, library))).map(({ id, title, coordinates }) => {
+    const venues = new Map<string, CommunityEventPin[]>();
+    for (const event of events) {
+      if (libraries?.some((library) => atLibrary(event, library))) continue;
+      const key = event.coordinates.join(',');
+      const atVenue = venues.get(key);
+      if (atVenue) atVenue.push(event);
+      else venues.set(key, [event]);
+    }
+    const pins = Array.from(venues.values(), (atVenue) => {
+      const [{ id, title, coordinates }] = atVenue;
+      const label = atVenue.length > 1 ? `${atVenue.length} community events` : title;
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'milwaukee-event';
       button.style.setProperty('--marker-ink', eventColor);
-      button.setAttribute('aria-label', title);
-      button.title = title;
+      button.setAttribute('aria-label', label);
+      button.title = label;
+      const details = document.createElement('div');
+      details.className = 'milwaukee-library-details';
+      for (const event of atVenue) {
+        const link = document.createElement('button');
+        link.type = 'button';
+        link.textContent = event.title;
+        link.addEventListener('click', () => openEvent(event.id));
+        details.append(link);
+      }
+      const popup = new MapLibre.Popup({ offset: 18 }).setDOMContent(details);
       button.addEventListener('click', (event) => {
         event.stopPropagation();
-        openEvent(id);
+        if (atVenue.length === 1) openEvent(id);
+        else if (popup.isOpen()) popup.remove();
+        else popup.setLngLat(coordinates).addTo(map);
       });
-      return new MapLibre.Marker({ element: button }).setLngLat(coordinates).addTo(map);
+      return { marker: new MapLibre.Marker({ element: button }).setLngLat(coordinates).addTo(map), popup };
     });
-    return () => pins.forEach((pin) => pin.remove());
+    return () => pins.forEach(({ marker, popup }) => {
+      popup.remove();
+      marker.remove();
+    });
   }, [events, libraries, readyMap, status]);
 
   useEffect(() => {

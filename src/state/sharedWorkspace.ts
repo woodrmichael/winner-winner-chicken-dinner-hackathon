@@ -134,5 +134,13 @@ export function useSharedWorkspace() {
     }
   }
 
-  return { enabled: !!workspaceApiUrl, data, connectionError, signIn, signOut, run };
+  async function openTranscription() {
+    const session = token.current;
+    if (!workspaceApiUrl || !session) throw new Error('Live transcription is unavailable in this workspace.');
+    const result = await request<{ protocol: string }>('/transcription/session', { method: 'POST' }, session);
+    if (!result || token.current !== session) throw new Error('The transcription session could not start.');
+    return new WebSocket(workspaceApiUrl.replace(/^http/, 'ws') + '/transcription', result.data.protocol);
+  }
+
+  return { enabled: !!workspaceApiUrl, data, connectionError, signIn, signOut, run, openTranscription };
 }

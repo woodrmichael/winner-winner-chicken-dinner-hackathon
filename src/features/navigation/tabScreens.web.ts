@@ -1,6 +1,12 @@
 import { lazy } from 'react';
 
-export const ActivityScreen = lazy(() => import('../activity/Activity'));
-export const Community = lazy(() => import('../community/Community'));
-export const Impact = lazy(() => import('../impact/Impact'));
-export const MapScreen = lazy(() => import('../map/MapScreen'));
+export { default as ActivityScreen } from '../activity/Activity';
+export { default as Community } from '../community/Community';
+export { default as Impact } from '../impact/Impact';
+
+const loadMap = () => import('../map/MapScreen');
+export const MapScreen = lazy(loadMap);
+
+export function warmNavigation() {
+  void Promise.allSettled([loadMap(), import('../community/PostDetails')]);
+}

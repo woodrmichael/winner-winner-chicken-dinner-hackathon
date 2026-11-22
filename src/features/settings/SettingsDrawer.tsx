@@ -53,7 +53,7 @@ export function SettingsDrawer({ onClose }: { onClose: () => void }) {
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.content}
             >
-              <SettingsOptions />
+              <SettingsOptions onNavigate={onClose} />
             </ScrollView>
           </SafeAreaView>
         </Animated.View>

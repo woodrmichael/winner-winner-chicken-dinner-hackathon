@@ -1,11 +1,12 @@
-import { appendEntry, projectDeliveryCounts, supportBook, type SupportEntry } from '../src/features/partnerships/ledger';
-import { deliveredServices, impact, isDirectoryCommand, mapRows } from '../src/domain/model';
-import { applyReferralCommand, partnerInbox, residentTimeline } from '../src/domain/referrals';
-import { profile, program, seedState } from '../src/domain/seed';
-import { applyCommunityCommand } from '../src/features/community/model';
-import { applyDirectoryCommand } from '../src/features/directory/model';
+import { appendEntry, projectDeliveryCounts, supportBook, type SupportEntry } from '../features/partnerships/ledger';
+import { deliveredServices, impact, isCommunityCommand, isDirectoryCommand, mapRows } from '../domain/model';
+import { applyReferralCommand, partnerInbox, residentTimeline } from '../domain/referrals';
+import { profile, program, seedState } from '../domain/seed';
+import { applyCommunityCommand } from '../features/community/model';
+import { applyDirectoryCommand } from '../features/directory/model';
 import {
   categories,
+  type Command,
   type CommunityCommand,
   type CommunityState,
   type DirectoryCommand,
@@ -14,14 +15,14 @@ import {
   type Referral,
   type ReferralCommand,
   type WorkspaceCommand,
-} from '../src/domain/types';
-import { impactReports, reportingMonth, type ImpactReports } from '../src/features/impact/report';
-import { approvedPartners, mergePartners, seedPartners } from '../src/features/matching/directory';
-import type { Account, SharedSnapshot, VolunteerRole, VolunteerSignup } from '../src/shared/workspace';
+} from '../domain/types';
+import { impactReports, reportingMonth, type ImpactReports } from '../features/impact/report';
+import { approvedPartners, mergePartners, seedPartners } from '../features/matching/directory';
+import { isWorkspaceCommand, type Account, type SharedSnapshot, type VolunteerRole, type VolunteerSignup } from './workspace';
 import { applyCommunicationCommand, communicationFor, emptyCommunication, notifyReferralChange, type Communication } from './communication';
-import { approvedPartner, assignmentScope, WorkspaceError } from './referral-access';
+import { approvedPartner, assignmentScope, WorkspaceError } from './referralAccess';
 
-export type StoredAccount = Account & { passwordHash: string };
+export type StoredAccount = Account & { passwordHash?: string };
 export type Workspace = {
   supportEntries?: SupportEntry[];
   referrals: Referral[];
@@ -41,9 +42,12 @@ const mapReportCache = new WeakMap<Referral[], Pick<SharedSnapshot['reporting'],
 
 export function restoreCommunication(stored: StoredWorkspace): Workspace {
   const demo = seedState(sampleResidentAccount);
+  const existing = new Set(stored.posts?.map(({ id }) => id));
   return {
     ...stored,
-    posts: stored.posts ?? demo.posts,
+    posts: stored.posts
+      ? [...stored.posts, ...demo.posts.filter(({ id }) => id.startsWith('demo-post-') && !existing.has(id))]
+      : demo.posts,
     community: stored.community ?? demo.community,
     partners: mergePartners(stored.partners, seedPartners()),
     communication: stored.communication ?? emptyCommunication(),
@@ -63,9 +67,9 @@ export const demoAccounts: Account[] = [
   { id: 'candidate', name: 'Riley Jones', kind: 'worker', details: { firstName: 'Riley' } },
 ];
 
-export function createWorkspace(accounts: StoredAccount[]): Workspace {
-  const demo = seedState(sampleResidentAccount);
+export function createWorkspace(accounts: StoredAccount[], demo = seedState(sampleResidentAccount)): Workspace {
   return {
+    ...(demo.supportEntries && { supportEntries: demo.supportEntries }),
     referrals: demo.referrals,
     posts: demo.posts,
     community: demo.community,
@@ -227,7 +231,7 @@ export function applySharedCommunity(
     community: workspace.community,
     referrals: workspace.referrals,
     partners: workspace.partners,
-  }, cmd, account.id);
+  }, cmd, account.id, account.name);
   return state.posts === workspace.posts && state.community === workspace.community
     ? workspace
     : { ...workspace, posts: state.posts, community: state.community };
@@ -269,7 +273,13 @@ export function applySharedDirectory(
   return state.partners === workspace.partners ? workspace : { ...workspace, partners: state.partners };
 }
 
-export { isDirectoryCommand };
+export function applyAccountCommand(workspace: Workspace, account: Account, command: Command): Workspace {
+  if (command.type === 'partnership') return applySharedSupport(workspace, account, command.entry);
+  if (isCommunityCommand(command)) return applySharedCommunity(workspace, account, command);
+  if (isDirectoryCommand(command)) return applySharedDirectory(workspace, account, command);
+  if (isWorkspaceCommand(command)) return applyWorkspaceCommand(workspace, account, command);
+  return applySharedReferral(workspace, account, command);
+}
 
 export function applyWorkspaceCommand(workspace: Workspace, account: StoredAccount, cmd: WorkspaceCommand): Workspace {
   const { accounts, roles, signups } = workspace;

@@ -12,7 +12,7 @@ Expo Go opens the app on your phone while your laptop serves the code. Run both 
 
 ## Check a complete referral
 
-Swipe left from the right edge of the app, or press and hold the **Community** tab, to open **Settings**. On desktop, click **ComForce Connect** in the sidebar. On web, **Alt+Shift+S** also opens the drawer. Switch the **Referral view** between **Resident** and **Partner** and select a **Partner inbox** when needed. Tap **Done** to return to the same screen.
+Swipe left from the right edge to open **Settings**. On desktop, click **ComForce Connect** in the sidebar. On web, **Alt+Shift+S** also opens the drawer. Choose **Resident** for Alex Rivera or **Partner** for Morgan Chen at Winter Care Collective. Tap **Done** to return to the same screen. Use the same phone for both recordings so the referral, messages and delivery history are available in both profiles.
 
 | On the phone | Expected result |
 | --- | --- |
@@ -20,24 +20,35 @@ Swipe left from the right edge of the app, or press and hold the **Community** t
 | Go to **Community → Ask for help**. Type “We need clothes for the kids and a ride to pick the clothes up.” Tap **Find resources**. | Winter Care Collective matches clothing and transportation. Tap its name to see the other sample partners. |
 | Open **Sharing options**, select **Neighborhood · Harambee**, then tap **Send referral**. | Your referral appears in Activity as **Sent**. |
 | In **Settings**, select **Partner**, then tap **Done**. Open the referral under **Awaiting response** and tap **Accept referral**. Press **r** on the laptop, then switch back to **Partner** in Settings. | The referral appears under **Accepted cases** after reload. |
+| Open the private conversation and ask which coat sizes to bring. Switch to **Resident** and open the unread reply in **Activity**. Answer “6 and 8.” | Alex can reply and track status. Morgan can see the reply and record services in **Inbox**. |
 | Open the referral if it is collapsed. Tap **Record delivery**, select **Clothing**, keep the winter program selected and tap **Record completed service**. Switch to **Resident view**. | Winter Care Collective is credited for clothing. Transportation remains outstanding. |
 | Return to **Partner view**, open the referral and use **Record delivery** again to record transportation. | The referral moves to **Completed history**. The resident sees both deliveries. |
 | Open **Map**, then **Impact**. | Harambee has 2 more deliveries. Impact has 1 more request, 2 more deliveries and the same number of open referrals as before the walkthrough. The winter program gained one delivery. |
 
 ## Check scheduling, handoffs and declines
 
-Start a new clothing-and-ride referral and accept it as Winter Care Collective. Leave transportation open for the handoff.
+Use the shared workspace for this walkthrough so you can sign in as the receiving provider after approval. Send a request for clothing and food to Winter Care Collective and accept it as the winter organizer. Leave food open for the handoff. Use a separate ride request for the decline and withdrawal checks.
 
 | On the phone | Expected result |
 | --- | --- |
 | Open the accepted winter referral and tap **More actions → Schedule pickup or visit**. Enter a Saturday date, `10:00` and “Use the side entrance”. Save, switch to **Resident view**, then reschedule to `11:30` and change the instructions. | The resident sees the revised appointment in Milwaukee time. The referral stays open. |
-| In **Partner view**, open the referral and tap **More actions → Suggest another partner** for transportation. Pick Riverwest Ride Circle and enter a reason. Use **Settings → Partner inbox** to switch to Riverwest before approval. | The proposed referral appears for the resident to review. Riverwest sees only its existing referrals. |
-| On the resident’s proposal, share only the first name, then approve and reload. Open Riverwest’s inbox. | One new referral appears under **Awaiting response**, with the reviewed reason and first name. Accept and record transportation. The resident sees both providers on the original referral if Winter Care already recorded clothing. |
-| Repeat with a fresh proposal and select **Decline handoff**. | Riverwest receives no new referral. |
+| As the partner, open the referral and tap **More actions → Suggest another partner** for food. Pick Neighborhood Table and enter a reason. Sign in as `table-worker` before approval. | The proposed referral appears for the resident to review. Neighborhood Table sees only its existing referrals. |
+| On the resident’s proposal, share only the first name, then approve and reload. Open Neighborhood Table’s inbox. | One new referral appears under **Awaiting response**, with the reviewed reason and first name. Accept and record food. The resident sees both providers on the original referral if Winter Care already recorded clothing. |
+| Repeat with a fresh proposal and select **Decline handoff**. | Neighborhood Table receives no new referral. |
 | Send a ride request with the neighborhood shared. Open it as its partner and tap **More actions → Decline a need**, then enter a reason. Open **Map**, then go to **Resident view → Withdraw need → Confirm withdrawal** and check the map again. | The resident sees the reason. The ride counts as open until withdrawal. Deliveries stay the same. |
 | Repeat the provider decline and choose **Seek another partner**. Review the message and sharing before sending. | The new partner sees the request once. The ride still counts as open until a provider delivers it or the resident withdraws it after another decline. |
 
 Also try typing your own request. Check that the keyboard leaves the message and submit action reachable. Include your phone model, OS and the result in the PR for the change you tested.
+
+## Try voice input
+
+Under **Ask for help**, tap the mic icon beside **Find resources**. Allow microphone access and watch the field fill while speaking. Tap the stop icon, edit the text, then tap **Find resources**. Use the back arrow from review to check that your wording is still there.
+
+On Expo Go, start the shared workspace API with a server-side `OPENAI_API_KEY`, set `EXPO_PUBLIC_API_URL` to an address the phone can reach, and sign in as a resident. The API address needs to support WebSocket connections. The Expo bundle tunnel alone does not expose the API. Without the key and shared workspace connection, the mic reports that transcription is unavailable. Supported browsers can still use their built-in speech recognition.
+
+## Check saved events in Activity
+
+As a resident, bookmark **Winter essentials drive** in Community. Open **Activity → Saved events**, select the event and check that its back arrow returns to Activity. Remove the bookmark in the event and verify it disappears from Saved events. Reload after bookmarking to confirm it persists.
 
 ## Community and larger-text walkthrough
 
@@ -66,8 +77,8 @@ the native keyboard and system-text checks.
 
 | On the phone | Expected result |
 | --- | --- |
-| Open **Offers → Kids’ coats available → View offer and replies**. Ask about size 8. Tap the gear, select **Offer author** under **Reply to offers as**, tap **Done**, and reply. Reload and reopen the offer. | Both messages appear in order with their authors. |
-| Open **Winter essentials drive → View event**. Read when and where it takes place and what to bring. Tap **Join event**, reload and reopen the event, then tap **Cancel signup**. | The count increases by one, the signup survives reload, and cancellation restores the original count. |
+| As Morgan, open **Offers → Kids’ coats available → View offer and replies** and ask about size 8. Switch to Alex and post an answer. Reload and reopen the offer. | Both messages appear in order under the active accounts’ names, and Alex’s reply is marked as the offer author’s. |
+| As Alex, open **Winter essentials drive → View event**. Read when and where it takes place and what to bring. Reserve a volunteer role, reload and reopen the event, then tap **Cancel volunteer signup**. | The count increases by one, the signup survives reload, and cancellation restores the original count. |
 | Open **Community → My groups → Join Harambee → Post to Harambee**. Publish a post, reload and reopen **My groups**. Tap **Leave Harambee**, then rejoin. | The post appears under My groups and stays out of the public board. Leaving hides it and rejoining brings it back. |
 
 ## Check saved posts and search
@@ -75,7 +86,7 @@ the native keyboard and system-text checks.
 | On the phone | Expected result |
 | --- | --- |
 | Tap the bookmark at the bottom right of the winter drive post, reload and open **Saved**. Tap the filled bookmark. | The bookmark fills when saved. The event survives reload in Saved and disappears from that view when removed. |
-| In **Community board**, type `coat` in **Search posts**. Open **Offers** and tap **Clear search**. | Search finds “Kids’ coats available,” and clearing it restores all offers. |
+| On **Community**, tap **Search posts** and type `coat`. Choose **Offers** in the filter and close search. | Search finds “Kids’ coats available,” and clearing it restores all offers. |
 | In **My groups**, join Harambee and publish a post with a distinctive title. Search for it in My groups, then switch to Community board. | The post appears in the group search and stays out of the board results. |
 
 ## Check the shared workspace on two devices
@@ -119,11 +130,11 @@ In a shared workspace, sign in before opening Impact. Its totals come from the s
 3. In the overview, choose **Transportation** from **All services** and verify the numbers and open-needs shading change together. Under **Map overlays**, turn on **Homicides** and **Nonfatal shootings**. Check the legend above the map for purple outlines, orange dots and what an unmarked area means.
 4. Increase system text size and repeat selection and filtering. Record the phone model, OS, text setting and result in the PR.
 5. Turn on **Public libraries** with one of the historical overlays still active. Tap a branch and verify the address and hours link. Reopen the map and check that the locations appear while the City data refreshes.
-6. Open **Winter essentials drive** from Community and check its Moody Park address and inline venue map. On Map, turn on **Community events** alongside **Public libraries**. Tap the winter drive pin, then **Back to Map**. Check that both overlays are still on and the camera stays in place. Tap Central Library and check that its popup also links to the meal kit event.
+6. Open **Winter essentials drive** from Community and check its Moody Park address and inline venue map. On Map, turn on **Community events** alongside **Public libraries**. Tap the event pin at Moody Park, choose **Winter essentials drive**, then tap **Back to Map**. Check that both overlays are still on and the camera stays in place. Tap Central Library and check that its popup links to the meal kit event.
 
 ## Check business partnerships
 
-Open **Community → Winter essentials drive → Team inquiries and project details**. Ask about bringing a team, then offer $150 for supplies, $50 for operations and two volunteers. In shared mode, sign in as the organizer to review the inquiry and confirm the offer. For local rehearsal use **Settings → Partner → Winter Care Collective**. From **Manage project support → Payments**, expand the business pledge and apply a $50 payment and verify $150 remains. Pay the balance and check the allocation on the program page. Use the same business name for a pantry meal-kit pledge and find both projects in **Business summary**. Only confirmed business places count toward staffing. Confirming or paying a pledge leaves delivery counts unchanged.
+Open **Community → Winter essentials drive → See sponsorship options**. Ask about bringing a team, then offer $150 for supplies, $50 for operations and two volunteers. In shared mode, sign in as the organizer to review the inquiry and confirm the offer. For local rehearsal use **Settings → Partner**, then open **Impact → Manage project support**. From **Payments**, expand the business pledge and apply a $50 payment and verify $150 remains. Pay the balance and check the allocation on the program page. Use the same business name for a pantry meal-kit pledge and find both projects in **Business summary**. Only confirmed business places count toward staffing. Confirming or paying a pledge leaves delivery counts unchanged.
 
 ## Check worker notes and assignments
 

@@ -1,23 +1,18 @@
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { isCommunityCommand } from '../src/domain/model';
-import { isWorkspaceCommand, type Account } from '../src/shared/workspace';
+import { type Account } from '../src/shared/workspace';
 import { publicLibrariesPath } from '../src/shared/publicLibraries';
 import { reportingMonth } from '../src/features/impact/report';
 import { object, parseCommand } from './commands';
-import { WorkspaceError } from './referral-access';
+import { WorkspaceError } from '../src/shared/referralAccess';
 import { createPublicLibraryCache } from './public-map';
+import { createTranscriptionService } from './transcription';
 import {
-  applySharedCommunity,
-  applySharedDirectory,
-  applySharedReferral,
-  applySharedSupport,
-  applyWorkspaceCommand,
-  isDirectoryCommand,
+  applyAccountCommand,
   snapshot,
   type StoredAccount,
   type Workspace,
-} from './workspace';
+} from '../src/shared/workspaceModel';
 
 const lifetime = 8 * 60 * 60 * 1000;
 const dummyHash = '00000000000000000000000000000000:' + '0'.repeat(64);
@@ -52,14 +47,15 @@ function json(response: ServerResponse, status: number, value: unknown) {
   response.end(JSON.stringify(value));
 }
 
-export function createApi(initial: Workspace, persist: (workspace: Workspace) => void) {
+export function createApi(initial: Workspace, persist: (workspace: Workspace) => void,
+  transcription = createTranscriptionService()) {
   let workspace = initial;
   let revision = 0;
   const sessions = new Map<string, { accountId: string; expires: number; cacheId: string }>();
   const attempts = new Map<string, { count: number; expires: number }>();
   const getPublicLibraries = createPublicLibraryCache();
 
-  return createServer(async (request, response) => {
+  const server = createServer(async (request, response) => {
     response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, If-None-Match');
     response.setHeader('Access-Control-Expose-Headers', 'ETag');
@@ -113,6 +109,10 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
       if (request.url === '/session' && request.method === 'DELETE') {
         sessions.delete(token);
         json(response, 200, {});
+      } else if (request.url === '/transcription/session' && request.method === 'POST') {
+        if (account.kind !== 'resident') throw new WorkspaceError(403, 'Open a resident account to dictate a request.');
+        json(response, 200, transcription.issue(account.id,
+          () => sessions.get(token) === session && session.expires > Date.now()));
       } else if (request.url === '/workspace' && request.method === 'GET') {
         const now = new Date();
         const etag = '"' + session.cacheId + '-' + revision + '-' + reportingMonth(now) + '"';
@@ -126,13 +126,7 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
         const cmd = parseCommand(command, account.details);
         let updated: Workspace;
         try {
-          updated = cmd.type === 'partnership' ? applySharedSupport(workspace, account, cmd.entry) : isCommunityCommand(cmd)
-            ? applySharedCommunity(workspace, account, cmd)
-            : isDirectoryCommand(cmd)
-              ? applySharedDirectory(workspace, account, cmd)
-              : isWorkspaceCommand(cmd)
-                ? applyWorkspaceCommand(workspace, account, cmd)
-                : applySharedReferral(workspace, account, cmd);
+          updated = applyAccountCommand(workspace, account, cmd);
         } catch (error) {
           if (!(error instanceof Error) || error instanceof WorkspaceError) throw error;
           throw new WorkspaceError(409, error.message);
@@ -155,4 +149,6 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
       }
     }
   });
+  transcription.attach(server);
+  return server;
 }

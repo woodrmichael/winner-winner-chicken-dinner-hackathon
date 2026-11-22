@@ -3,7 +3,8 @@ import { useDemo } from '../../state/Demo';
 import { Btn } from '../../ui/kit';
 
 export function SavePostButton({ postId }: { postId: string }) {
-  const { state, run } = useDemo();
+  const { state, run, shared } = useDemo();
+  if (shared.data?.account.kind !== 'resident') return null;
   const saved = state.community.savedPostIds.includes(postId);
   return (
     <Btn

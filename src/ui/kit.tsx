@@ -99,24 +99,26 @@ export function Page({
           paddingBottom: wide ? 48 : 24,
         }}
       >
-        {back && <View style={{ marginBottom: -14 }}>{back}</View>}
         <View style={[wide ? wrap : row, { justifyContent: 'space-between', columnGap: 10 }]}>
-          <View style={[wrap, { flexShrink: 1, minWidth: 0, rowGap: 4, columnGap: wide ? 16 : 10 }]}>
-            <Text
-              accessibilityRole="header"
-              style={{
-                color: color.ink,
-                fontFamily: systemFont,
-                fontWeight: '700',
-                letterSpacing: -0.9,
-                fontSize: wide ? 42 : 28,
-                lineHeight: wide ? 52 : 36,
-                flexShrink: 1,
-              }}
-            >
-              {title}
-            </Text>
-            {titleAccessory}
+          <View style={[row, { flexShrink: 1, minWidth: 0, gap: 4 }]}>
+            {back}
+            <View style={[wrap, { flexShrink: 1, minWidth: 0, rowGap: 4, columnGap: wide ? 16 : 10 }]}>
+              <Text
+                accessibilityRole="header"
+                style={{
+                  color: color.ink,
+                  fontFamily: systemFont,
+                  fontWeight: '700',
+                  letterSpacing: -0.9,
+                  fontSize: wide ? 42 : 28,
+                  lineHeight: wide ? 52 : 36,
+                  flexShrink: 1,
+                }}
+              >
+                {title}
+              </Text>
+              {titleAccessory}
+            </View>
           </View>
           {wide && right}
           {!wide && mobileRight && (
@@ -254,6 +256,7 @@ export function Field({
   secure = false,
   keyboardType,
   autoCapitalize,
+  editable = true,
 }: {
   label: string;
   value: string;
@@ -263,11 +266,13 @@ export function Field({
   secure?: boolean;
   keyboardType?: 'decimal-pad' | 'number-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  editable?: boolean;
 }) {
   return (
     <View style={{ gap: 6 }}>
       <Copy kind="strong">{label}</Copy>
       <TextInput
+        editable={editable}
         accessibilityLabel={label}
         placeholder={placeholder}
         placeholderTextColor={color.muted}

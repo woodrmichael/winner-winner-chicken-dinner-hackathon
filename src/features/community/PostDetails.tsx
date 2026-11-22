@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
+import { Image } from 'expo-image';
 import type { Post } from '../../domain/types';
 import { newId, now, useDemo } from '../../state/Demo';
 import { residentId } from '../../domain/seed';
 import { Btn, Card, Copy, Field, Page, color, row } from '../../ui/kit';
+import { BackButton } from '../../ui/BackButton';
 import { communityEvents, residentAuthor } from './model';
 import { PostTimestamp } from './PostTimestamp';
+import { postPhoto } from './postPhotos';
 import { SavePostButton } from './SavePostButton';
 import { projects, funding } from '../partnerships/ledger';
 import { ProjectFunding } from '../partnerships/ProjectFunding';
@@ -15,10 +18,12 @@ import VenueMap from '../map/VenueMap';
 import { VolunteerOptions } from '../volunteer/Volunteer';
 
 function OfferThread({ post }: { post: Post }) {
-  const { state, run, offerReplyFrom: from } = useDemo();
+  const { state, run, shared } = useDemo();
   const [body, setBody] = useState('');
   const replies = state.community.replies.filter((reply) => reply.postId === post.id);
   const readerName = post.author === residentAuthor ? 'Jordan' : residentAuthor;
+  const account = shared.data?.account;
+  const from = account && post.authorId === account.id ? 'author' : 'resident';
 
   return (
     <Card>
@@ -30,14 +35,14 @@ function OfferThread({ post }: { post: Post }) {
           style={{ gap: 4, borderTopWidth: 1, borderColor: color.line, paddingTop: 10 }}
         >
           <Copy kind="strong">
-            {reply.from === 'author' ? `${post.author} · Offer author` : readerName}
+            {reply.authorName ?? (reply.from === 'author' ? post.author : readerName)}
+            {reply.from === 'author' ? ' · Offer author' : ''}
           </Copy>
           <Copy>{reply.body}</Copy>
         </View>
       ))}
-      <Copy kind="small" tint={color.muted}>
-        Replying as {from === 'author' ? post.author : readerName}
-      </Copy>
+      {account && <>
+      <Copy kind="small" tint={color.muted}>Replying as {account.name}</Copy>
       <Field label="Public reply" value={body} change={setBody} multiline />
       <Btn
         label="Post reply"
@@ -47,6 +52,7 @@ function OfferThread({ post }: { post: Post }) {
           setBody('');
         }}
       />
+      </>}
     </Card>
   );
 }
@@ -54,13 +60,13 @@ function OfferThread({ post }: { post: Post }) {
 function EventDetails({ postId }: { postId: string }) {
   const { state, run, shared } = useDemo();
   const router = useRouter();
-  const { book } = useSupport();
+  const { book, coordinator } = useSupport();
   const project = projects.find((p) => p.id === postId);
   const teamPlaces = funding(book?.pledges.filter((p) => p.project === postId) ?? []).volunteers;
   const event = communityEvents.get(postId);
   if (!event) return null;
   const joined = state.community.joinedEvents.includes(postId);
-  const sharedDrive = shared.enabled && postId === 'drive';
+  const sharedDrive = postId === 'drive';
   const { venue } = event;
   const [longitude, latitude] = venue.coordinates;
 
@@ -74,6 +80,26 @@ function EventDetails({ postId }: { postId: string }) {
           <Copy kind="strong">{venue.name}</Copy>
           <Copy kind="small" tint={color.muted}>{venue.address}</Copy>
         </View>
+        {!sharedDrive && (
+          <>
+            <View accessibilityLiveRegion="polite" style={{ gap: 4 }}>
+              <Copy kind="strong">{event.volunteers + Number(joined) + teamPlaces} volunteers</Copy>
+              {joined && shared.data?.account.kind === 'resident' && <Copy tint={color.pine}>You’ve joined this event.</Copy>}
+            </View>
+            {shared.data?.account.kind === 'resident' && <Btn
+              label={joined ? 'Cancel signup' : 'Join event'}
+              secondary={joined}
+              stretch
+              onPress={() => run({ type: 'event-rsvp', postId, joined: !joined })}
+            />}
+          </>
+        )}
+      </Card>
+      {sharedDrive && <VolunteerOptions openSettings={() => router.navigate('/settings')} />}
+      <Card>
+        <Copy kind="title">Plan your visit</Copy>
+        <Copy kind="strong">What to bring</Copy>
+        <Copy>{event.bring}</Copy>
         <View style={{ height: 176, borderRadius: 10, overflow: 'hidden' }}>
           <VenueMap
             name={venue.name}
@@ -82,32 +108,24 @@ function EventDetails({ postId }: { postId: string }) {
             dom={{ useExpoDOMWebView: false, scrollEnabled: false, style: { flex: 1 } }}
           />
         </View>
-        <Copy kind="strong">What to bring</Copy>
-        <Copy>{event.bring}</Copy>
-        {!sharedDrive && (
-          <>
-            <View accessibilityLiveRegion="polite" style={{ gap: 4 }}>
-              <Copy kind="strong">{event.volunteers + Number(joined) + teamPlaces} volunteers</Copy>
-              {joined && <Copy tint={color.pine}>You’ve joined this event.</Copy>}
-            </View>
-            <Btn
-              label={joined ? 'Cancel signup' : 'Join event'}
-              secondary={joined}
-              onPress={() => run({ type: 'event-rsvp', postId, joined: !joined })}
-            />
-          </>
-        )}
+        <Btn label="Get directions" secondary onPress={() =>
+          Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`)
+        } />
       </Card>
       {project && <Card>
-        <Copy kind="title">Help sponsor this event</Copy>
+        <Copy kind="title">Project support</Copy>
         <Copy>Organized by {project.organizer}</Copy>
         {book && <ProjectFunding goal={project.goal} pledges={book.pledges.filter((p) => p.project === project.id)} />}
         <Copy>{project.supplies}</Copy>
         <Copy>{teamPlaces} volunteer places confirmed through businesses</Copy>
-        <Btn label="Pledge support" stretch onPress={() => router.push({ pathname: '/partnerships', params: { project: project.id, action: 'offer' } })} />
-        <Btn label="Team inquiries and project details" quiet onPress={() => router.push({ pathname: '/partnerships', params: { project: project.id } })} />
+        {coordinator && sharedDrive ? (
+          <Btn label="Manage project support" secondary onPress={() => router.push({
+            pathname: '/partnerships', params: { project: project.id, action: 'coordinator' },
+          })} />
+        ) : <Btn label="See sponsorship options" secondary onPress={() => router.push({
+          pathname: '/partnerships', params: { project: project.id },
+        })} />}
       </Card>}
-      {sharedDrive && <VolunteerOptions openSettings={() => router.navigate('/settings')} />}
     </>
   );
 }
@@ -125,19 +143,28 @@ export default function PostDetails() {
   const [body, setBody] = useState(post?.body ?? '');
   const [reason, setReason] = useState('');
   const [feedback, setFeedback] = useState('');
-  const back = <Btn
-    label={from === 'map' ? 'Back to Map' : 'Back to Community'}
-    secondary
-    onPress={() => router.navigate(from === 'map' ? '/map' : '/')}
+  const origin = from === 'map' ? { path: '/map', title: 'Map' } as const
+    : from === 'activity' ? { path: '/activity', title: 'Activity' } as const
+    : { path: '/', title: 'Community' } as const;
+  const back = <BackButton
+    label={`Back to ${origin.title}`}
+    onPress={() => {
+      if (from && router.canGoBack()) router.back();
+      else router.navigate(origin.path);
+    }}
   />;
   const actorId = shared.data?.account.id ?? residentId;
   const isAuthor = !!post?.authorId && post.authorId === actorId;
   const status = post?.status ?? 'active';
+  const photo = post ? postPhoto(post.id, true) : undefined;
 
   return (
-    <Page title={post?.title ?? 'Post unavailable'} right={back}>
+    <Page title={post?.title ?? 'Post unavailable'} back={back}>
       {post && (
         <>
+          {photo && <Image source={photo.source} accessibilityLabel={photo.description}
+            contentFit="cover" cachePolicy="memory-disk" loading="eager" transition={0}
+            style={{ width: '100%', height: 184, borderRadius: 15 }} />}
           <Card>
             <Copy kind="small" tint={color.muted}>{post.author}</Copy>
             {post.kind === 'Offer' && (
@@ -204,7 +231,7 @@ export default function PostDetails() {
             )}
             {feedback ? <Copy kind="small" tint={color.pine}>{feedback}</Copy> : null}
           </Card>
-          {post.kind === 'Offer' && <OfferThread key={post.id} post={post} />}
+          {post.kind === 'Offer' && <OfferThread key={`${post.id}:${actorId}`} post={post} />}
           {post.kind === 'Event' && <EventDetails postId={post.id} />}
         </>
       )}

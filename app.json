@@ -7,7 +7,15 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-image",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow ComForce Connect to use your microphone to transcribe a help request.",
+          "enableBackgroundPlayback": false
+        }
+      ]
     ],
     "web": {
       "bundler": "metro",

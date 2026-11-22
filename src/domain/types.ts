@@ -40,6 +40,7 @@ export type OfferReply = {
   id: string;
   postId: string;
   from: 'resident' | 'author';
+  authorName?: string;
   body: string;
   at: string;
 };

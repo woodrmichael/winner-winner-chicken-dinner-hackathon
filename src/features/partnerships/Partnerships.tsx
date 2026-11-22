@@ -1,14 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { deliveredServices } from '../../domain/model';
 import { useDemo } from '../../state/Demo';
 import { partnerName } from '../matching/directory';
-import { ChevronLeft } from 'lucide-react-native';
 import { View } from 'react-native';
 import { Btn, Card, Copy, Page, color } from '../../ui/kit';
+import { BackButton } from '../../ui/BackButton';
 import { communityEvents } from '../community/model';
 import { BusinessSummary } from './BusinessSummary';
 import { Coordinator } from './Coordinator';
-import { funding, projectDeliveryCounts, projects, type ProjectId } from './ledger';
+import { funding, projects, type ProjectId } from './ledger';
 import { ProjectFunding, section } from './ProjectFunding';
 import { SupportForm } from './SupportForm';
 import { useSupport } from './useSupport';
@@ -21,8 +20,8 @@ export default function Partnerships() {
   const router = useRouter();
   const { project: id, action, tab } = useLocalSearchParams<{ project?: string; action?: Action; tab?: string }>();
   const { book, coordinator } = useSupport();
-  const { state, shared } = useDemo();
-  const deliveries = shared.enabled ? shared.data?.reporting.projectDeliveries ?? [] : projectDeliveryCounts(deliveredServices(state));
+  const { shared } = useDemo();
+  const deliveries = shared.data?.reporting.projectDeliveries ?? [];
   const service = deliveries.find((d) => d.project === id);
   const project = projects.find((p) => p.id === id);
   const event = project && communityEvents.get(project.id);
@@ -41,7 +40,7 @@ export default function Partnerships() {
     else router.replace('/impact');
   }
   return <Page key={`${id}-${view}`} title={view ? titles[view] : project?.event ?? 'Support a local project'}
-    back={<Btn label="Back" icon={ChevronLeft} quiet onPress={back} />}>
+    back={<BackButton onPress={back} />}>
     {!book ? <Card>
       <Copy>Sign in to open the shared partnerships workspace.</Copy>
       <Btn label="Open settings" onPress={() => router.push('/settings')} />
