@@ -5,6 +5,7 @@ import { useDemo } from '../../state/Demo';
 import type { SharedDetails } from '../../domain/types';
 import { ToggleRow } from '../../ui/SelectionRows';
 import { Copy } from '../../ui/kit';
+import { listWords } from './directory';
 
 export type ShareKey = keyof SharedDetails;
 
@@ -12,10 +13,9 @@ const labels = { firstName: 'First name', callback: 'Callback', neighborhood: 'N
 
 export function shareSummary(keys: ShareKey[]) {
   return (
-    shareFields
-      .filter((key) => keys.includes(key))
-      .map((key) => labels[key])
-      .join(', ') || 'Only your message'
+    listWords(
+      shareFields.filter((key) => keys.includes(key)).map((key) => labels[key]),
+    ) || 'Only your message'
   );
 }
 

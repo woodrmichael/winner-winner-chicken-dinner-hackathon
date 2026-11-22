@@ -93,6 +93,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
           ...state,
           posts: shared.data?.posts ?? state.posts,
           community: shared.data?.community ?? state.community,
+          partners: shared.data?.partners ?? state.partners,
           referrals: [],
         } : state,
         shared,

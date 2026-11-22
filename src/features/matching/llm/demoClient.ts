@@ -1,5 +1,5 @@
-import { serviceNeighborhoods, type Category, type Neighborhood } from '../../../domain/types';
-import { directory } from '../directory';
+import { serviceNeighborhoods, type Category, type Neighborhood, type Partner } from '../../../domain/types';
+import { approvedPartners, directory, eligibleForNewReferral, offerCoversLine } from '../directory';
 import type { LlmClient } from './client';
 import type { PartnerMatch } from './types';
 
@@ -51,17 +51,11 @@ export function detectNeighborhood(text: string): Neighborhood | undefined {
 }
 
 function explain(covers: Category[]): string {
-  if (covers.length >= 2) {
-    return 'Offers both ' + covers.map((c) => c.toLowerCase()).join(' and ');
-  }
-  if (covers.length === 1) {
-    return 'Covers ' + covers[0].toLowerCase();
-  }
-  return '';
+  return offerCoversLine(covers.map((category) => category.toLowerCase()));
 }
 
-function directoryIndex() {
-  return new Map(directory.map((partner, index) => [partner.id, index]));
+function directoryIndex(partners: Partner[]) {
+  return new Map(partners.map((partner, index) => [partner.id, index]));
 }
 
 function areaScore(area: Neighborhood, preferred?: Neighborhood) {
@@ -82,10 +76,10 @@ function compareMatches(
   return (index.get(a.partner.id) ?? 0) - (index.get(b.partner.id) ?? 0);
 }
 
-function coveringMatches(needs: Category[]): PartnerMatch[] {
-  return directory
+function coveringMatches(needs: Category[], partners: Partner[]): PartnerMatch[] {
+  return approvedPartners(partners)
     .map((partner) => {
-      const covers = needs.filter((need) => partner.categories.includes(need));
+      const covers = needs.filter((need) => eligibleForNewReferral(partner, need));
       return { partner, covers, explanation: explain(covers) };
     })
     .filter((match) => match.covers.length > 0);
@@ -94,9 +88,10 @@ function coveringMatches(needs: Category[]): PartnerMatch[] {
 function pickSpecialist(
   need: Category,
   candidates: PartnerMatch[],
-  preferred?: Neighborhood,
+  preferred: Neighborhood | undefined,
+  partners: Partner[],
 ): PartnerMatch | undefined {
-  const index = directoryIndex();
+  const index = directoryIndex(partners);
   const forNeed = candidates.filter((match) => match.covers.includes(need));
   if (!forNeed.length) return undefined;
   return [...forNeed].sort((a, b) => {
@@ -111,11 +106,16 @@ function pickSpecialist(
 /**
  * Rank partners by needs covered, then preferred neighborhood, then directory order.
  * When no partner covers every need, surface one complementary specialist per need first.
+ * Paused services are excluded from new-referral coverage.
  */
-export function rankPartners(needs: Category[], preferredArea?: Neighborhood): PartnerMatch[] {
+export function rankPartners(
+  needs: Category[],
+  preferredArea?: Neighborhood,
+  partners: Partner[] = directory,
+): PartnerMatch[] {
   if (!needs.length) return [];
-  const index = directoryIndex();
-  const matches = coveringMatches(needs);
+  const index = directoryIndex(partners);
+  const matches = coveringMatches(needs, partners);
   const fullCover = matches.some((match) => match.covers.length === needs.length);
 
   if (fullCover) {
@@ -125,7 +125,7 @@ export function rankPartners(needs: Category[], preferredArea?: Neighborhood): P
   const complementary: PartnerMatch[] = [];
   const seen = new Set<string>();
   for (const need of needs) {
-    const pick = pickSpecialist(need, matches, preferredArea);
+    const pick = pickSpecialist(need, matches, preferredArea, partners);
     if (pick && !seen.has(pick.partner.id)) {
       seen.add(pick.partner.id);
       complementary.push({
@@ -151,7 +151,7 @@ function cannedDraft(text: string, needs: Category[]): string {
 
   if (clothing && ride) {
     return (
-      'Our family had a house fire. We still need clothes for the kids and a ride to pick them up. ' +
+      'Our family had a house fire. We still need clothes for the kids and a ride to pick the clothes up. ' +
       'Any help you can offer would mean a lot.'
     );
   }
@@ -168,7 +168,7 @@ function cannedDraft(text: string, needs: Category[]): string {
     return 'We need clothing for our family. Thank you for any help you can provide.';
   }
   if (ride) {
-    return 'We need a ride to reach a pickup. Thank you for considering our request.';
+    return 'We need a ride to reach the pickup. Thank you for considering our request.';
   }
   if (lower.trim()) {
     return text.trim();
@@ -176,7 +176,7 @@ function cannedDraft(text: string, needs: Category[]): string {
   return 'We need help and would appreciate whatever you can offer.';
 }
 
-export function createDemoLlmClient(waitMs = 550): LlmClient {
+export function createDemoLlmClient(waitMs = 550, partners: Partner[] = directory): LlmClient {
   return {
     isVague(text: string) {
       const trimmed = text.trim();
@@ -187,7 +187,7 @@ export function createDemoLlmClient(waitMs = 550): LlmClient {
     async interpret(text: string) {
       await delay(waitMs);
       const needs = interpretNeeds(text);
-      return { needs, matches: rankPartners(needs, detectNeighborhood(text)) };
+      return { needs, matches: rankPartners(needs, detectNeighborhood(text), partners) };
     },
     async draft(text: string, needs: Category[]) {
       await delay(Math.min(220, waitMs));

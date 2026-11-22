@@ -5,6 +5,7 @@ import type {
   CommunityState,
   DemoState,
   Handoff,
+  Partner,
   Post,
   PostModeration,
   PostReport,
@@ -14,7 +15,7 @@ import type {
   SharedDetails,
 } from '../domain/types';
 import { categories, neighborhoods, serviceNeighborhoods } from '../domain/types';
-import { directory } from '../features/matching/directory';
+import { directory, mergePartners, normalizePartner, seedPartners } from '../features/matching/directory';
 
 import { decodeEntries } from '../features/partnerships/ledger';
 
@@ -102,8 +103,47 @@ function isCommunity(value: unknown, posts: Post[]): value is StoredCommunity {
   );
 }
 const isCategory = (value: unknown): value is Category => includes(categories, value);
-const isPartner = (value: unknown) => directory.some(({ id }) => id === value);
+const knownPartnerIds = () => new Set([...directory, ...seedPartners()].map(({ id }) => id));
+let partnerIdsForDecode = knownPartnerIds();
+const isPartnerId = (value: unknown) => typeof value === 'string' && partnerIdsForDecode.has(value);
 const unique = (values: unknown[]) => new Set(values).size === values.length;
+
+function isPartnerRecord(value: unknown): value is Partner {
+  if (!record(value) || !isText(value.id) || !isText(value.name) || !includes(neighborhoods, value.area)) {
+    return false;
+  }
+  if (!Array.isArray(value.categories) || !value.categories.every(isCategory) || !unique(value.categories)) {
+    return false;
+  }
+  if (
+    value.coverageAreas !== undefined &&
+    (!Array.isArray(value.coverageAreas) ||
+      !value.coverageAreas.every((area) => includes(neighborhoods, area)) ||
+      !unique(value.coverageAreas))
+  ) {
+    return false;
+  }
+  if (value.pickup !== undefined && !isText(value.pickup)) return false;
+  if (
+    value.listingStatus !== undefined &&
+    !includes(['pending', 'approved', 'declined', 'removed'], value.listingStatus)
+  ) {
+    return false;
+  }
+  if (value.declineReason !== undefined && !isText(value.declineReason)) return false;
+  if (value.availability !== undefined) {
+    if (!record(value.availability)) return false;
+    if (
+      !Object.entries(value.availability).every(
+        ([category, status]) =>
+          isCategory(category) && includes(['accepting', 'paused'], status),
+      )
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
 
 function isShared(value: unknown): value is SharedDetails {
   return (
@@ -121,7 +161,7 @@ function isAssignment(value: unknown): value is ReferralAssignment {
   return (
     (value.assignedWorker === undefined || (record(value.assignedWorker) && isText(value.assignedWorker.id) && isText(value.assignedWorker.name))) &&
     isText(id) &&
-    isPartner(partnerId) &&
+    isPartnerId(partnerId) &&
     isText(message) &&
     isShared(shared) &&
     isDate(sentAt) &&
@@ -151,7 +191,7 @@ function isService(value: unknown): value is Omit<Service, 'assignmentId'> {
     record(value) &&
     (value.id === undefined || isText(value.id)) &&
     isCategory(value.category) &&
-    isPartner(value.providerId) &&
+    isPartnerId(value.providerId) &&
     isDate(value.deliveredAt) &&
     (value.programId === undefined || isText(value.programId)) &&
     (value.voidedAt === undefined || isDate(value.voidedAt)) &&
@@ -175,7 +215,7 @@ function isHandoff(value: unknown): value is Handoff {
     record(value) &&
     isText(value.id) &&
     isText(value.fromAssignmentId) &&
-    isPartner(value.partnerId) &&
+    isPartnerId(value.partnerId) &&
     isCategory(value.category) &&
     isText(value.reason) &&
     includes(['pending', 'approved', 'declined'], value.status)
@@ -289,8 +329,14 @@ export function decode(raw: string): DemoState {
     Array.isArray(state.posts) &&
     state.posts.every(isPost) &&
     Array.isArray(state.referrals) &&
-    (state.community === undefined || isCommunity(state.community, state.posts))
+    (state.community === undefined || isCommunity(state.community, state.posts)) &&
+    (state.partners === undefined ||
+      (Array.isArray(state.partners) && state.partners.every(isPartnerRecord)))
   ) {
+    const partners = mergePartners(
+      state.partners?.map((partner) => normalizePartner(partner as Partner)),
+    );
+    partnerIdsForDecode = new Set([...knownPartnerIds(), ...partners.map(({ id }) => id)]);
     const referrals: unknown[] =
       state.version === 1 ? state.referrals.map(migrateReferral) : state.referrals;
     if (
@@ -312,6 +358,7 @@ export function decode(raw: string): DemoState {
         posts: state.posts,
         referrals: normalizedReferrals,
         community: { ...emptyCommunity(), ...state.community },
+        partners,
       };
     }
   }

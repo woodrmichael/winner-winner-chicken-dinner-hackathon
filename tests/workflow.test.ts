@@ -11,6 +11,7 @@ import {
 import { profile, program, residentId, seedState as fullDemo } from '../src/domain/seed';
 import { outstandingNeeds, pendingHandoffs } from '../src/domain/referrals';
 import type { Command } from '../src/domain/types';
+import { partnerDetail, pausedServiceLine } from '../src/features/matching/directory';
 import { example, matchResources } from '../src/features/matching/match';
 import {
   draftReferral,
@@ -477,6 +478,304 @@ test('unmatched requests return no automatic partner matches', async () => {
   const result = await matchWithModel('Could someone help with algebra?', 0);
   assert.equal(result.matches.length, 0);
   assert.equal(result.needs.length, 0);
+});
+
+test('partner profiles share pickup and coverage for map and matching', () => {
+  const state = seedState();
+  const winter = state.partners.find((partner) => partner.id === 'winter-team')!;
+  const ride = state.partners.find((partner) => partner.id === 'ride-circle')!;
+  assert.ok(winter.pickup.includes('Moody Park'));
+  assert.ok(ride.pickup.toLowerCase().includes('riverwest'));
+  assert.deepEqual(winter.coverageAreas, ['Harambee', 'Riverwest']);
+  assert.ok(ride.categories.includes('Transportation'));
+  const ranked = withNeeds(['Transportation'], 'model', undefined, state.partners);
+  assert.ok(ranked.matches.some((match) => match.partner.id === 'winter-team'));
+  assert.ok(ranked.matches.some((match) => match.partner.id === 'ride-circle'));
+});
+
+test('pausing rides favors available providers while accepted rides stay open', () => {
+  const initial = seedState();
+  const paused = applyCommand(initial, {
+    type: 'set-service-availability',
+    partnerId: 'winter-team',
+    category: 'Transportation',
+    accepting: false,
+    at,
+  });
+  const winter = paused.partners.find((partner) => partner.id === 'winter-team')!;
+  assert.equal(winter.availability.Transportation, 'paused');
+  assert.equal(winter.availability.Clothing, undefined);
+  assert.match(pausedServiceLine(winter), /Transportation temporarily paused/i);
+  assert.match(pausedServiceLine(winter, ['Clothing', 'Transportation']), /Transportation temporarily paused/i);
+  const rides = withNeeds(['Transportation'], 'model', 'Harambee', paused.partners);
+  assert.equal(rides.matches[0].partner.id, 'ride-circle');
+  assert.ok(!rides.matches.some((match) => match.partner.id === 'winter-team'));
+  assert.ok(needsFullyCovered(['Clothing'], paused.partners));
+  const clothingAndRide = withNeeds(['Clothing', 'Transportation'], 'model', undefined, paused.partners);
+  assert.ok(clothingAndRide.matches.some((match) => match.partner.id === 'winter-team'));
+  assert.deepEqual(
+    clothingAndRide.matches.find((match) => match.partner.id === 'winter-team')?.covers,
+    ['Clothing'],
+  );
+
+  const sent = applyCommand(initial, {
+    ...send,
+    id: 'ride-before-pause',
+    needs: ['Transportation'],
+    message: 'Need a ride this week.',
+  });
+  const accepted = applyCommand(sent, {
+    type: 'accept',
+    id: 'ride-before-pause',
+    partnerId: 'winter-team',
+    at,
+  });
+  const afterPause = applyCommand(accepted, {
+    type: 'set-service-availability',
+    partnerId: 'winter-team',
+    category: 'Transportation',
+    accepting: false,
+    at,
+  });
+  assert.equal(partnerInbox(afterPause, 'winter-team')[0].assignment.id, 'ride-before-pause');
+  assert.deepEqual(partnerInbox(afterPause, 'winter-team')[0].outstanding, ['Transportation']);
+
+  const reopened = applyCommand(paused, {
+    type: 'set-service-availability',
+    partnerId: 'winter-team',
+    category: 'Transportation',
+    accepting: true,
+    at,
+  });
+  assert.equal(
+    withNeeds(['Transportation'], 'model', 'Harambee', reopened.partners).matches[0].partner.id,
+    'winter-team',
+  );
+  assert.throws(
+    () =>
+      applyCommand(paused, {
+        ...send,
+        id: 'blocked-ride',
+        needs: ['Transportation'],
+        message: 'Still need a ride.',
+      }),
+    /not accepting/,
+  );
+});
+
+test('pending directory listings stay out of matching until approved', () => {
+  const submitted = applyCommand(seedState(), {
+    type: 'submit-partner-listing',
+    id: 'new-coats',
+    name: 'Northside Coats',
+    area: 'Harambee',
+    categories: ['Clothing'],
+    pickup: 'Drop-in closet on 3rd Street.',
+    at,
+  });
+  const pending = submitted.partners.find((partner) => partner.id === 'new-coats')!;
+  assert.equal(pending.listingStatus, 'pending');
+  assert.ok(
+    !withNeeds(['Clothing'], 'model', undefined, submitted.partners).matches.some(
+      (match) => match.partner.id === 'new-coats',
+    ),
+  );
+  assert.throws(
+    () =>
+      applyCommand(submitted, {
+        ...send,
+        id: 'to-pending',
+        partnerId: 'new-coats',
+        needs: ['Clothing'],
+        message: 'Need a coat.',
+      }),
+    /directory/,
+  );
+  const approved = applyCommand(submitted, {
+    type: 'approve-partner-listing',
+    partnerId: 'new-coats',
+    at,
+  });
+  assert.equal(
+    approved.partners.find((partner) => partner.id === 'new-coats')?.listingStatus,
+    'approved',
+  );
+  assert.ok(
+    withNeeds(['Clothing'], 'model', undefined, approved.partners).matches.some(
+      (match) => match.partner.id === 'new-coats',
+    ),
+  );
+});
+
+test('organizations can edit their listing and moderators can remove partners', () => {
+  const initial = seedState();
+  const paused = applyCommand(initial, {
+    type: 'set-service-availability',
+    partnerId: 'winter-team',
+    category: 'Transportation',
+    accepting: false,
+    at,
+  });
+  assert.match(
+    pausedServiceLine(paused.partners.find((partner) => partner.id === 'winter-team')!),
+    /Transportation temporarily paused/i,
+  );
+  const updated = applyCommand(paused, {
+    type: 'update-partner-listing',
+    partnerId: 'winter-team',
+    name: 'Winter Care Collective East',
+    area: 'Riverwest',
+    categories: ['Clothing', 'Food'],
+    coverageAreas: ['Riverwest', 'Harambee'],
+    pickup: 'Pickup at the east pavilion.',
+    at,
+  });
+  const winter = updated.partners.find((partner) => partner.id === 'winter-team')!;
+  assert.equal(winter.name, 'Winter Care Collective East');
+  assert.equal(winter.area, 'Riverwest');
+  assert.deepEqual(winter.categories, ['Clothing', 'Food']);
+  assert.deepEqual(winter.coverageAreas, ['Riverwest', 'Harambee']);
+  assert.equal(winter.pickup, 'Pickup at the east pavilion.');
+  assert.equal(winter.listingStatus, 'approved');
+  assert.equal(winter.availability.Transportation, undefined);
+  assert.equal(pausedServiceLine(winter), '');
+  assert.equal(pausedServiceLine(winter, ['Clothing', 'Transportation']), '');
+  assert.ok(!partnerDetail(winter).toLowerCase().includes('paused'));
+  assert.ok(
+    withNeeds(['Food'], 'model', undefined, updated.partners).matches.some(
+      (match) => match.partner.id === 'winter-team',
+    ),
+  );
+  assert.ok(
+    !withNeeds(['Transportation'], 'model', undefined, updated.partners).matches.some(
+      (match) => match.partner.id === 'winter-team',
+    ),
+  );
+
+  const withDelivery = applyCommand(
+    applyCommand(
+      applyCommand(updated, {
+        ...send,
+        id: 'winter-before-remove',
+        needs: ['Clothing'],
+        message: 'Need a coat.',
+      }),
+      { type: 'accept', id: 'winter-before-remove', partnerId: 'winter-team', at },
+    ),
+    {
+      type: 'complete',
+      id: 'winter-before-remove',
+      partnerId: 'winter-team',
+      category: 'Clothing',
+      programId: program.id,
+      at,
+    },
+  );
+  const winterCreditBefore = impact(withDelivery).byProvider.find(
+    (entry) => entry.name === 'Winter Care Collective East',
+  )?.count;
+  assert.ok((winterCreditBefore ?? 0) >= 1);
+  const riverwestResourcesBefore = mapRows(withDelivery).find(({ area }) => area === 'Riverwest')!
+    .resources;
+
+  const removed = applyCommand(withDelivery, {
+    type: 'delete-partner-listing',
+    partnerId: 'winter-team',
+    at,
+  });
+  assert.equal(
+    removed.partners.find((partner) => partner.id === 'winter-team')?.listingStatus,
+    'removed',
+  );
+  assert.ok(
+    !withNeeds(['Clothing'], 'model', undefined, removed.partners).matches.some(
+      (match) => match.partner.id === 'winter-team',
+    ),
+  );
+  assert.equal(
+    mapRows(removed).find(({ area }) => area === 'Riverwest')!.resources,
+    riverwestResourcesBefore - 1,
+  );
+  assert.equal(
+    impact(removed).byProvider.find((entry) => entry.name === 'Winter Care Collective East')
+      ?.count,
+    winterCreditBefore,
+  );
+  assert.equal(partnerInbox(removed, 'winter-team')[0]?.assignment.id, 'winter-before-remove');
+  assert.equal(
+    applyCommand(removed, { type: 'delete-partner-listing', partnerId: 'winter-team', at }),
+    removed,
+  );
+});
+
+test('declining a pending listing removes it from the directory queue', () => {
+  const submitted = applyCommand(seedState(), {
+    type: 'submit-partner-listing',
+    id: 'eastside-aid',
+    name: 'Eastside Aid',
+    area: 'Riverwest',
+    categories: ['Food'],
+    at,
+  });
+  const declined = applyCommand(submitted, {
+    type: 'decline-partner-listing',
+    partnerId: 'eastside-aid',
+    at,
+    reason: 'Coverage area overlaps an existing partner.',
+  });
+  const eastside = declined.partners.find((partner) => partner.id === 'eastside-aid')!;
+  assert.equal(eastside.listingStatus, 'declined');
+  assert.equal(eastside.declineReason, 'Coverage area overlaps an existing partner.');
+  const declinedQuietly = applyCommand(submitted, {
+    type: 'decline-partner-listing',
+    partnerId: 'eastside-aid',
+    at,
+  });
+  assert.equal(
+    declinedQuietly.partners.find((partner) => partner.id === 'eastside-aid')?.declineReason,
+    undefined,
+  );
+  assert.equal(applyCommand(declined, {
+    type: 'decline-partner-listing',
+    partnerId: 'eastside-aid',
+    at,
+  }), declined);
+  assert.ok(
+    !withNeeds(['Food'], 'model', undefined, declined.partners).matches.some(
+      (match) => match.partner.id === 'eastside-aid',
+    ),
+  );
+  assert.throws(
+    () =>
+      applyCommand(declined, {
+        type: 'approve-partner-listing',
+        partnerId: 'eastside-aid',
+        at,
+      }),
+    /no longer available/,
+  );
+  const another = applyCommand(declined, {
+    type: 'submit-partner-listing',
+    id: 'westside-aid',
+    name: 'Westside Aid',
+    area: 'Harambee',
+    categories: ['Food'],
+    at,
+  });
+  const approvedOther = applyCommand(another, {
+    type: 'approve-partner-listing',
+    partnerId: 'westside-aid',
+    at,
+  });
+  assert.equal(
+    approvedOther.partners.find((partner) => partner.id === 'westside-aid')?.listingStatus,
+    'approved',
+  );
+  assert.ok(
+    withNeeds(['Food'], 'model', undefined, approvedOther.partners).matches.some(
+      (match) => match.partner.id === 'westside-aid',
+    ),
+  );
 });
 
 test('saved state validation and deterministic reset', () => {

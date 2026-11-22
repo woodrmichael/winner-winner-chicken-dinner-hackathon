@@ -12,7 +12,7 @@ import { TabActive } from '../../ui/RetainedTab';
 import { SelectMenu } from '../../ui/SelectMenu';
 import { SelectionRow, ToggleRow } from '../../ui/SelectionRows';
 import { Btn, Card, Columns, Copy, Page, color, wrap } from '../../ui/kit';
-import { directory } from '../matching/directory';
+import { approvedPartners, partnerDetail } from '../matching/directory';
 import MilwaukeeMap from './MilwaukeeMap';
 import { MapLegend } from './MapLegend';
 import { incidentBand, incidentLayers, incidentPeriod, noIncidentData, needColor } from './incidentScale';
@@ -78,7 +78,10 @@ export default function MapScreen() {
         delivered: rows.reduce((total, item) => total + item.delivered, 0),
       };
   const incidentCounts = Object.entries(historicalIncidents).find(([area]) => area === selected)?.[1];
-  const providers = selected ? directory.filter((partner) => partner.area === selected) : [];
+  const providers = useMemo(
+    () => selected ? approvedPartners(state.partners).filter((partner) => partner.area === selected) : [],
+    [selected, state.partners],
+  );
 
   const toggleNeighborhood = useCallback(async (area: string | null) => {
     setSelected((current) => current === area ? null : area);
@@ -176,6 +179,10 @@ export default function MapScreen() {
               <View key={partner.id} style={styles.provider}>
                 <Copy kind="strong">{partner.name}</Copy>
                 <Copy kind="small" tint={color.muted}>{partner.categories.join(' · ')}</Copy>
+                <Copy kind="small" tint={color.muted}>{partnerDetail(partner)}</Copy>
+                <Btn label="View profile" quiet onPress={() =>
+                  router.push({ pathname: '/partner/[id]', params: { id: partner.id } })}
+                />
                 <Btn label={'Request help from ' + partner.name} secondary onPress={() =>
                   router.push({ pathname: '/ask', params: { partner: partner.id } })}
                 />

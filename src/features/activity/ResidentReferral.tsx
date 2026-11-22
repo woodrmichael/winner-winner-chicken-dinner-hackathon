@@ -75,9 +75,9 @@ function DeclinedNeed({
   partnerId: string;
   category: Category;
 }) {
-  const { run } = useDemo();
+  const { run, state } = useDemo();
   const [action, setAction] = useState<'seek' | 'withdraw' | null>(null);
-  const options = otherProviders(partnerId, category);
+  const options = otherProviders(partnerId, category, state.partners);
   const [recipientId, setRecipient] = useState(options[0]?.id);
   const [message, setMessage] = useState('');
   const [sharing, setSharing] = useState<ShareKey[]>([]);

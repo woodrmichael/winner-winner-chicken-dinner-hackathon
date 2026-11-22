@@ -4,6 +4,7 @@ import {
   categories,
   neighborhoods,
   type CommunityCommand,
+  type DirectoryCommand,
   type ReferralCommand,
   type SharedDetails,
   type WorkspaceCommand,
@@ -40,7 +41,10 @@ function share(value: unknown) {
   return value.map((key) => option(key, shareFields));
 }
 
-export function parseCommand(input: unknown, details: SharedDetails): CommunityCommand | ReferralCommand | WorkspaceCommand | SupportCommand {
+export function parseCommand(
+  input: unknown,
+  details: SharedDetails,
+): CommunityCommand | ReferralCommand | WorkspaceCommand | DirectoryCommand | SupportCommand {
   const cmd = object(input);
   const at = new Date().toISOString();
   switch (cmd.type) {
@@ -155,6 +159,61 @@ export function parseCommand(input: unknown, details: SharedDetails): CommunityC
         category: option(cmd.category, categories), message: text(cmd.message, 4000), share: share(cmd.share), at };
     case 'withdraw-need':
       return { type: cmd.type, id: text(cmd.id), category: option(cmd.category, categories) };
+    case 'set-service-availability':
+      return {
+        type: cmd.type,
+        partnerId: text(cmd.partnerId),
+        category: option(cmd.category, categories),
+        accepting: cmd.accepting === true,
+        at,
+      };
+    case 'submit-partner-listing': {
+      if (!Array.isArray(cmd.categories) || !cmd.categories.length || cmd.categories.length > categories.length) {
+        invalid();
+      }
+      const coverage = Array.isArray(cmd.coverageAreas)
+        ? cmd.coverageAreas.map((area) => option(area, neighborhoods))
+        : undefined;
+      return {
+        type: cmd.type,
+        id: text(cmd.id),
+        name: text(cmd.name, 120),
+        area: option(cmd.area, neighborhoods),
+        categories: cmd.categories.map((value) => option(value, categories)),
+        ...(coverage?.length ? { coverageAreas: coverage } : {}),
+        ...(Object.hasOwn(cmd, 'pickup') ? { pickup: text(cmd.pickup, 600) } : {}),
+        at,
+      };
+    }
+    case 'approve-partner-listing':
+      return { type: cmd.type, partnerId: text(cmd.partnerId), at };
+    case 'decline-partner-listing':
+      return {
+        type: cmd.type,
+        partnerId: text(cmd.partnerId),
+        at,
+        ...(Object.hasOwn(cmd, 'reason') && typeof cmd.reason === 'string' && cmd.reason.trim()
+          ? { reason: text(cmd.reason, 1200) }
+          : {}),
+      };
+    case 'update-partner-listing': {
+      if (!Array.isArray(cmd.categories) || !cmd.categories.length || cmd.categories.length > categories.length) {
+        invalid();
+      }
+      if (!Array.isArray(cmd.coverageAreas) || !cmd.coverageAreas.length) invalid();
+      return {
+        type: cmd.type,
+        partnerId: text(cmd.partnerId),
+        name: text(cmd.name, 120),
+        area: option(cmd.area, neighborhoods),
+        categories: cmd.categories.map((value) => option(value, categories)),
+        coverageAreas: cmd.coverageAreas.map((area) => option(area, neighborhoods)),
+        pickup: text(cmd.pickup, 600),
+        at,
+      };
+    }
+    case 'delete-partner-listing':
+      return { type: cmd.type, partnerId: text(cmd.partnerId), at };
     default:
       return invalid();
   }

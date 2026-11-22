@@ -3,7 +3,7 @@ import { deliveredServices } from '../../domain/model';
 import { outstandingNeeds } from '../../domain/referrals';
 import { program } from '../../domain/seed';
 import { categories, type DemoState, type Referral, type Service } from '../../domain/types';
-import { directory, partnerName } from '../matching/directory';
+import { creditedPartners, directory, partnerName } from '../matching/directory';
 
 const timeZone = 'America/Chicago';
 const monthParts = new Intl.DateTimeFormat('en-US', {
@@ -40,7 +40,15 @@ export function periodName(month: number | null) {
   return monthLabel.format(date);
 }
 
-type ReferralSource = Pick<DemoState, 'referrals'>;
+type ReferralSource = Pick<DemoState, 'referrals'> & Partial<Pick<DemoState, 'partners'>>;
+
+function providersOf(state: ReferralSource) {
+  const partners = state.partners ?? directory;
+  return creditedPartners(
+    partners,
+    deliveredServices(state).map((service) => service.providerId),
+  );
+}
 
 export function reportMonths(state: ReferralSource, now = new Date()) {
   const current = reportingMonth(now);
@@ -125,7 +133,7 @@ export function impactReport(state: ReferralSource, month: number | null, provid
 
   return {
     period: periodName(month),
-    provider: providerId === null ? 'All providers' : partnerName(providerId),
+    provider: providerId === null ? 'All providers' : partnerName(state.partners ?? directory, providerId),
     received,
     open,
     delivered: services.length,
@@ -137,7 +145,7 @@ export function impactReport(state: ReferralSource, month: number | null, provid
       name,
       count: services.filter((service) => service.category === name).length,
     })).filter(({ count }) => count > 0).sort((a, b) => b.count - a.count),
-    byProvider: directory.map(({ id, name }) => ({
+    byProvider: providersOf(state).map(({ id, name }) => ({
       name,
       count: services.filter((service) => service.providerId === id).length,
     })).filter(({ count }) => count > 0).sort((a, b) => b.count - a.count),
@@ -147,7 +155,7 @@ export function impactReport(state: ReferralSource, month: number | null, provid
         key: `${providerId}-${category}-${index}`,
         category,
         date: deliveryDate.format(new Date(deliveredAt)),
-        provider: partnerName(providerId),
+        provider: partnerName(state.partners ?? directory, providerId),
       })),
   };
 }
@@ -191,7 +199,7 @@ export function impactReports(state: ReferralSource, now = new Date()) {
       {
         all: impactReport(state, month, null),
         byProvider: Object.fromEntries(
-          directory.map(({ id }) => [id, impactReport(state, month, id)]),
+          providersOf(state).map(({ id }) => [id, impactReport(state, month, id)]),
         ),
       },
     ])),

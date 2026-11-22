@@ -1,13 +1,23 @@
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { isCommunityCommand } from '../src/domain/model';
 import { isWorkspaceCommand, type Account } from '../src/shared/workspace';
 import { publicLibrariesPath } from '../src/shared/publicLibraries';
 import { reportingMonth } from '../src/features/impact/report';
 import { object, parseCommand } from './commands';
 import { WorkspaceError } from './referral-access';
-import { applySharedSupport, applySharedCommunity, applySharedReferral, applyWorkspaceCommand, snapshot, type StoredAccount, type Workspace } from './workspace';
-import { isCommunityCommand } from '../src/domain/model';
 import { createPublicLibraryCache } from './public-map';
+import {
+  applySharedCommunity,
+  applySharedDirectory,
+  applySharedReferral,
+  applySharedSupport,
+  applyWorkspaceCommand,
+  isDirectoryCommand,
+  snapshot,
+  type StoredAccount,
+  type Workspace,
+} from './workspace';
 
 const lifetime = 8 * 60 * 60 * 1000;
 const dummyHash = '00000000000000000000000000000000:' + '0'.repeat(64);
@@ -118,9 +128,11 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
         try {
           updated = cmd.type === 'partnership' ? applySharedSupport(workspace, account, cmd.entry) : isCommunityCommand(cmd)
             ? applySharedCommunity(workspace, account, cmd)
-            : isWorkspaceCommand(cmd)
-              ? applyWorkspaceCommand(workspace, account, cmd)
-              : applySharedReferral(workspace, account, cmd);
+            : isDirectoryCommand(cmd)
+              ? applySharedDirectory(workspace, account, cmd)
+              : isWorkspaceCommand(cmd)
+                ? applyWorkspaceCommand(workspace, account, cmd)
+                : applySharedReferral(workspace, account, cmd);
         } catch (error) {
           if (!(error instanceof Error) || error instanceof WorkspaceError) throw error;
           throw new WorkspaceError(409, error.message);

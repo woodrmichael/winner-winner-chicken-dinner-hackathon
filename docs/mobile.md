@@ -17,7 +17,7 @@ Swipe left from the right edge of the app, or press and hold the **Community** t
 | On the phone | Expected result |
 | --- | --- |
 | Open **Impact**, tap the reporting month and choose **All time**. Note the starting totals. | A fresh workspace has 530 sample requests. Using All time makes it easy to compare totals after the walkthrough. |
-| Go to **Community → Ask for help**. Type “We need clothes for the kids and a ride to pick them up.” Tap **Find resources**. | Winter Care Collective matches clothing and transportation. Tap its name to see the other sample partners. |
+| Go to **Community → Ask for help**. Type “We need clothes for the kids and a ride to pick the clothes up.” Tap **Find resources**. | Winter Care Collective matches clothing and transportation. Tap its name to see the other sample partners. |
 | Open **Sharing options**, select **Neighborhood · Harambee**, then tap **Send referral**. | Your referral appears in Activity as **Sent**. |
 | In **Settings**, select **Partner**, then tap **Done**. Open the referral under **Awaiting response** and tap **Accept referral**. Press **r** on the laptop, then switch back to **Partner** in Settings. | The referral appears under **Accepted cases** after reload. |
 | Open the referral if it is collapsed. Tap **Record delivery**, select **Clothing**, keep the winter program selected and tap **Record completed service**. Switch to **Resident view**. | Winter Care Collective is credited for clothing. Transportation remains outstanding. |

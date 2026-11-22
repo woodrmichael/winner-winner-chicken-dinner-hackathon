@@ -11,7 +11,7 @@ import { Disclosure } from '../../ui/Disclosure';
 import { Segments } from '../../ui/Segments';
 import { SelectionRow, ToggleRow } from '../../ui/SelectionRows';
 import { Btn, Card, Copy, Field, color, wrap } from '../../ui/kit';
-import { partnerName } from '../matching/directory';
+import { listWords, partnerName } from '../matching/directory';
 import {
   AppointmentDetails,
   AssignmentHistory,
@@ -157,13 +157,13 @@ function ProviderResponse({
   categories: Category[];
   close: () => void;
 }) {
-  const { run } = useDemo();
+  const { run, state } = useDemo();
   const [selected, setSelected] = useState(categories[0]);
   const [recipient, setRecipient] = useState('');
   const [reason, setReason] = useState('');
   const category = categories.includes(selected) ? selected : categories[0];
   const handoff = action === 'handoff';
-  const options = handoff ? otherProviders(assignment.partnerId, category) : [];
+  const options = handoff ? otherProviders(assignment.partnerId, category, state.partners) : [];
   const recipientId = options.some(({ id }) => id === recipient) ? recipient : options[0]?.id;
   async function save() {
     const target = { id: assignment.id, partnerId: assignment.partnerId, category, reason };
@@ -214,13 +214,13 @@ function ProviderResponse({
 }
 
 export function PartnerReferralDetails({ ticket }: { ticket: Ticket }) {
-  const { run } = useDemo();
+  const { run, state } = useDemo();
   const [action, setAction] = useState<Action | null>(null);
   const [more, setMore] = useState(false);
   const { assignment } = ticket;
   const canSchedule = !!assignment.acceptedAt && ticket.actionable.length > 0;
   const handoffCategories = ticket.handoffCategories.filter(
-    (category) => otherProviders(assignment.partnerId, category).length > 0,
+    (category) => otherProviders(assignment.partnerId, category, state.partners).length > 0,
   );
   const canShowAction = {
     delivery: !!assignment.acceptedAt && ticket.deliverable.length > 0,
@@ -253,7 +253,7 @@ export function PartnerReferralDetails({ ticket }: { ticket: Ticket }) {
       )}
       {ticket.proposedCategories.length > 0 && (
         <Copy kind="small">
-          Awaiting resident approval · {ticket.proposedCategories.map(needName).join(', ')}
+          Awaiting resident approval · {listWords(ticket.proposedCategories.map(needName))}
         </Copy>
       )}
       {!activeAction && ticket.canRespond && (
@@ -334,8 +334,8 @@ export function PartnerReferral({
 }) {
   const { shared } = useDemo();
   const title = ticket.outstanding.length
-    ? ticket.outstanding.map(needName).join(' and ')
-    : ticket.services.map(({ category }) => needName(category)).join(' and ') || ticket.status;
+    ? listWords(ticket.outstanding.map(needName))
+    : listWords(ticket.services.map(({ category }) => needName(category))) || ticket.status;
   return (
     <Card style={{ paddingVertical: 10 }}>
       <Disclosure

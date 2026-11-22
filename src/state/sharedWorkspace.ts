@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import type { CommunityCommand, ReferralCommand, WorkspaceCommand } from '../domain/types';
+import type {
+  CommunityCommand,
+  DirectoryCommand,
+  ReferralCommand,
+  WorkspaceCommand,
+} from '../domain/types';
 import { withResponse, workspaceApiUrl } from '../shared/http';
 import type { SharedSnapshot } from '../shared/workspace';
 
@@ -108,7 +113,14 @@ export function useSharedWorkspace() {
     if (session) await request('/session', { method: 'DELETE' }, session).catch(() => {});
   }
 
-  async function run(command: CommunityCommand | ReferralCommand | WorkspaceCommand | import('../features/partnerships/ledger').SupportCommand) {
+  async function run(
+    command:
+      | CommunityCommand
+      | ReferralCommand
+      | WorkspaceCommand
+      | DirectoryCommand
+      | import('../features/partnerships/ledger').SupportCommand,
+  ) {
     const session = token.current;
     if (!session) throw new Error('Sign in through Settings to use the shared workspace.');
     try {

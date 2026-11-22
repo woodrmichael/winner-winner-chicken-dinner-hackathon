@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useDemo } from '../../state/Demo';
 import { SelectionRow } from '../../ui/SelectionRows';
 import { Btn, Card, Copy, Field } from '../../ui/kit';
-import { directory, partnerName } from '../matching/directory';
+import { PendingListings } from '../directory/PendingListings';
+import { approvedPartners, partnerName } from '../matching/directory';
 
 export function SharedAccount() {
-  const { shared, run } = useDemo();
+  const router = useRouter();
+  const { shared, run, state } = useDemo();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [organization, setOrganization] = useState('');
   const data = shared.data;
+  const partners = approvedPartners(data?.partners ?? state.partners);
 
   if (!data) {
     return (
@@ -28,7 +32,7 @@ export function SharedAccount() {
     );
   }
 
-  const { account, requests } = data;
+  const { account, requests, pendingListings = [] } = data;
   const membership = account.membership;
   return (
     <>
@@ -46,7 +50,7 @@ export function SharedAccount() {
         <Card>
           <Copy kind="title">Request organization access</Copy>
           <View accessibilityRole="radiogroup" accessibilityLabel="Organization">
-            {directory.map(({ id, name }) => (
+            {partners.map(({ id, name }) => (
               <SelectionRow key={id} label={name} selected={organization === id} onPress={() => setOrganization(id)} />
             ))}
           </View>
@@ -64,8 +68,24 @@ export function SharedAccount() {
               <Btn label={`Approve ${name}`} onPress={() => run({ type: 'approve-membership', accountId: id })} />
             </View>
           ))}
+          <Btn
+            label="Manage service availability"
+            quiet
+            onPress={() =>
+              router.push({ pathname: '/partner/[id]', params: { id: membership.partnerId } })
+            }
+          />
         </Card>
       )}
+      {account.moderator ? (
+        <Card>
+          <PendingListings listings={pendingListings} />
+        </Card>
+      ) : null}
+      <Card>
+        <Btn label="Browse partner directory" quiet onPress={() => router.push('/directory')} />
+        <Btn label="Submit an organization" quiet onPress={() => router.push('/partner/submit')} />
+      </Card>
     </>
   );
 }

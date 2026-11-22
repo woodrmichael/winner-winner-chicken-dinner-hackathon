@@ -1,5 +1,5 @@
-import type { Category, Neighborhood } from '../../domain/types';
-import { directory } from './directory';
+import type { Category, Neighborhood, Partner } from '../../domain/types';
+import { approvedPartners, directory, eligibleForNewReferral, listWords } from './directory';
 import { matchResources } from './match';
 import {
   detectNeighborhood,
@@ -15,10 +15,12 @@ export { detectNeighborhood, interpretNeeds, rankPartners } from './llm';
 
 const addableNeeds: Category[] = ['Clothing', 'Food', 'Transportation'];
 
-/** True when some directory partner offers every listed need. */
-export function needsFullyCovered(needs: Category[]): boolean {
+/** True when some approved, accepting partner offers every listed need. */
+export function needsFullyCovered(needs: Category[], partners: Partner[] = directory): boolean {
   if (!needs.length) return false;
-  return directory.some((partner) => needs.every((need) => partner.categories.includes(need)));
+  return approvedPartners(partners).some((partner) =>
+    needs.every((need) => eligibleForNewReferral(partner, need)),
+  );
 }
 
 /** Categories the resident can still add on review. */
@@ -49,8 +51,8 @@ export function setModelAvailable(available: boolean) {
   modelAvailable = available;
 }
 
-export function matchFromKeywords(text: string): MatchResult {
-  const { needs, matches } = matchResources(text);
+export function matchFromKeywords(text: string, partners: Partner[] = directory): MatchResult {
+  const { needs, matches } = matchResources(text, partners);
   return {
     needs,
     source: 'keywords',
@@ -58,7 +60,7 @@ export function matchFromKeywords(text: string): MatchResult {
       partner: match.partner,
       covers: match.covers,
       explanation: match.covers.length
-        ? 'Matches ' + match.covers.map((c) => c.toLowerCase()).join(' and ')
+        ? 'Matches ' + listWords(match.covers.map((c) => c.toLowerCase()))
         : '',
     })),
   };
@@ -69,20 +71,27 @@ export function isVagueRequest(text: string): boolean {
 }
 
 /** Simulated model: uses only the request text. Rejects when unavailable. */
-export async function matchWithModel(text: string, waitMs = 550): Promise<MatchResult> {
+export async function matchWithModel(
+  text: string,
+  waitMs = 550,
+  partners: Partner[] = directory,
+): Promise<MatchResult> {
   if (!modelAvailable) {
     throw new Error('Model unavailable');
   }
-  const client = waitMs === 0 ? getDemoLlmClient(0) : getLlmClient();
+  const client = waitMs === 0 ? getDemoLlmClient(0, partners) : getLlmClient(partners);
   const result = await client.interpret(text);
   return { ...result, source: 'model' };
 }
 
-export async function findResources(text: string): Promise<MatchResult> {
+export async function findResources(
+  text: string,
+  partners: Partner[] = directory,
+): Promise<MatchResult> {
   try {
-    return await matchWithModel(text);
+    return await matchWithModel(text, 550, partners);
   } catch {
-    return matchFromKeywords(text);
+    return matchFromKeywords(text, partners);
   }
 }
 
@@ -100,8 +109,9 @@ export function withNeeds(
   needs: Category[],
   source: MatchResult['source'] = 'model',
   preferredArea?: Neighborhood,
+  partners: Partner[] = directory,
 ): MatchResult {
-  return { needs, matches: rankPartners(needs, preferredArea), source };
+  return { needs, matches: rankPartners(needs, preferredArea, partners), source };
 }
 
 export function preferredAreaFrom(

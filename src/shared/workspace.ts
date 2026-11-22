@@ -3,6 +3,7 @@ import type { partnerInbox } from '../domain/referrals';
 import type {
   Category,
   CommunityState,
+  Partner,
   Post,
   Referral,
   Service,
@@ -60,6 +61,8 @@ export type SharedSnapshot = {
   account: Account;
   posts: Post[];
   community: CommunityState;
+  partners: Partner[];
+  pendingListings: { id: string; name: string; area: string; categories: string[] }[];
   referrals: Referral[];
   inbox: ReturnType<typeof partnerInbox>;
   messages: ReferralMessage[];

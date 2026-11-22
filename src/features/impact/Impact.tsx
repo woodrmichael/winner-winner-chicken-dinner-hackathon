@@ -5,21 +5,34 @@ import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { TabActive } from '../../ui/RetainedTab';
 import { SelectMenu } from '../../ui/SelectMenu';
 import { Btn, Card, Columns, Copy, Page, ProgressBar, color, row, wrap } from '../../ui/kit';
-import { directory } from '../matching/directory';
+import { creditedPartners } from '../matching/directory';
 import { ReportShare } from './ReportShare';
 import { periodName, responseTime, type ImpactReport } from './report';
 import { useImpactReport } from './useImpactReport';
 import { ServiceRecords } from './ServiceRecords';
-
-const providerOptions = [
-  { value: null, label: 'All providers' },
-  ...directory.map(({ id, name }) => ({ value: id, label: name })),
-];
+import { useDemo } from '../../state/Demo';
+import { deliveredServices } from '../../domain/model';
 
 export default function Impact({ period }: { period?: string }) {
   const router = useRouter();
   const active = useContext(TabActive);
+  const { state } = useDemo();
   const [provider, setProvider] = useState<string | null>(null);
+  const providers = useMemo(
+    () =>
+      creditedPartners(
+        state.partners,
+        deliveredServices(state).map((service) => service.providerId),
+      ),
+    [state],
+  );
+  const providerOptions = useMemo(
+    () => [
+      { value: null, label: 'All providers' },
+      ...providers.map(({ id, name }) => ({ value: id, label: name })),
+    ],
+    [providers],
+  );
   const [showShare, setShowShare] = useState(false);
   if (!active && showShare) setShowShare(false);
   const { month, months, completeReport, report, requiresSignIn } = useImpactReport(period, provider);
@@ -153,10 +166,15 @@ function Overview({ report, wide }: { report: ImpactReport; wide: boolean }) {
 }
 
 function CommunityPartners({ report }: { report: ImpactReport }) {
+  const { state } = useDemo();
+  const partners = creditedPartners(
+    state.partners,
+    deliveredServices(state).map((service) => service.providerId),
+  );
   return (
     <Card>
       <Copy kind="title" style={styles.sectionTitle}>Community partners</Copy>
-      {directory.map(({ id, name }) => {
+      {partners.map(({ id, name }) => {
         const count = report.byProvider.find((provider) => provider.name === name)?.count ?? 0;
         return (
           <View key={id} style={row}>

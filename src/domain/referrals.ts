@@ -1,15 +1,24 @@
 import { projects } from '../features/partnerships/ledger';
-import { directory } from '../features/matching/directory';
+import {
+  approvedPartners,
+  directory,
+  eligibleForNewReferral,
+} from '../features/matching/directory';
 import { profile, residentId } from './seed';
 import type {
   Appointment,
   Category,
   DemoState,
+  Partner,
   Referral,
   ReferralAssignment,
   ReferralCommand,
   SharedDetails,
 } from './types';
+
+function partnersOf(state: { partners?: Partner[] }) {
+  return state.partners ?? directory;
+}
 
 export function outstandingNeeds(referral: Referral): Category[] {
   const activeServices = referral.services.filter((service) => !service.voidedAt);
@@ -43,18 +52,29 @@ export function actionableNeeds(referral: Referral, assignment: ReferralAssignme
   return assignedNeeds(referral, assignment).filter((category) => !assignment.declines[category]);
 }
 
-export function deliverableCategories(referral: Referral, assignment: ReferralAssignment) {
+export function deliverableCategories(
+  referral: Referral,
+  assignment: ReferralAssignment,
+  partners: Partner[] = directory,
+) {
   const actionable = actionableNeeds(referral, assignment);
-  const offered = directory.find((partner) => partner.id === assignment.partnerId)!.categories;
+  const offered =
+    partners.find((partner) => partner.id === assignment.partnerId)?.categories ??
+    directory.find((partner) => partner.id === assignment.partnerId)?.categories ??
+    [];
   return !referral.needs.length && actionable.includes('Other')
     ? offered
     : offered.filter((category) => actionable.includes(category));
 }
 
-export function otherProviders(partnerId: string, category: Category) {
-  return directory.filter(
+export function otherProviders(
+  partnerId: string,
+  category: Category,
+  partners: Partner[] = directory,
+) {
+  return approvedPartners(partners).filter(
     (partner) =>
-      partner.id !== partnerId && (category === 'Other' || partner.categories.includes(category)),
+      partner.id !== partnerId && eligibleForNewReferral(partner, category),
   );
 }
 
@@ -82,7 +102,11 @@ export function status(referral: Referral) {
     : 'Sent';
 }
 
-function partnerTicket(referral: Referral, assignment: ReferralAssignment) {
+function partnerTicket(
+  referral: Referral,
+  assignment: ReferralAssignment,
+  partners: Partner[] = directory,
+) {
   const original = referral.assignments[0].id === assignment.id;
   const assigned = assignedNeeds(referral, assignment);
   const actionable = actionableNeeds(referral, assignment);
@@ -122,7 +146,7 @@ function partnerTicket(referral: Referral, assignment: ReferralAssignment) {
     outstanding,
     actionable,
     routed,
-    deliverable: deliverableCategories(referral, assignment),
+    deliverable: deliverableCategories(referral, assignment, partners),
     canRespond,
     handoffCategories: assigned.filter(
       (category) => !proposals.some((handoff) => handoff.category === category),
@@ -136,12 +160,15 @@ function partnerTicket(referral: Referral, assignment: ReferralAssignment) {
 export const residentTimeline = (state: Pick<DemoState, 'referrals'>, ownerId: string = residentId) =>
   state.referrals.filter((referral) => referral.residentId === ownerId);
 
-export const partnerInbox = (state: Pick<DemoState, 'referrals'>, partnerId: string) =>
+export const partnerInbox = (
+  state: Pick<DemoState, 'referrals'> & { partners?: Partner[] },
+  partnerId: string,
+) =>
   state.referrals
     .flatMap((referral) =>
       referral.assignments
         .filter((assignment) => assignment.partnerId === partnerId)
-        .map((assignment) => partnerTicket(referral, assignment)),
+        .map((assignment) => partnerTicket(referral, assignment, partnersOf(state))),
     )
     .sort(
       (left, right) => Date.parse(right.assignment.sentAt) - Date.parse(left.assignment.sentAt),
@@ -190,6 +217,7 @@ function applyResidentCommand(
   referral: Referral,
   cmd: Extract<ReferralCommand, { type: 'respond-handoff' | 'seek-provider' | 'withdraw-need' }>,
   resident: ResidentIdentity,
+  partners: Partner[] = directory,
 ): Referral {
   if (referral.residentId !== resident.id)
     throw new Error('This referral belongs to another resident.');
@@ -241,7 +269,7 @@ function applyResidentCommand(
   if (cmd.type === 'withdraw-need') {
     return { ...referral, withdrawn: [...referral.withdrawn, cmd.category] };
   }
-  if (!otherProviders(assigned.partnerId, cmd.category).some(({ id }) => id === cmd.recipientId)) {
+  if (!otherProviders(assigned.partnerId, cmd.category, partners).some(({ id }) => id === cmd.recipientId)) {
     throw new Error('Choose another partner that offers this service.');
   }
   return {
@@ -268,6 +296,7 @@ function applyPartnerCommand(
     ReferralCommand,
     { type: 'accept' | 'schedule' | 'decline-service' | 'propose-handoff' | 'complete' | 'correct-service' }
   >,
+  partners: Partner[] = directory,
 ): Referral {
   const actionable = actionableNeeds(referral, assignment);
   if (cmd.type === 'accept') {
@@ -305,7 +334,7 @@ function applyPartnerCommand(
     if (pendingHandoffs(referral).some((handoff) => handoff.category === cmd.category)) {
       throw new Error('The resident already has a proposal for this need.');
     }
-    if (!otherProviders(cmd.partnerId, cmd.category).some(({ id }) => id === cmd.recipientId)) {
+    if (!otherProviders(cmd.partnerId, cmd.category, partners).some(({ id }) => id === cmd.recipientId)) {
       throw new Error('Choose another partner that offers this service.');
     }
     return {
@@ -400,7 +429,7 @@ function applyPartnerCommand(
   )
     return referral;
   if (!assignment.acceptedAt) throw new Error('Accept the referral before recording a service.');
-  if (!deliverableCategories(referral, assignment).includes(cmd.category)) {
+  if (!deliverableCategories(referral, assignment, partners).includes(cmd.category)) {
     throw new Error('Choose an outstanding service offered by this partner.');
   }
   if (
@@ -426,11 +455,12 @@ function applyPartnerCommand(
   };
 }
 
-export function applyReferralCommand<T extends Pick<DemoState, 'referrals'>>(
+export function applyReferralCommand<T extends Pick<DemoState, 'referrals'> & { partners?: Partner[] }>(
   state: T,
   cmd: ReferralCommand,
   resident: ResidentIdentity = demoResident,
 ): T {
+  const partners = partnersOf(state);
   const assignmentIdInUse = (id: string) =>
     state.referrals.some(
       (referral) =>
@@ -444,8 +474,16 @@ export function applyReferralCommand<T extends Pick<DemoState, 'referrals'>>(
       return state;
     }
     if (assignmentIdInUse(cmd.id)) throw new Error('This request ID is already in use.');
-    if (!directory.some(({ id }) => id === cmd.partnerId)) {
+    const recipient = approvedPartners(partners).find(({ id }) => id === cmd.partnerId);
+    if (!recipient) {
       throw new Error('Choose a partner from the directory.');
+    }
+    const needs = [...new Set(cmd.needs)];
+    const blocked = needs.filter((need) => !eligibleForNewReferral(recipient, need));
+    if (blocked.length) {
+      throw new Error(
+        `${recipient.name} is not accepting new ${blocked.map((need) => need.toLowerCase()).join(' or ')} referrals.`,
+      );
     }
     return {
       ...state,
@@ -453,7 +491,7 @@ export function applyReferralCommand<T extends Pick<DemoState, 'referrals'>>(
         {
           id: cmd.id,
           residentId: resident.id,
-          needs: [...new Set(cmd.needs)],
+          needs,
           sentAt: cmd.at,
           assignments: [
             {
@@ -488,7 +526,7 @@ export function applyReferralCommand<T extends Pick<DemoState, 'referrals'>>(
       assignmentIdInUse(cmd.handoffId)
     )
       throw new Error('This proposal ID is already in use.');
-    updated = applyPartnerCommand(referral, assignment, cmd);
+    updated = applyPartnerCommand(referral, assignment, cmd, partners);
   } else {
     referral = state.referrals.find(({ id }) => id === cmd.id);
     if (!referral) throw new Error('This referral could not be found.');
@@ -498,7 +536,7 @@ export function applyReferralCommand<T extends Pick<DemoState, 'referrals'>>(
       assignmentIdInUse(cmd.assignmentId)
     )
       throw new Error('This request ID is already in use.');
-    updated = applyResidentCommand(referral, cmd, resident);
+    updated = applyResidentCommand(referral, cmd, resident, partners);
   }
   if (updated === referral) return state;
   return {

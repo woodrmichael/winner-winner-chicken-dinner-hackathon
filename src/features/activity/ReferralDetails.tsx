@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { Appointment, Category, ReferralAssignment, Service } from '../../domain/types';
 import { Btn, Copy, color } from '../../ui/kit';
-import { partnerName } from '../matching/directory';
+import { listWords, partnerName } from '../matching/directory';
 
 const localStamp = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/Chicago',
@@ -60,7 +60,7 @@ export function ReferralDetails({
   return (
     <View style={{ gap: 6 }}>
       {outstanding.length > 0 && (
-        <Copy kind="strong">Outstanding · {outstanding.map(needName).join(', ')}</Copy>
+        <Copy kind="strong">Outstanding · {listWords(outstanding.map(needName))}</Copy>
       )}
       {services.map((service) => (
         <Copy kind="small" key={service.assignmentId + ':' + service.category}>
@@ -69,7 +69,7 @@ export function ReferralDetails({
         </Copy>
       ))}
       {withdrawn.length > 0 && (
-        <Copy kind="small">Withdrawn · {withdrawn.map(needName).join(', ')}</Copy>
+        <Copy kind="small">Withdrawn · {listWords(withdrawn.map(needName))}</Copy>
       )}
     </View>
   );

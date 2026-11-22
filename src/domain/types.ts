@@ -11,7 +11,20 @@ export const serviceNeighborhoods = [
 ] as const;
 export type Neighborhood = (typeof serviceNeighborhoods)[number];
 
-export type Partner = { id: string; name: string; categories: Category[]; area: Neighborhood };
+export type ServiceAvailability = 'accepting' | 'paused';
+export type ListingStatus = 'pending' | 'approved' | 'declined' | 'removed';
+export type Partner = {
+  id: string;
+  name: string;
+  categories: Category[];
+  area: Neighborhood;
+  coverageAreas: Neighborhood[];
+  pickup: string;
+  availability: Partial<Record<Category, ServiceAvailability>>;
+  listingStatus: ListingStatus;
+  /** Optional moderator note when a pending listing is declined. */
+  declineReason?: string;
+};
 export type Post = {
   id: string;
   kind: 'Event' | 'Offer' | 'Update';
@@ -109,6 +122,7 @@ export type DemoState = {
   posts: Post[];
   referrals: Referral[];
   community: CommunityState;
+  partners: Partner[];
 };
 export type CommunityCommand =
   | { type: 'post'; id: string; title: string; body: string; at: string; group?: CommunityNeighborhood }
@@ -202,4 +216,41 @@ export type WorkspaceCommand =
   | { type: 'update-volunteer-role'; roleId: VolunteerRoleId; capacity: number; instructions: string }
   | { type: 'record-attendance'; accountId: string; minutes: number };
 
-export type Command = CommunityCommand | ReferralCommand | WorkspaceCommand | import('../features/partnerships/ledger').SupportCommand;
+export type DirectoryCommand =
+  | {
+      type: 'set-service-availability';
+      partnerId: string;
+      category: Category;
+      accepting: boolean;
+      at: string;
+    }
+  | {
+      type: 'submit-partner-listing';
+      id: string;
+      name: string;
+      area: Neighborhood;
+      categories: Category[];
+      coverageAreas?: Neighborhood[];
+      pickup?: string;
+      at: string;
+    }
+  | { type: 'approve-partner-listing'; partnerId: string; at: string }
+  | { type: 'decline-partner-listing'; partnerId: string; at: string; reason?: string }
+  | {
+      type: 'update-partner-listing';
+      partnerId: string;
+      name: string;
+      area: Neighborhood;
+      categories: Category[];
+      coverageAreas: Neighborhood[];
+      pickup: string;
+      at: string;
+    }
+  | { type: 'delete-partner-listing'; partnerId: string; at: string };
+
+export type Command =
+  | CommunityCommand
+  | ReferralCommand
+  | WorkspaceCommand
+  | DirectoryCommand
+  | import('../features/partnerships/ledger').SupportCommand;

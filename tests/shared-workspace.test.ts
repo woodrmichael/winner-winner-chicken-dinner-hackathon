@@ -454,3 +454,180 @@ test('approved colleagues assign and reassign accepted referrals without changin
   assert.equal((await assign(worker, null)).status, 200);
   assert.equal((await api.read(worker)).data.inbox.find((r) => r.assignment.id === id)?.assignment.assignedWorker, undefined);
 });
+
+test('org admins pause services and moderators approve directory listings', async (t) => {
+  const api = await fixture(t);
+  const resident = await api.login('alex');
+  const worker = await api.login('winter-worker');
+  const admin = await api.login('organizer');
+  const listing = {
+    type: 'submit-partner-listing',
+    id: 'northside-coats',
+    name: 'Northside Coats',
+    area: 'Harambee',
+    categories: ['Clothing'],
+    pickup: 'Closet hours weekdays 4–6.',
+  };
+  assert.equal((await api.command(resident, listing)).status, 200);
+  const pendingToResident = (await api.read(resident)).data;
+  assert.ok(!pendingToResident.partners.some((partner) => partner.id === 'northside-coats'));
+  assert.equal(pendingToResident.pendingListings.length, 0);
+  const pendingToModerator = (await api.read(admin)).data;
+  assert.ok(pendingToModerator.partners.some((partner) => partner.id === 'northside-coats'));
+  assert.deepEqual(
+    pendingToModerator.pendingListings.map(({ id }) => id),
+    ['northside-coats'],
+  );
+  assert.equal(
+    (await api.command(worker, { type: 'approve-partner-listing', partnerId: 'northside-coats' })).status,
+    403,
+  );
+  assert.equal(
+    (await api.command(admin, { type: 'approve-partner-listing', partnerId: 'northside-coats' })).status,
+    200,
+  );
+  assert.ok(
+    (await api.read(resident)).data.partners.some(
+      (partner) => partner.id === 'northside-coats' && partner.listingStatus === 'approved',
+    ),
+  );
+
+  assert.equal(
+    (await api.command(resident, {
+      type: 'submit-partner-listing',
+      id: 'southside-help',
+      name: 'Southside Help',
+      area: 'Brewers Hill',
+      categories: ['Food'],
+    })).status,
+    200,
+  );
+  assert.equal(
+    (await api.command(worker, {
+      type: 'decline-partner-listing',
+      partnerId: 'southside-help',
+    })).status,
+    403,
+  );
+  assert.equal(
+    (await api.command(admin, {
+      type: 'decline-partner-listing',
+      partnerId: 'southside-help',
+    })).status,
+    200,
+  );
+  assert.deepEqual((await api.read(admin)).data.pendingListings.map(({ id }) => id), []);
+  assert.ok(!(await api.read(resident)).data.partners.some((partner) => partner.id === 'southside-help'));
+  assert.equal(
+    api.stored().partners.find((partner) => partner.id === 'southside-help')?.listingStatus,
+    'declined',
+  );
+
+  assert.equal(
+    (await api.command(worker, {
+      type: 'update-partner-listing',
+      partnerId: 'winter-team',
+      name: 'Winter Care Collective',
+      area: 'Harambee',
+      categories: ['Clothing', 'Transportation'],
+      coverageAreas: ['Harambee', 'Riverwest'],
+      pickup: 'Updated by a non-admin worker.',
+    })).status,
+    403,
+  );
+  assert.equal(
+    (await api.command(admin, {
+      type: 'update-partner-listing',
+      partnerId: 'winter-team',
+      name: 'Winter Care Collective',
+      area: 'Harambee',
+      categories: ['Clothing', 'Transportation'],
+      coverageAreas: ['Harambee', 'Riverwest'],
+      pickup: 'Org-updated pickup at Moody Park.',
+    })).status,
+    200,
+  );
+  assert.equal(
+    (await api.read(resident)).data.partners.find((partner) => partner.id === 'winter-team')?.pickup,
+    'Org-updated pickup at Moody Park.',
+  );
+  assert.equal(
+    (await api.command(admin, {
+      type: 'update-partner-listing',
+      partnerId: 'ride-circle',
+      name: 'Riverwest Ride Circle',
+      area: 'Riverwest',
+      categories: ['Transportation'],
+      coverageAreas: ['Riverwest', 'Harambee'],
+      pickup: 'Moderator-updated curb pickup.',
+    })).status,
+    200,
+  );
+  assert.equal(
+    (await api.read(resident)).data.partners.find((partner) => partner.id === 'ride-circle')?.pickup,
+    'Moderator-updated curb pickup.',
+  );
+
+  assert.equal(
+    (await api.command(worker, {
+      type: 'delete-partner-listing',
+      partnerId: 'table',
+    })).status,
+    403,
+  );
+  assert.equal(
+    (await api.command(admin, {
+      type: 'delete-partner-listing',
+      partnerId: 'table',
+    })).status,
+    200,
+  );
+  assert.ok(!(await api.read(resident)).data.partners.some((partner) => partner.id === 'table'));
+  assert.equal(api.stored().partners.find((partner) => partner.id === 'table')?.listingStatus, 'removed');
+
+  assert.equal(
+    (await api.command(worker, {
+      type: 'set-service-availability',
+      partnerId: 'winter-team',
+      category: 'Transportation',
+      accepting: false,
+    })).status,
+    403,
+  );
+  assert.equal(
+    (await api.command(admin, {
+      type: 'set-service-availability',
+      partnerId: 'winter-team',
+      category: 'Transportation',
+      accepting: false,
+    })).status,
+    200,
+  );
+  const paused = (await api.read(admin)).data.partners.find((partner) => partner.id === 'winter-team');
+  assert.equal(paused?.availability.Transportation, 'paused');
+  assert.equal(
+    (await api.command(admin, {
+      type: 'set-service-availability',
+      partnerId: 'ride-circle',
+      category: 'Transportation',
+      accepting: false,
+    })).status,
+    200,
+  );
+  assert.equal(
+    (await api.read(admin)).data.partners.find((partner) => partner.id === 'ride-circle')
+      ?.availability.Transportation,
+    'paused',
+  );
+  assert.equal(
+    (await api.command(resident, {
+      type: 'send',
+      id: 'blocked-shared-ride',
+      partnerId: 'winter-team',
+      message: 'Need a ride after the pause.',
+      needs: ['Transportation'],
+      shared: {},
+    })).status,
+    409,
+  );
+});

@@ -1,5 +1,6 @@
 import { demoPosts } from './demoCommunity';
 import { neighborhoods, serviceNeighborhoods } from './types';
+import { mergePartners, seedPartners } from '../features/matching/directory';
 import type { Category, CommunityState, DemoState, Neighborhood, Referral } from './types';
 
 export const residentId = 'demo-resident';
@@ -230,7 +231,12 @@ export function withDemoSamples(state: DemoState, sampleResidentId = residentId)
       .map((post) => post.authorId === residentId ? { ...post, authorId: sampleResidentId } : post),
   );
   const referrals = withDemoReferrals(state.referrals, sampleResidentId);
-  return posts === state.posts && referrals === state.referrals ? state : { ...state, posts, referrals };
+  const partners = mergePartners(state.partners, seedPartners());
+  const partnersChanged = partners.length !== state.partners.length
+    || partners.some((partner, index) => partner !== state.partners[index]);
+  return posts === state.posts && referrals === state.referrals && !partnersChanged
+    ? state
+    : { ...state, posts, referrals, partners };
 }
 
 export function withDemoReferrals(referrals: Referral[], sampleResidentId = residentId) {
@@ -245,6 +251,7 @@ export function seedState(sampleResidentId = residentId): DemoState {
   return withDemoSamples({
     version: 2,
     community: emptyCommunity(),
+    partners: seedPartners(),
     referrals: [
       sampleReferral({
         id: 'seed-winter',

@@ -4,13 +4,20 @@ import { ChevronDown, ChevronUp, Plus, X } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { detailsToShare } from '../../domain/referrals';
 import { profile } from '../../domain/seed';
-import type { Category } from '../../domain/types';
+import type { Category, Partner } from '../../domain/types';
 import { newId, now, useDemo } from '../../state/Demo';
 import { Disclosure } from '../../ui/Disclosure';
-import { SelectionRow } from '../../ui/SelectionRows';
 import { Btn, Card, Copy, Field, Page, color, row, wrap } from '../../ui/kit';
 import { ShareDetails, shareSummary, type ShareKey } from './ShareDetails';
-import { directory } from './directory';
+import {
+  approvedPartners,
+  eligibleForNewReferral,
+  listWords,
+  offerCoversLine,
+  offersCategory,
+  pausedServiceLine,
+  serviceAvailability,
+} from './directory';
 import { example } from './match';
 import {
   draftReferral,
@@ -31,11 +38,25 @@ const emptyMatch: MatchResult = { needs: [], matches: [], source: 'model' };
 
 export default function Ask() {
   const { partner } = useLocalSearchParams<{ partner?: string }>();
-  const initialPartner = directory.find((entry) => entry.id === partner)?.id;
-  return <RequestForm key={initialPartner ?? 'community'} initialPartner={initialPartner} />;
+  const { state } = useDemo();
+  const partners = approvedPartners(state.partners);
+  const initialPartner = partners.find((entry) => entry.id === partner)?.id;
+  return (
+    <RequestForm
+      key={initialPartner ?? 'community'}
+      initialPartner={initialPartner}
+      partners={partners}
+    />
+  );
 }
 
-function RequestForm({ initialPartner }: { initialPartner?: string }) {
+function RequestForm({
+  initialPartner,
+  partners,
+}: {
+  initialPartner?: string;
+  partners: Partner[];
+}) {
   const { run, shared: workspace, setRole, setPartnerId } = useDemo();
   const router = useRouter();
   const [step, setStep] = useState<Step>(initialPartner ? 'review' : 'describe');
@@ -61,26 +82,109 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
     [],
   );
 
+  function acceptingForNeeds(partner: Partner, needs: Category[]) {
+    if (!needs.length) return partner.categories.filter(
+      (category) => serviceAvailability(partner, category) === 'accepting',
+    );
+    return needs.filter((need) => eligibleForNewReferral(partner, need));
+  }
+
+  const directoryKey = partners
+    .map(
+      (partner) =>
+        `${partner.id}:${partner.categories.join(',')}:${JSON.stringify(partner.availability)}`,
+    )
+    .join('|');
+
+  // Re-rank when a partner pauses, reopens, or permanently drops a service while review is open.
+  useEffect(() => {
+    if (step !== 'review' || !result.needs.length) return;
+    applyMatchResult(
+      withNeeds(
+        result.needs,
+        result.source === 'keywords' ? 'keywords' : 'model',
+        areaPreference(),
+        partners,
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when directory listings change
+  }, [directoryKey]);
+
+  const liveMatches = result.matches
+    .map((match) => {
+      const partner = partners.find((entry) => entry.id === match.partner.id) ?? match.partner;
+      const covers = match.covers.filter((need) => eligibleForNewReferral(partner, need));
+      return { ...match, partner, covers };
+    })
+    .filter((match) => match.covers.length > 0);
+
+  const available = !result.needs.length
+    ? partners
+    : partners.filter((partner) => acceptingForNeeds(partner, result.needs).length > 0);
   const ordered = [
-    ...result.matches.map((match) => match.partner),
-    ...directory.filter((partner) => !result.matches.some((match) => match.partner.id === partner.id)),
+    ...liveMatches.map((match) => match.partner),
+    ...available.filter(
+      (partner) => !liveMatches.some((match) => match.partner.id === partner.id),
+    ),
   ];
-  const selected = directory.find((partner) => partner.id === recipient);
-  const noAutomaticMatches = result.matches.length === 0;
-  const splitNeeds = result.needs.length > 1 && !needsFullyCovered(result.needs);
+  const unavailable = result.needs.length
+    ? partners.filter(
+        (partner) =>
+          !available.some((entry) => entry.id === partner.id) &&
+          result.needs.some(
+            (need) =>
+              offersCategory(partner, need) && serviceAvailability(partner, need) === 'paused',
+          ),
+      )
+    : [];
+  const recipientValid =
+    !result.needs.length || !recipient || available.some((partner) => partner.id === recipient);
+  const activeRecipient = recipientValid
+    ? recipient
+    : liveMatches[0]?.partner.id ?? available[0]?.id ?? '';
+  const selected = available.find((partner) => partner.id === activeRecipient);
+  const listExpanded = partnerOpen || Boolean(recipient && !recipientValid);
+  const noAutomaticMatches = liveMatches.length === 0;
+  const splitNeeds = result.needs.length > 1 && !needsFullyCovered(result.needs, partners);
   const addable = missingAddableNeeds(result.needs);
   const draftReady = !!suggestedDraft && suggestedDraft !== message;
 
-  function partnerDetail(partner: (typeof directory)[number]) {
-    const match = result.matches.find((item) => item.partner.id === partner.id);
-    const base = match?.explanation
-      ? match.explanation
-      : 'Offers ' + partner.categories.join(' and ').toLowerCase();
-    const preferred = areaPreference();
-    if (preferred && partner.area === preferred) {
-      return base + ' · Serves ' + partner.area;
+  function matchExplanation(partner: Partner) {
+    const match = liveMatches.find((item) => item.partner.id === partner.id);
+    if (match?.explanation && match.covers.length) {
+      return offerCoversLine(match.covers.map((category) => category.toLowerCase()));
     }
-    return base;
+    const accepting = acceptingForNeeds(partner, result.needs);
+    if (accepting.length) {
+      return 'Accepting ' + listWords(accepting.map((category) => category.toLowerCase()));
+    }
+    return offerCoversLine(partner.categories.map((category) => category.toLowerCase()));
+  }
+
+  function coverageLine(partner: Partner) {
+    return (
+      'Serves ' +
+      (partner.coverageAreas.length > 1 ? listWords(partner.coverageAreas) : partner.area)
+    );
+  }
+
+  function availabilityLine(partner: Partner) {
+    const among = result.needs.length ? result.needs : undefined;
+    const paused = pausedServiceLine(partner, among);
+    if (paused) return paused;
+    if (pausedServiceLine(partner)) return pausedServiceLine(partner);
+    return 'Accepting new referrals';
+  }
+
+  function selectedSummary(partner: Partner) {
+    return [
+      matchExplanation(partner),
+      coverageLine(partner),
+      partner.pickup,
+      availabilityLine(partner),
+    ]
+      .filter(Boolean)
+      .join(' · ');
   }
 
   function areaPreference(text = message, keys: ShareKey[] = shared) {
@@ -110,6 +214,7 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
         needs,
         result.source === 'keywords' ? 'keywords' : 'model',
         areaPreference(text, keys),
+        partners,
       ),
     );
   }
@@ -157,7 +262,7 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
 
   async function removeNeed(need: Category) {
     const needs = result.needs.filter((entry) => entry !== need);
-    const next = withNeeds(needs, result.source, areaPreference());
+    const next = withNeeds(needs, result.source, areaPreference(), partners);
     applyMatchResult(next, true);
     await refreshDraft(needs);
   }
@@ -165,7 +270,7 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
   async function addNeed(need: Category) {
     if (result.needs.includes(need)) return;
     const needs = [...result.needs, need];
-    const next = withNeeds(needs, result.source, areaPreference());
+    const next = withNeeds(needs, result.source, areaPreference(), partners);
     applyMatchResult(next, true);
     await refreshDraft(needs);
   }
@@ -176,7 +281,7 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
     setShared(keys);
     if (!result.needs.length) return;
     applyMatchResult(
-      withNeeds(result.needs, result.source, areaPreference(message, keys)),
+      withNeeds(result.needs, result.source, areaPreference(message, keys), partners),
       neighborhoodChanged,
     );
   }
@@ -201,7 +306,7 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
             multiline
             value={description}
             change={setDescription}
-            placeholder="Clothing, groceries, a ride…"
+            placeholder="Clothing, groceries, or a ride…"
           />
           <View style={wrap}>
             <Btn
@@ -215,7 +320,7 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
                   setStep('clarify');
                   return;
                 }
-                const next = await findResources(text);
+                const next = await findResources(text, partners);
                 await openReview(text, next, text);
               }}
             />
@@ -239,7 +344,7 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
             multiline
             value={clarification}
             change={setClarification}
-            placeholder="Food for tonight, a ride, clothes…"
+            placeholder="Food for tonight, a ride, or clothes…"
           />
           <View style={wrap}>
             <Btn
@@ -249,7 +354,7 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
               onPress={async () => {
                 const detail = clarification.trim();
                 const combined = description.trim() + ' ' + detail;
-                const next = await findResources(combined);
+                const next = await findResources(combined, partners);
                 await openReview(combined, next, description.trim());
               }}
             />
@@ -297,33 +402,110 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
         <Copy kind="small" tint={color.muted}>
           Send to
         </Copy>
+        <Copy kind="small" tint={color.muted}>
+          Compare services, coverage areas, and pickup arrangements, then pick one recipient.
+        </Copy>
         <Disclosure
           label={selected?.name ?? 'Choose a partner'}
           detail={
             selected
-              ? partnerDetail(selected)
+              ? selectedSummary(selected)
               : noAutomaticMatches
                 ? 'No automatic matches found. Select a partner manually.'
                 : result.source === 'keywords'
                   ? 'Model unavailable. Select a partner below.'
                   : 'Select a partner below.'
           }
-          expanded={partnerOpen}
+          expanded={listExpanded}
           onToggle={() => setPartnerOpen(!partnerOpen)}
         >
           <View accessibilityRole="radiogroup" accessibilityLabel="Available partners">
-            {ordered.map((partner) => (
-              <SelectionRow
-                key={partner.id}
-                label={partner.name}
-                detail={partnerDetail(partner)}
-                selected={recipient === partner.id}
-                onPress={() => {
-                  setRecipient(partner.id);
-                  setPartnerOpen(false);
-                }}
-              />
-            ))}
+            {!ordered.length ? (
+              <Copy kind="small" tint={color.muted}>
+                No partners are accepting these needs right now. Rephrase your request or ask a
+                provider to reopen those services.
+              </Copy>
+            ) : null}
+            {ordered.map((partner) => {
+              const selectedPartner = activeRecipient === partner.id;
+              const availability = availabilityLine(partner);
+              const availabilityPaused = availability !== 'Accepting new referrals';
+              return (
+                <Pressable
+                  key={partner.id}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selectedPartner }}
+                  accessibilityLabel={`${partner.name}. ${matchExplanation(partner)}. ${coverageLine(partner)}. Pickup: ${partner.pickup}. ${availability}`}
+                  onPress={() => {
+                    setRecipient(partner.id);
+                    setPartnerOpen(false);
+                  }}
+                  style={({ pressed }) => ({
+                    gap: 4,
+                    paddingVertical: 10,
+                    borderTopWidth: 1,
+                    borderColor: color.line,
+                    backgroundColor: pressed ? color.bg : undefined,
+                  })}
+                >
+                  <View style={[row, { justifyContent: 'space-between', alignItems: 'flex-start' }]}>
+                    <Copy kind={selectedPartner ? 'strong' : 'body'} style={{ flex: 1 }}>
+                      {partner.name}
+                    </Copy>
+                    {selectedPartner ? (
+                      <Copy kind="small" tint={color.pine}>
+                        Selected
+                      </Copy>
+                    ) : null}
+                  </View>
+                  <Copy kind="small" tint={color.muted}>
+                    {matchExplanation(partner)}
+                  </Copy>
+                  <Copy kind="small" tint={color.ink}>
+                    {coverageLine(partner)}
+                  </Copy>
+                  <Copy kind="small" tint={color.muted}>
+                    Pickup: {partner.pickup}
+                  </Copy>
+                  <Copy kind="small" tint={availabilityPaused ? color.rust : color.muted}>
+                    {availability}
+                  </Copy>
+                </Pressable>
+              );
+            })}
+            {unavailable.length ? (
+              <View style={{ gap: 4, paddingTop: 12 }}>
+                <Copy kind="strong">Temporarily unavailable for these needs</Copy>
+                <Copy kind="small" tint={color.muted}>
+                  These providers still appear so you can see why they are paused. Pick an accepting
+                  partner above to send your referral.
+                </Copy>
+                {unavailable.map((partner) => (
+                  <View
+                    key={`paused-${partner.id}`}
+                    accessibilityLabel={`${partner.name}. ${pausedServiceLine(partner, result.needs)}. ${coverageLine(partner)}. Pickup: ${partner.pickup}`}
+                    style={{
+                      gap: 4,
+                      paddingVertical: 10,
+                      borderTopWidth: 1,
+                      borderColor: color.line,
+                      opacity: 0.85,
+                    }}
+                  >
+                    <Copy kind="body">{partner.name}</Copy>
+                    <Copy kind="small" tint={color.rust}>
+                      {pausedServiceLine(partner, result.needs)}
+                    </Copy>
+                    <Copy kind="small" tint={color.muted}>
+                      {coverageLine(partner)}
+                    </Copy>
+                    <Copy kind="small" tint={color.muted}>
+                      Pickup: {partner.pickup}
+                    </Copy>
+                  </View>
+                ))}
+              </View>
+            ) : null}
           </View>
         </Disclosure>
       </Card>
@@ -332,25 +514,14 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
         <Copy kind="small" tint={color.muted}>
           Remove a need if it no longer applies, or add one that is still missing.
         </Copy>
-        <View style={{ ...wrap, overflow: 'visible', zIndex: addNeedOpen ? 20 : undefined }}>
-          {result.needs.map((need) => (
-            <Pressable
-              key={need}
-              accessibilityRole="button"
-              accessibilityLabel={'Remove ' + need}
-              onPress={() => removeNeed(need)}
-              style={{
-                ...row,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 10,
-                backgroundColor: color.pale,
-              }}
-            >
-              <Copy kind="small">{need}</Copy>
-              <X size={14} color={color.muted} />
-            </Pressable>
-          ))}
+        <View
+          style={{
+            ...row,
+            alignItems: 'flex-start',
+            overflow: 'visible',
+            zIndex: addNeedOpen ? 20 : undefined,
+          }}
+        >
           {addable.length ? (
             <View style={{ zIndex: 20 }}>
               <Pressable
@@ -402,7 +573,8 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
                       accessibilityRole="button"
                       accessibilityLabel={'Add ' + need}
                       onPress={async () => {
-                        setAddNeedOpen(false);
+                        const remaining = missingAddableNeeds([...result.needs, need]);
+                        if (!remaining.length) setAddNeedOpen(false);
                         await addNeed(need);
                       }}
                       style={({ pressed }) => ({
@@ -419,6 +591,26 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
               ) : null}
             </View>
           ) : null}
+          <View style={{ ...wrap, flex: 1 }}>
+            {result.needs.map((need) => (
+              <Pressable
+                key={need}
+                accessibilityRole="button"
+                accessibilityLabel={'Remove ' + need}
+                onPress={() => removeNeed(need)}
+                style={{
+                  ...row,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 10,
+                  backgroundColor: color.pale,
+                }}
+              >
+                <Copy kind="small">{need}</Copy>
+                <X size={14} color={color.muted} />
+              </Pressable>
+            ))}
+          </View>
         </View>
       </Card>
       {initialPartner && !originalWording ? (
@@ -493,10 +685,11 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
           <Btn
             label="Send referral"
             stretch
-            disabled={!recipient || !message.trim()}
+            disabled={!activeRecipient || !message.trim()}
             onPress={async () => {
               const text = message.trim();
               if (!text) throw new Error('Add a message before sending.');
+              if (!activeRecipient) throw new Error('Choose a partner before sending.');
               let needsForSend = result.needs;
               if (matchTimer.current) {
                 clearTimeout(matchTimer.current);
@@ -507,19 +700,20 @@ function RequestForm({ initialPartner }: { initialPartner?: string }) {
                     needsForSend,
                     result.source === 'keywords' ? 'keywords' : 'model',
                     areaPreference(text),
+                    partners,
                   ),
                 );
               }
               await run({
                 type: 'send',
                 id: newId(),
-                partnerId: recipient,
+                partnerId: activeRecipient,
                 message: text,
                 needs: needsForSend,
                 shared: detailsToShare(shared, workspace.data?.account.details),
                 at: now(),
               });
-              setPartnerId(recipient);
+              setPartnerId(activeRecipient);
               setRole('Resident');
               router.replace('/activity');
             }}

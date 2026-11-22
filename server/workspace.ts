@@ -1,19 +1,22 @@
 import { appendEntry, projectDeliveryCounts, supportBook, type SupportEntry } from '../src/features/partnerships/ledger';
-import { deliveredServices, impact, mapRows } from '../src/domain/model';
+import { deliveredServices, impact, isDirectoryCommand, mapRows } from '../src/domain/model';
 import { applyReferralCommand, partnerInbox, residentTimeline } from '../src/domain/referrals';
 import { profile, program, seedState } from '../src/domain/seed';
 import { applyCommunityCommand } from '../src/features/community/model';
+import { applyDirectoryCommand } from '../src/features/directory/model';
 import {
   categories,
   type CommunityCommand,
   type CommunityState,
+  type DirectoryCommand,
+  type Partner,
   type Post,
   type Referral,
   type ReferralCommand,
   type WorkspaceCommand,
 } from '../src/domain/types';
 import { impactReports, reportingMonth, type ImpactReports } from '../src/features/impact/report';
-import { directory } from '../src/features/matching/directory';
+import { approvedPartners, mergePartners, seedPartners } from '../src/features/matching/directory';
 import type { Account, SharedSnapshot, VolunteerRole, VolunteerSignup } from '../src/shared/workspace';
 import { applyCommunicationCommand, communicationFor, emptyCommunication, notifyReferralChange, type Communication } from './communication';
 import { approvedPartner, assignmentScope, WorkspaceError } from './referral-access';
@@ -24,13 +27,14 @@ export type Workspace = {
   referrals: Referral[];
   posts: Post[];
   community: CommunityState;
+  partners: Partner[];
   accounts: StoredAccount[];
   roles: VolunteerRole[];
   signups: VolunteerSignup[];
   communication: Communication;
 };
 
-export type StoredWorkspace = Omit<Workspace, 'communication'> & { communication?: Communication };
+export type StoredWorkspace = Omit<Workspace, 'communication'> & { communication?: Communication; partners?: Partner[] };
 export const sampleResidentAccount = 'alex';
 const reportCache = new WeakMap<Referral[], { month: number; reports: ImpactReports }>();
 const mapReportCache = new WeakMap<Referral[], Pick<SharedSnapshot['reporting'], 'map' | 'mapByCategory'>>();
@@ -41,6 +45,7 @@ export function restoreCommunication(stored: StoredWorkspace): Workspace {
     ...stored,
     posts: stored.posts ?? demo.posts,
     community: stored.community ?? demo.community,
+    partners: mergePartners(stored.partners, seedPartners()),
     communication: stored.communication ?? emptyCommunication(),
   };
 }
@@ -64,6 +69,7 @@ export function createWorkspace(accounts: StoredAccount[]): Workspace {
     referrals: demo.referrals,
     posts: demo.posts,
     community: demo.community,
+    partners: demo.partners,
     accounts,
     roles: [
       { id: 'sorting', name: 'Coat sorting', capacity: 4, instructions: 'Check in at the coat sorting table at Moody Park at 9:30 am.' },
@@ -97,6 +103,9 @@ export function snapshot(workspace: Workspace, account: StoredAccount, revision:
   const admin = adminPartner(account);
   const { roles, signups } = workspace;
   const book = supportBook(workspace.supportEntries);
+  const visiblePartners = account.moderator
+    ? workspace.partners
+    : approvedPartners(workspace.partners);
   return {
     revision,
     workers: partner ? workspace.accounts.filter((entry) => approvedPartner(entry) === partner).map(({ id, name }) => ({ id, name })) : [],
@@ -108,6 +117,17 @@ export function snapshot(workspace: Workspace, account: StoredAccount, revision:
       reports: account.moderator ? workspace.community.reports : [],
       moderation: account.moderator ? workspace.community.moderation : [],
     },
+    partners: visiblePartners,
+    pendingListings: account.moderator
+      ? workspace.partners
+          .filter((entry) => entry.listingStatus === 'pending')
+          .map(({ id, name, area, categories: offered }) => ({
+            id,
+            name,
+            area,
+            categories: offered,
+          }))
+      : [],
     referrals: account.kind === 'resident' ? residentTimeline(workspace, account.id) : [],
     inbox: partner ? partnerInbox(workspace, partner) : [],
     ...communicationFor(workspace, account),
@@ -206,11 +226,50 @@ export function applySharedCommunity(
     posts: workspace.posts,
     community: workspace.community,
     referrals: workspace.referrals,
+    partners: workspace.partners,
   }, cmd, account.id);
   return state.posts === workspace.posts && state.community === workspace.community
     ? workspace
     : { ...workspace, posts: state.posts, community: state.community };
 }
+
+export function applySharedDirectory(
+  workspace: Workspace,
+  account: Account,
+  cmd: DirectoryCommand,
+): Workspace {
+  if (cmd.type === 'set-service-availability') {
+    const admin = adminPartner(account);
+    if (!account.moderator && (!admin || admin !== cmd.partnerId)) {
+      throw new WorkspaceError(403, 'Organization administrator access is required.');
+    }
+  }
+  if (cmd.type === 'approve-partner-listing' || cmd.type === 'decline-partner-listing') {
+    if (!account.moderator) throw new WorkspaceError(403, 'Moderator access is required.');
+  }
+  if (cmd.type === 'delete-partner-listing') {
+    if (!account.moderator) throw new WorkspaceError(403, 'Moderator access is required.');
+  }
+  if (cmd.type === 'update-partner-listing') {
+    const admin = adminPartner(account);
+    if (!account.moderator && admin !== cmd.partnerId) {
+      throw new WorkspaceError(403, 'Organization administrator access is required.');
+    }
+  }
+  const state = applyDirectoryCommand(
+    {
+      version: 2,
+      posts: workspace.posts,
+      community: workspace.community,
+      referrals: workspace.referrals,
+      partners: workspace.partners,
+    },
+    cmd,
+  );
+  return state.partners === workspace.partners ? workspace : { ...workspace, partners: state.partners };
+}
+
+export { isDirectoryCommand };
 
 export function applyWorkspaceCommand(workspace: Workspace, account: StoredAccount, cmd: WorkspaceCommand): Workspace {
   const { accounts, roles, signups } = workspace;
@@ -241,7 +300,9 @@ export function applyWorkspaceCommand(workspace: Workspace, account: StoredAccou
         if (account.membership.partnerId === cmd.partnerId) return workspace;
         throw new WorkspaceError(409, 'This account already has a membership request or approval.');
       }
-      if (!directory.some(({ id }) => id === cmd.partnerId)) throw new WorkspaceError(400, 'Choose an organization.');
+          if (!approvedPartners(workspace.partners).some(({ id }) => id === cmd.partnerId)) {
+        throw new WorkspaceError(400, 'Choose an organization.');
+      }
       return { ...workspace, accounts: accounts.map((entry) => entry.id === account.id ? {
         ...entry, membership: { partnerId: cmd.partnerId, status: 'pending', admin: false },
       } : entry) };
