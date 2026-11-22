@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useContext, useMemo, useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { MapPin, RotateCw } from 'lucide-react-native';
 
 import { communityEventPins } from '../../domain/demoCommunity';
 import { historicalIncidents } from '../../domain/seed';
@@ -40,6 +41,7 @@ export default function MapScreen() {
   const [areasExpanded, setAreasExpanded] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [category, setCategory] = useState<Category | 'All'>('All');
+  const [mapUnavailable, setMapUnavailable] = useState(false);
   const mapHeight = Math.max(290, Math.min(500, Math.round(height * (width < 900 ? 0.46 : 0.60))));
   const publicLibraries = usePublicLibraries(active && visible.libraries);
   const posts = shared.data?.posts;
@@ -108,7 +110,12 @@ export default function MapScreen() {
               libraries={visible.libraries && publicLibraries.length > 0}
             />
             <View style={{ height: mapHeight }}>
-              <MilwaukeeMap
+              {mapUnavailable ? <View style={styles.mapFallback}>
+                <MapPin color={color.pine} size={26} />
+                <Copy kind="strong">The street map couldn’t load</Copy>
+                <Copy kind="small" tint={color.muted}>You can still browse neighborhood service activity below.</Copy>
+                <Btn label="Reload map" icon={RotateCw} secondary onPress={() => setMapUnavailable(false)} />
+              </View> : <MilwaukeeMap
                 selected={selected}
                 needs={needsShading}
                 shading={incidentShading}
@@ -120,8 +127,12 @@ export default function MapScreen() {
                   useExpoDOMWebView: false,
                   scrollEnabled: false,
                   style: styles.mapFrame,
+                  onError: () => setMapUnavailable(true),
+                  onHttpError: ({ nativeEvent }) => {
+                    if (nativeEvent.url.includes('/_expo/@dom') || nativeEvent.url.endsWith('.html')) setMapUnavailable(true);
+                  },
                 }}
-              />
+              />}
             </View>
             <View style={styles.overlayControls}>
               <Disclosure label="Map overlays" expanded={overlaysExpanded} onToggle={() => setOverlaysExpanded((current) => !current)}>
@@ -214,6 +225,7 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   mapPanel: { overflow: 'hidden', padding: 0, gap: 0 },
   mapFrame: { flex: 1, backgroundColor: '#e8eee5' },
+  mapFallback: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: color.pale, padding: 18, gap: 10 },
   overlayControls: { paddingHorizontal: 14 },
   overviewHeader: { ...wrap, justifyContent: 'space-between', gap: 4 },
   overviewTitle: { flexShrink: 1, gap: 2 },

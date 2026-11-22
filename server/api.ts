@@ -7,8 +7,10 @@ import { object, parseCommand } from './commands';
 import { WorkspaceError } from '../src/shared/referralAccess';
 import { createPublicLibraryCache } from './public-map';
 import { createTranscriptionService } from './transcription';
+import { createSponsorGateway, createSponsorPayments } from './sponsor-payments';
 import {
   applyAccountCommand,
+  isOrganizer,
   snapshot,
   type StoredAccount,
   type Workspace,
@@ -27,16 +29,21 @@ function checkPassword(password: string, hash: string) {
   return timingSafeEqual(scryptSync(password, salt, 32), Buffer.from(derived, 'hex'));
 }
 
-async function body(request: IncomingMessage): Promise<unknown> {
+async function rawBody(request: IncomingMessage, limit = 20_000): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > 20_000) throw new WorkspaceError(413, 'Request is too large.');
+    if (size > limit) throw new WorkspaceError(413, 'Request is too large.');
     chunks.push(chunk);
   }
+  return Buffer.concat(chunks);
+}
+
+async function body(request: IncomingMessage): Promise<unknown> {
+  const raw = await rawBody(request);
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    return JSON.parse(raw.toString('utf8'));
   } catch {
     throw new WorkspaceError(400, 'Invalid request.');
   }
@@ -48,12 +55,26 @@ function json(response: ServerResponse, status: number, value: unknown) {
 }
 
 export function createApi(initial: Workspace, persist: (workspace: Workspace) => void,
-  transcription = createTranscriptionService()) {
+  transcription = createTranscriptionService(), sponsorGateway = createSponsorGateway()) {
   let workspace = initial;
   let revision = 0;
   const sessions = new Map<string, { accountId: string; expires: number; cacheId: string }>();
   const attempts = new Map<string, { count: number; expires: number }>();
   const getPublicLibraries = createPublicLibraryCache();
+  function save(updated: Workspace) {
+    if (updated === workspace) return;
+    persist(updated);
+    workspace = updated;
+    revision += 1;
+  }
+  function view(account: StoredAccount, now?: Date) {
+    const data = snapshot(workspace, account, revision, now);
+    if (sponsorPayments && isOrganizer(account)) {
+      data.sponsorPayments = { active: (workspace.sponsorCheckouts ?? []).map(({ sessionId, pledgeId, cents }) => ({ sessionId, pledgeId, cents })) };
+    }
+    return data;
+  }
+  const sponsorPayments = sponsorGateway && createSponsorPayments(sponsorGateway, () => workspace, save);
 
   const server = createServer(async (request, response) => {
     response.setHeader('Access-Control-Allow-Origin', '*');
@@ -67,6 +88,23 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
     }
 
     try {
+      if (request.url === '/sponsorship/stripe/webhook' && request.method === 'POST') {
+        if (!sponsorPayments) throw new WorkspaceError(503, 'Online payments are unavailable.');
+        const signature = request.headers['stripe-signature'];
+        if (typeof signature !== 'string') throw new WorkspaceError(400, 'Stripe signature is required.');
+        sponsorPayments.webhook(await rawBody(request, 128_000), signature);
+        json(response, 200, { received: true });
+        return;
+      }
+      if (request.method === 'GET' && (request.url === '/sponsorship/return?result=received' || request.url === '/sponsorship/return?result=cancelled')) {
+        const title = request.url.endsWith('received') ? 'Payment submitted' : 'Checkout closed';
+        const caption = request.url.endsWith('received')
+          ? 'ComForce Connect records your sponsorship after Stripe confirms payment.'
+          : 'You can return to the sponsorship payment link when you’re ready.';
+        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Security-Policy': "default-src 'none'" });
+        response.end(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title} · ComForce Connect</title><main><h1>${title}</h1><p>${caption}</p></main></html>`);
+        return;
+      }
       if (request.url === publicLibrariesPath && request.method === 'GET') {
         const libraries = await getPublicLibraries();
         response.setHeader('Cache-Control', 'public, max-age=300');
@@ -92,7 +130,7 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
         }
         const token = randomBytes(32).toString('hex');
         sessions.set(token, { accountId: account.id, expires: now + lifetime, cacheId: randomBytes(12).toString('hex') });
-        json(response, 200, { token, workspace: snapshot(workspace, account, revision) });
+        json(response, 200, { token, workspace: view(account) });
         return;
       }
 
@@ -109,6 +147,11 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
       if (request.url === '/session' && request.method === 'DELETE') {
         sessions.delete(token);
         json(response, 200, {});
+      } else if (request.url === '/sponsorship/checkout' && request.method === 'POST') {
+        if (!sponsorPayments) throw new WorkspaceError(503, 'Online payments are unavailable.');
+        const { pledgeId, cents } = object(await body(request));
+        const checkout = await sponsorPayments.checkout(account, pledgeId, cents);
+        json(response, 200, { ...checkout, workspace: view(account) });
       } else if (request.url === '/transcription/session' && request.method === 'POST') {
         if (account.kind !== 'resident') throw new WorkspaceError(403, 'Open a resident account to dictate a request.');
         json(response, 200, transcription.issue(account.id,
@@ -120,7 +163,7 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
         if (request.headers['if-none-match']?.split(',').some((tag) => tag.trim() === etag)) {
           response.writeHead(304).end();
         } else {
-          json(response, 200, snapshot(workspace, account, revision, now));
+          json(response, 200, view(account, now));
         }
       } else if (request.url === '/commands' && request.method === 'POST') {
         const cmd = parseCommand(command, account.details);
@@ -131,12 +174,8 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
           if (!(error instanceof Error) || error instanceof WorkspaceError) throw error;
           throw new WorkspaceError(409, error.message);
         }
-        if (updated !== workspace) {
-          persist(updated);
-          workspace = updated;
-          revision += 1;
-        }
-        json(response, 200, snapshot(workspace, workspace.accounts.find(({ id }) => id === account.id)!, revision));
+        save(updated);
+        json(response, 200, view(workspace.accounts.find(({ id }) => id === account.id)!));
       } else {
         throw new WorkspaceError(404, 'Endpoint unavailable.');
       }

@@ -1,5 +1,5 @@
 import { serviceNeighborhoods, type Category, type Neighborhood, type Partner } from '../../../domain/types';
-import { approvedPartners, directory, eligibleForNewReferral, offerCoversLine } from '../directory';
+import { approvedPartners, directory, eligibleForNewReferral, listWords, offerCoversLine } from '../directory';
 import type { LlmClient } from './client';
 import type { PartnerMatch } from './types';
 
@@ -149,6 +149,13 @@ function cannedDraft(text: string, needs: Category[]): string {
   const ride = needs.includes('Transportation');
   const food = needs.includes('Food');
 
+  if (food) {
+    const circumstances = /\bfire\b/.test(lower) ? ' after the fire' : '';
+    const extras = [clothing ? 'clothing' : '', ride ? 'a ride to pick them up' : ''].filter(Boolean);
+    const request = listWords(['groceries', ...extras]);
+    return `Hello, I could use help getting ${request}${circumstances}. Is there a pantry box available this week? Please let me know when I can come by and what I should bring. Thank you.`;
+  }
+
   if (clothing && ride) {
     return (
       'Our family had a house fire. We still need clothes for the kids and a ride to pick the clothes up. ' +
@@ -160,9 +167,6 @@ function cannedDraft(text: string, needs: Category[]): string {
       'We already have coats, but we can’t get to the pickup on our own. ' +
       'Could you help with a ride?'
     );
-  }
-  if (food) {
-    return 'We need food for tonight after the fire. Thank you for considering our request.';
   }
   if (clothing) {
     return 'We need clothing for our family. Thank you for any help you can provide.';

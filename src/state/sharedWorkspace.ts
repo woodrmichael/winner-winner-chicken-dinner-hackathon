@@ -13,7 +13,7 @@ class ApiError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 
-async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<{ data: T; etag: string | null } | null> {
+async function request<T>(path: string, options: RequestInit = {}, token?: string, timeout = 8000): Promise<{ data: T; etag: string | null } | null> {
   try {
     return await withResponse(workspaceApiUrl + path, {
       ...options,
@@ -22,7 +22,7 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
         ...(options.body && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
       },
-    }, 8000, async (response) => {
+    }, timeout, async (response) => {
       if (response.status === 304) return null;
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
@@ -142,5 +142,17 @@ export function useSharedWorkspace() {
     return new WebSocket(workspaceApiUrl.replace(/^http/, 'ws') + '/transcription', result.data.protocol);
   }
 
-  return { enabled: !!workspaceApiUrl, data, connectionError, signIn, signOut, run, openTranscription };
+  async function sponsorshipCheckout(pledgeId: string, cents?: number) {
+    const session = token.current;
+    if (!session) throw new Error('Sign in through Settings to manage payments.');
+    const result = await request<{ url: string; sessionId: string; workspace: SharedSnapshot }>('/sponsorship/checkout', {
+      method: 'POST', body: JSON.stringify({ pledgeId, cents }),
+    }, session, 15000);
+    if (!result || token.current !== session) throw new Error('The payment link could not be opened.');
+    const { workspace, ...checkout } = result.data;
+    receive(session, workspace, null);
+    return checkout;
+  }
+
+  return { enabled: !!workspaceApiUrl, data, connectionError, signIn, signOut, run, openTranscription, sponsorshipCheckout };
 }

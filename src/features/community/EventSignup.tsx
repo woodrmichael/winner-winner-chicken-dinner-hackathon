@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UsersRound } from 'lucide-react-native';
+import { Check, UsersRound } from 'lucide-react-native';
 import { View, type ViewStyle } from 'react-native';
 import { useDemo } from '../../state/Demo';
 import { Btn, Copy, color, row, wrap } from '../../ui/kit';
@@ -39,12 +39,13 @@ export function EventSignup({ postId, feed = false, controls = true }: {
           </View>
           {feed && <SavePostButton postId={postId} />}
         </View>
-        {controls && resident && (drive ? (
-          joined ? <Copy kind="strong" tint={color.pine}>Joined</Copy> :
-            <Btn label={chooseRole ? 'Close volunteer roles' : 'Join event'} secondary
-              onPress={() => setChooseRole(!chooseRole)} />
-        ) : <Btn label={joined ? 'Cancel signup' : 'Join event'} secondary celebrate
-          onPress={() => run({ type: 'event-rsvp', postId, joined: !joined })} />)}
+        {controls && resident && (joined ? <Btn label={feed ? 'Joined' : 'Cancel signup'}
+          icon={feed ? Check : undefined} secondary accessibilityHint={feed ? 'Cancels your signup' : undefined}
+          onPress={() => drive ? run({ type: 'cancel-volunteer' }) : run({ type: 'event-rsvp', postId, joined: false })} />
+          : drive ? <Btn label={chooseRole ? 'Close volunteer roles' : 'Join event'} secondary
+            onPress={() => setChooseRole(!chooseRole)} />
+          : <Btn label="Join event" secondary celebrate
+            onPress={() => run({ type: 'event-rsvp', postId, joined: true })} />)}
       </View>
       {controls && drive && resident && !joined && chooseRole && volunteers?.roles.map((role) => (
         <View key={role.id} style={[wrap, { justifyContent: 'space-between', borderTopWidth: 1, borderColor: color.line }]}>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Linking, Platform, Share, Text, View } from 'react-native';
 import { newId, useDemo } from '../../state/Demo';
 import { Btn, Card, Copy, Field, color } from '../../ui/kit';
 import { Disclosure } from '../../ui/Disclosure';
@@ -8,24 +8,41 @@ import { cash, parseDollars, type Pledge, type SupportBook, type ProjectId } fro
 import { section } from './ProjectFunding';
 
 function Payment({ pledge }: { pledge: Pledge }) {
-  const { run } = useDemo();
+  const { run, shared } = useDemo();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [id, setId] = useState(newId);
   const [notice, setNotice] = useState('');
+  const [link, setLink] = useState<{ url: string; sessionId: string }>();
   const due = pledge.supplies + pledge.operations - pledge.paid;
+  const stripe = shared.data?.sponsorPayments;
+  const active = stripe?.active.find(({ pledgeId }) => pledgeId === pledge.id);
+  const visibleLink = active && link?.sessionId === active.sessionId ? link.url : undefined;
+  const unreserved = due - (active?.cents ?? 0);
   return <View style={section}>
     <Disclosure label={pledge.business} detail={`${cash(due)} outstanding · ${cash(pledge.paid)} paid`}
       expanded={open} onToggle={() => setOpen(!open)}>
       <Copy kind="small">{cash(pledge.supplies + pledge.operations)} committed · {pledge.volunteers} volunteer places</Copy>
-      {due > 0 && <>
-        <Field label="Payment received ($)" keyboardType="decimal-pad" value={amount} change={setAmount} placeholder="0.00" />
-        <Btn label="Apply payment" disabled={!amount.trim()} onPress={async () => {
+      {active && <Copy kind="small">{cash(active.cents)} reserved for Stripe Checkout</Copy>}
+      {due > 0 && (unreserved > 0 || stripe && !visibleLink) && <>
+        {(!active || unreserved > 0) && <Field label="Payment amount ($)" keyboardType="decimal-pad" value={amount} change={setAmount} placeholder="0.00" />}
+        {stripe && !visibleLink && <Btn label={active ? 'Show Stripe payment link' : 'Create Stripe payment link'}
+          disabled={!active && !amount.trim()} onPress={async () => {
+            setLink(await shared.sponsorshipCheckout(pledge.id, active ? undefined : parseDollars(amount)));
+          }} />}
+        {unreserved > 0 && <Btn label={stripe ? 'Record offline payment' : 'Apply payment'} secondary disabled={!amount.trim()} onPress={async () => {
           const cents = parseDollars(amount);
           if (cents <= 0) throw new Error('Enter a payment greater than zero.');
           await run({ type: 'partnership', entry: { kind: 'payment', id, cents, pledgeId: pledge.id } });
           setId(newId()); setAmount(''); setNotice(`${cash(cents)} payment recorded.`);
-        }} />
+        }} />}
+      </>}
+      {visibleLink && <>
+        <Copy kind="small">Share this link with the sponsor. The balance updates when Stripe confirms payment.</Copy>
+        <Text selectable style={{ color: color.pine, fontSize: 13 }}>{visibleLink}</Text>
+        <Btn label="Open Stripe Checkout" secondary onPress={() => Linking.openURL(visibleLink)} />
+        {Platform.OS !== 'web' && <Btn label="Share payment link" secondary
+          onPress={() => Share.share({ message: visibleLink, url: visibleLink })} />}
       </>}
       {!!notice && <View accessibilityLiveRegion="polite"><Copy tint={color.pine}>{notice}</Copy></View>}
     </Disclosure>

@@ -169,6 +169,7 @@ export function Btn({
   stretch = false,
   disabled = false,
   celebrate = false,
+  accessibilityHint,
 }: {
   label: string;
   onPress: () => unknown;
@@ -180,6 +181,7 @@ export function Btn({
   stretch?: boolean;
   disabled?: boolean;
   celebrate?: boolean;
+  accessibilityHint?: string;
 }) {
   const lock = useRef(false);
   const [scale] = useState(() => celebrate ? new Animated.Value(1) : null);
@@ -219,6 +221,7 @@ export function Btn({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={iconOnly ? label : undefined}
+        accessibilityHint={accessibilityHint}
         disabled={disabled || busy}
         accessibilityState={{ disabled: disabled || busy }}
         onPress={press}
@@ -272,6 +275,7 @@ export function ProgressBar({ value, total }: { value: number; total: number }) 
 }
 export function Field({
   label,
+  hideLabel = false,
   value,
   change,
   multiline = false,
@@ -282,6 +286,7 @@ export function Field({
   editable = true,
 }: {
   label: string;
+  hideLabel?: boolean;
   value: string;
   change: (v: string) => void;
   multiline?: boolean;
@@ -293,7 +298,7 @@ export function Field({
 }) {
   return (
     <View style={{ gap: 6 }}>
-      <Copy kind="strong">{label}</Copy>
+      {!hideLabel && <Copy kind="strong">{label}</Copy>}
       <TextInput
         editable={editable}
         accessibilityLabel={label}

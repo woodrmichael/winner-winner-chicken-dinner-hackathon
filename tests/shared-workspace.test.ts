@@ -1,18 +1,20 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import test, { type TestContext } from 'node:test';
+import Stripe from 'stripe';
 import { createApi, withPassword } from '../server/api';
+import type { SponsorGateway } from '../server/sponsor-payments';
 import { createWorkspace, demoAccounts, restoreCommunication, type Workspace } from '../src/shared/workspaceModel';
 import type { SharedSnapshot } from '../src/shared/workspace';
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, sponsorGateway?: SponsorGateway) {
   const password = (id: string) => `test-password-for-${id}`;
   let saved = createWorkspace([
     ...demoAccounts.map((account) => withPassword(account, password(account.id))),
     withPassword({ id: 'ride-worker', name: 'Avery Green', kind: 'worker', details: {},
       membership: { partnerId: 'ride-circle', status: 'approved', admin: false } }, password('ride-worker')),
   ]);
-  const server = createApi(saved, (next: Workspace) => { saved = JSON.parse(JSON.stringify(next)); });
+  const server = createApi(saved, (next: Workspace) => { saved = JSON.parse(JSON.stringify(next)); }, undefined, sponsorGateway);
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   t.after(() => { server.closeAllConnections(); server.close(); });
@@ -43,6 +45,56 @@ async function fixture(t: TestContext) {
     stored: () => saved,
   };
 }
+
+test('Stripe checkout reserves a pledge balance and records only signed, paid sessions once', async (t) => {
+  const stripe = new Stripe('local-test-placeholder');
+  const secret = 'local-webhook-signing-fixture';
+  let created = 0;
+  const api = await fixture(t, {
+    async create() {
+      created += 1;
+      return { id: `session-${created}`, url: `https://checkout.stripe.com/c/pay/session-${created}` };
+    },
+    event: (raw, signature) => stripe.webhooks.constructEvent(raw, signature, secret),
+  });
+  const organizer = await api.login('organizer');
+  const resident = await api.login('alex');
+  const pledgeId = 'stripe-pledge';
+  const command = (entry: object) => api.command(organizer, { type: 'partnership', entry });
+  const checkout = (token: string, cents: number) => api.request<{ url: string }>('/sponsorship/checkout', 'POST', token, { pledgeId, cents });
+  const paid = async () => (await api.read(resident)).data.support.pledges.find(({ id }) => id === pledgeId)?.paid;
+  assert.equal((await command({ kind: 'pledge', id: pledgeId, business: 'Market', project: 'drive',
+    supplies: 15000, operations: 5000, volunteers: 2 })).status, 200);
+  assert.equal((await checkout(resident, 10000)).status, 403);
+  assert.equal((await checkout(organizer, 21000)).status, 400);
+  const first = await checkout(organizer, 10000);
+  assert.equal(first.status, 200);
+  assert.equal((await checkout(organizer, 10000)).data.url, first.data.url);
+  assert.equal(created, 1);
+  assert.equal((await api.read(resident)).data.sponsorPayments, undefined);
+  assert.equal((await command({ kind: 'payment', id: 'overlap', pledgeId, cents: 10001 })).status, 409);
+  assert.equal((await command({ kind: 'payment', id: 'offline', pledgeId, cents: 5000 })).status, 200);
+  assert.equal((await command({ kind: 'payment', id: 'stripe:fake', pledgeId, cents: 100 })).status, 400);
+
+  function event(type: string, status: string, id = 'session-1', cents = 10000, signed = true) {
+    const payload = JSON.stringify({ id: `event-${type}`, type, data: { object: { id, amount_total: cents,
+      currency: 'usd', mode: 'payment', client_reference_id: pledgeId, metadata: { flow: 'comforce_sponsorship' },
+      payment_status: status } } });
+    const signature = stripe.webhooks.generateTestHeaderString({ payload, secret: signed ? secret : 'wrong-secret' });
+    return fetch(`${api.url}/sponsorship/stripe/webhook`, { method: 'POST', headers: { 'Stripe-Signature': signature }, body: payload });
+  }
+  assert.equal((await event('checkout.session.completed', 'paid', 'session-1', 10000, false)).status, 400);
+  assert.equal((await event('checkout.session.completed', 'paid', 'session-1', 9999)).status, 409);
+  assert.equal((await event('checkout.session.completed', 'unpaid')).status, 200);
+  assert.equal(await paid(), 5000);
+  assert.equal((await event('checkout.session.async_payment_succeeded', 'paid')).status, 200);
+  assert.equal((await event('checkout.session.completed', 'paid')).status, 200);
+  assert.equal(await paid(), 15000);
+  assert.equal((await checkout(organizer, 5000)).status, 200);
+  assert.equal((await event('checkout.session.expired', 'unpaid', 'session-2', 5000)).status, 200);
+  assert.equal((await api.read(organizer)).data.sponsorPayments?.active.length, 0);
+  assert.equal(await paid(), 15000);
+});
 
 test('partnerships route private inquiries to organizers and publish only confirmed project support', async (t) => {
   const api = await fixture(t);

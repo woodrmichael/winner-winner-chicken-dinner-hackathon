@@ -57,6 +57,7 @@ export type ServiceRecord = Pick<
 
 export type SharedSnapshot = {
   support: import('../features/partnerships/ledger').SupportBook;
+  sponsorPayments?: { active: { sessionId: string; pledgeId: string; cents: number }[] };
   revision: number;
   account: Account;
   posts: Post[];

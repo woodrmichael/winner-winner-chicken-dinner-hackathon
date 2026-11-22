@@ -36,7 +36,6 @@ export function ShareDetails({
           />
         ))}
       </View>
-      <Copy kind="small">Sharing your neighborhood includes this referral in area totals.</Copy>
     </View>
   );
 }

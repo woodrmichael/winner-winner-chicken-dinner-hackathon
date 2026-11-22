@@ -25,6 +25,7 @@ import { approvedPartner, assignmentScope, WorkspaceError } from './referralAcce
 export type StoredAccount = Account & { passwordHash?: string };
 export type Workspace = {
   supportEntries?: SupportEntry[];
+  sponsorCheckouts?: SponsorCheckout[];
   referrals: Referral[];
   posts: Post[];
   community: CommunityState;
@@ -34,6 +35,8 @@ export type Workspace = {
   signups: VolunteerSignup[];
   communication: Communication;
 };
+
+export type SponsorCheckout = { sessionId: string; pledgeId: string; cents: number; url: string };
 
 export type StoredWorkspace = Omit<Workspace, 'communication'> & { communication?: Communication; partners?: Partner[] };
 export const sampleResidentAccount = 'alex';
@@ -88,7 +91,7 @@ function adminPartner(account: Account) {
   return account.membership?.admin ? approvedPartner(account) : undefined;
 }
 
-function isOrganizer(account: Account) {
+export function isOrganizer(account: Account) {
   return adminPartner(account) === program.providerId;
 }
 
@@ -174,6 +177,15 @@ export function snapshot(workspace: Workspace, account: StoredAccount, revision:
 export function applySharedSupport(workspace: Workspace, account: Account, entry: SupportEntry): Workspace {
   if (entry.kind !== 'offer' && entry.kind !== 'inquiry' && !isOrganizer(account))
     throw new WorkspaceError(403, 'Coordinator access is required.');
+  if (entry.id.startsWith('stripe:')) throw new WorkspaceError(400, 'Stripe payment references are assigned by the server.');
+  if (entry.kind === 'payment') {
+    const checkout = workspace.sponsorCheckouts?.find(({ pledgeId }) => pledgeId === entry.pledgeId);
+    const pledge = checkout && supportBook(workspace.supportEntries).pledges.find(({ id }) => id === entry.pledgeId);
+    const duplicate = workspace.supportEntries?.some(({ id }) => id === entry.id);
+    if (checkout && pledge && !duplicate && entry.cents > pledge.supplies + pledge.operations - pledge.paid - checkout.cents) {
+      throw new WorkspaceError(409, 'That amount is reserved for an active Stripe checkout.');
+    }
+  }
   const supportEntries = appendEntry(workspace.supportEntries, entry);
   return supportEntries === workspace.supportEntries ? workspace : { ...workspace, supportEntries };
 }

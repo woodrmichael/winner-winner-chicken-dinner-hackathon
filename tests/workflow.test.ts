@@ -417,6 +417,16 @@ test('vague fire help plus food clarification suggests Neighborhood Table', asyn
   assert.equal(result.matches[0].partner.name, 'Neighborhood Table');
 });
 
+test('the food quick action drafts a grocery request without inventing a fire or a ride', async () => {
+  setModelAvailable(true);
+  const draft = await draftReferral('I need help getting groceries.', ['Food'], 0);
+  assert.match(draft, /pantry box/i);
+  assert.doesNotMatch(draft, /fire/i);
+  const result = await matchWithModel(draft, 0);
+  assert.deepEqual(result.needs, ['Food']);
+  assert.equal(result.matches[0].partner.name, 'Neighborhood Table');
+});
+
 test('removing a need re-ranks partners for review', () => {
   const both = withNeeds(['Clothing', 'Transportation']);
   assert.equal(both.matches[0].partner.name, 'Winter Care Collective');

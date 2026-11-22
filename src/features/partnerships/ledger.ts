@@ -2,7 +2,7 @@ import { program } from '../../domain/seed';
 
 export const projects = [
   { id: 'drive', programId: program.id, providerId: program.providerId, category: 'Clothing', name: program.name, event: 'Winter essentials drive', goal: program.goal, organizer: 'Winter Care Collective', supplies: 'Coats, boots and sorting supplies', updateId: 'demo-post-ride-pickups', activities: [
-    { id: 'drive', name: 'Winter drive', at: '2026-11-21T10:00:00-06:00' },
+    { id: 'drive', name: 'Winter drive', at: '2026-11-28T10:00:00-06:00' },
     { id: 'demo-post-winter-sorting', name: 'Donation sorting', at: '2026-11-24T17:30:00-06:00' },
   ] },
   { id: 'demo-post-meal-packing', programId: 'pantry-meal-kits', providerId: 'table', category: 'Food', name: 'Pantry meal kits', event: 'Help pack pantry meal kits', goal: 1000, organizer: 'Neighborhood Table', supplies: 'Shelf-stable groceries and packing supplies', updateId: 'pantry', activities: [
