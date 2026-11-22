@@ -13,6 +13,7 @@ import {
   type Workspace,
 } from '../shared/workspaceModel';
 import { decode, storageKey } from './persistence';
+import { withExampleSupport } from '../features/partnerships/exampleSupport';
 
 export const localProfiles = {
   Resident: demoAccounts.find(({ id }) => id === sampleResidentAccount)!,
@@ -43,6 +44,7 @@ export function useLocalWorkspace(enabled: boolean) {
         const stored = raw === null ? undefined : JSON.parse(raw) as Partial<StoredWorkspace>;
         const value = restoreCommunication({
           ...initial,
+          supportEntries: withExampleSupport(initial.supportEntries),
           referrals,
           posts: demo.posts.map((post) => post.authorId === sampleResidentAccount && post.author === 'Alex (you)'
             ? { ...post, author: localProfiles.Resident.name }
@@ -74,7 +76,7 @@ export function useLocalWorkspace(enabled: boolean) {
       }
       const value = command && previous
         ? applyAccountCommand(previous, account, command)
-        : createWorkspace(accounts);
+        : { ...createWorkspace(accounts), supportEntries: withExampleSupport() };
       if (value === previous) return;
       const { accounts: _accounts, ...stored } = value;
       await AsyncStorage.setItem(storageKey, JSON.stringify({ version: 2, ...stored }));

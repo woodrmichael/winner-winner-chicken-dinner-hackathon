@@ -258,14 +258,14 @@ export function Btn({
     </Wrapper>
   );
 }
-export function ProgressBar({ value, total }: { value: number; total: number }) {
+export function ProgressBar({ value, total, height = 7 }: { value: number; total: number; height?: number }) {
   const fraction = total > 0 ? Math.min(1, Math.max(0, value / total)) : 0;
   return (
-    <View style={{ height: 7, borderRadius: 5, backgroundColor: color.pale }}>
+    <View style={{ height, borderRadius: height / 2, backgroundColor: color.pale }}>
       <View
         style={{
-          height: 7,
-          borderRadius: 5,
+          height,
+          borderRadius: height / 2,
           backgroundColor: color.pine,
           width: `${fraction * 100}%`,
         }}

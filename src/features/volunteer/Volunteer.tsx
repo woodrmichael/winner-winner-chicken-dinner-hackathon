@@ -68,6 +68,7 @@ export function VolunteerOptions({ openSettings }: { openSettings: () => void })
     <>
       <Card>
         <Copy kind="title">Volunteer roles</Copy>
+        {account.kind === 'resident' && !signup && <Copy kind="small" tint={color.muted}>Reserve one role to join the winter drive.</Copy>}
         {roles.map((role) => {
           const reserved = signup?.roleId === role.id;
           const full = role.reserved >= role.capacity;

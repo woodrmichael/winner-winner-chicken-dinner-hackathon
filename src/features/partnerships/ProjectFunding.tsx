@@ -13,7 +13,7 @@ export function ProjectFunding({ pledges, goal, details = false }: {
       <Copy kind="title">{cash(totals.paid)} received</Copy>
       <Copy tint={color.muted}>of {cash(goal * 100)} goal</Copy>
     </View>
-    <ProgressBar value={totals.paid / 100} total={goal} />
+    <ProgressBar value={totals.paid / 100} total={goal} height={10} />
     <Copy kind="small">{cash(totals.outstanding)} in outstanding pledges</Copy>
     {details && <View style={section}>
       <Copy kind="strong">Received by purpose</Copy>

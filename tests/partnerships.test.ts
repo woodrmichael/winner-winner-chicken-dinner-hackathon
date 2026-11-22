@@ -4,6 +4,18 @@ import { applyCommand, deliveredServices } from '../src/domain/model';
 import { seedState } from '../src/domain/seed';
 import { decode } from '../src/state/persistence';
 import { appendEntry, funding, parseDollars, projectDeliveryCounts, supportBook, type SupportEntry } from '../src/features/partnerships/ledger';
+import { withExampleSupport } from '../src/features/partnerships/exampleSupport';
+
+test('device sponsorship fixtures retain partial payments and do not duplicate existing support', () => {
+  const entries: SupportEntry[] = [{ kind: 'pledge', id: 'my-pledge', business: 'Local Market', project: 'drive', supplies: 500, operations: 0, volunteers: 1 }];
+  const seeded = withExampleSupport(entries);
+  assert.deepEqual(withExampleSupport(seeded), seeded);
+  const book = supportBook(seeded);
+  const winter = funding(book.pledges.filter(({ project }) => project === 'drive'));
+  assert.equal(winter.paid, 165000);
+  assert.equal(winter.volunteers, 6);
+  assert.equal(funding(book.pledges.filter(({ project }) => project === 'demo-post-meal-packing')).paid, 55000);
+});
 
 test('a reviewed team offer credits the sponsor once and reconciles partial payments after reload', () => {
   const start = seedState();

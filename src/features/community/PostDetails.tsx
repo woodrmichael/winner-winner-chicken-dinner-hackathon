@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View } from 'react-native';
+import { View, type ScrollView, type LayoutChangeEvent } from 'react-native';
 import { Image } from 'expo-image';
 import type { Post } from '../../domain/types';
 import { newId, now, useDemo } from '../../state/Demo';
@@ -58,7 +58,7 @@ function OfferThread({ post }: { post: Post }) {
   );
 }
 
-function EventDetails({ postId }: { postId: string }) {
+function EventDetails({ postId, onVolunteerLayout }: { postId: string; onVolunteerLayout?: (event: LayoutChangeEvent) => void }) {
   const router = useRouter();
   const { book, coordinator } = useSupport();
   const project = projects.find((p) => p.id === postId);
@@ -83,7 +83,9 @@ function EventDetails({ postId }: { postId: string }) {
           <Copy>{event.bring}</Copy>
         </View>
       </Card>
-      {sharedDrive && <VolunteerOptions openSettings={() => router.navigate('/settings')} />}
+      {sharedDrive && <View onLayout={onVolunteerLayout} style={{ gap: 16 }}>
+        <VolunteerOptions openSettings={() => router.navigate('/settings')} />
+      </View>}
       {project && <Card>
         <Copy kind="title">Project support</Copy>
         <Copy>Organized by {project.organizer}</Copy>
@@ -103,7 +105,7 @@ function EventDetails({ postId }: { postId: string }) {
 }
 
 export default function PostDetails() {
-  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
+  const { id, from, focus } = useLocalSearchParams<{ id: string; from?: string; focus?: string }>();
   const router = useRouter();
   const { state, role, run, shared } = useDemo();
   const post = state.posts.find((item) =>
@@ -117,6 +119,15 @@ export default function PostDetails() {
   const [reported, setReported] = useState(false);
   const [reason, setReason] = useState('');
   const [feedback, setFeedback] = useState('');
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const jumped = useRef(false);
+
+  function jumpToRoles({ nativeEvent }: LayoutChangeEvent) {
+    if (focus !== 'volunteer' || jumped.current) return;
+    jumped.current = true;
+    const offset = nativeEvent.layout.y;
+    requestAnimationFrame(() => scroll.current?.scrollTo({ y: Math.max(0, offset - 12), animated: false }));
+  }
   const origin = from === 'map' ? { path: '/map', title: 'Map' } as const
     : from === 'activity' ? { path: '/activity', title: 'Activity' } as const
     : { path: '/', title: 'Community' } as const;
@@ -133,7 +144,7 @@ export default function PostDetails() {
   const photo = post ? postPhoto(post.id, true) : undefined;
 
   return (
-    <Page title={post?.title ?? 'Post unavailable'} back={back}>
+    <Page title={post?.title ?? 'Post unavailable'} back={back} scrollRef={scroll}>
       {post && (
         <>
           {photo && <Image source={photo.source} accessibilityLabel={photo.description}
@@ -205,7 +216,7 @@ export default function PostDetails() {
               {reported && <Copy kind="small" tint={color.pine}>Report submitted for moderator review.</Copy>}
             </Card>
           )}
-          {post.kind === 'Event' && <EventDetails postId={post.id} />}
+          {post.kind === 'Event' && <EventDetails postId={post.id} onVolunteerLayout={focus === 'volunteer' ? jumpToRoles : undefined} />}
         </>
       )}
     </Page>

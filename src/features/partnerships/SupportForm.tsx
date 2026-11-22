@@ -26,18 +26,18 @@ export function SupportForm({ project, kind, onDone }: { project: ProjectId; kin
   }
   if (status) return <Card><Copy kind="strong">{status}</Copy><Btn label="Done" onPress={onDone} /></Card>;
   return <Card>
-    {kind === 'offer' && <Copy>Choose how much to pledge or how many volunteers to bring. The coordinator reviews your offer before listing your supporter name on the project.</Copy>}
+    {kind === 'offer' && <Copy>Pledge funds, offer volunteer places, or both. The coordinator reviews your pledge and follows up about payment or team details.</Copy>}
     <Field label={inquiry ? 'Business or team name' : 'Public supporter name'} value={business} change={setBusiness} />
     {inquiry ? <>
       <Field label="Proposed support or question" value={proposal} change={setProposal} multiline />
       <Field label="Preferred contact method and details" value={contact} change={setContact} />
     </> : <>
-      <Copy>{kind === 'offer' ? 'Fill in only the ways you want to help. Payment is arranged separately.' : 'Enter the amount promised for each purpose. Payments are recorded separately.'}</Copy>
+      {kind === 'pledge' && <Copy>Enter the amount promised for each purpose. Payments are recorded separately.</Copy>}
       <Field label="Supplies and services ($)" keyboardType="decimal-pad" value={supplies} change={setSupplies} placeholder="0.00" />
       <Field label="Coordination and operations ($)" keyboardType="decimal-pad" value={operations} change={setOperations} placeholder="0.00" />
       <Field label="Volunteer places offered" keyboardType="number-pad" value={volunteers} change={setVolunteers} placeholder="0" />
     </>}
-    <Btn label={inquiry ? 'Send inquiry' : kind === 'offer' ? 'Submit offer for review' : 'Record pledge'}
+    <Btn label={inquiry ? 'Send inquiry' : kind === 'offer' ? 'Submit sponsorship pledge' : 'Record pledge'}
       disabled={!business.trim() || (inquiry ? !contact.trim() || !proposal.trim() : !supplies && !operations && !volunteers)}
       onPress={submit} />
   </Card>;
