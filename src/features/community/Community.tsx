@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ArrowRight, CalendarDays, HandHeart, MapPin, Plus, Search, Shirt } from 'lucide-react-native';
+import { ArrowRight, CalendarDays, HandHeart, MapPin, Search, Shirt } from 'lucide-react-native';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { now, useDemo } from '../../state/Demo';
@@ -205,21 +205,11 @@ export default function Community({ view }: { view?: string }) {
     }
     return rows;
   }, []);
-  const actions = (
-    <View style={wrap}>
-      {partner ? (
-        <Btn label="Open inbox" icon={ArrowRight} secondary onPress={() => router.navigate('/activity')} />
-      ) : (
-        <>
-          <Btn label="Ask for help" icon={HandHeart} onPress={() => router.push('/ask')} />
-          <Btn label="Post an offer" quiet icon={Plus} onPress={() => router.push('/offer')} />
-        </>
-      )}
-    </View>
-  );
-
   return (
-    <Page title="Community" right={actions}>
+    <Page title="Community" right={partner ? (
+      <Btn label="Open inbox" icon={ArrowRight} secondary onPress={() => router.navigate('/activity')} />
+    ) : undefined}>
+      {!partner && <Btn label="Ask for help" icon={HandHeart} stretch onPress={() => router.push('/ask')} />}
       {role === 'Moderator' && <ModerationQueue />}
       <View style={[row, { justifyContent: 'space-between' }]}>
         <SelectMenu label="Filter posts" value={filter} options={options} appearance="pill" align="start"

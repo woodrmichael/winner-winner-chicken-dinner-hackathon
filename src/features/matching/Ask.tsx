@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Building2, CarFront, HandHeart, LockKeyhole, Plus, Shirt, ShoppingBasket } from 'lucide-react-native';
 import { View } from 'react-native';
@@ -11,6 +11,7 @@ import { SelectionRow } from '../../ui/SelectionRows';
 import { ShareDetails, type ShareKey } from './ShareDetails';
 import { approvedPartners, eligibleForNewReferral, listWords, offerCoversLine } from './directory';
 import { RequestVoice } from './RequestVoice';
+import { RequestSent, type SentRequest } from './RequestSent';
 import {
   draftReferral, findResources, interpretNeeds, isVagueRequest, preferredAreaFrom,
   shouldOfferDraft, withNeeds, type MatchResult,
@@ -61,6 +62,12 @@ function RequestForm({ initialPartner, partners }: { initialPartner?: string; pa
   const [editingMessage, setEditingMessage] = useState(!!initialPartner);
   const [source, setSource] = useState<MatchResult['source']>('model');
   const [needs, setNeeds] = useState<Category[]>([]);
+  const [sent, setSent] = useState<SentRequest>();
+  const attempt = useRef<{ key: string; id: string; at: string } | undefined>(undefined);
+
+  if (sent) return <RequestSent request={sent}
+    onView={() => router.replace({ pathname: '/activity/referral/[id]', params: { id: sent.id } })}
+    onDone={() => router.replace('/')} />;
 
   const neighborhood = workspace.data?.account.details.neighborhood;
   const preferred = preferredAreaFrom(message, shared.includes('neighborhood'), neighborhood);
@@ -256,11 +263,15 @@ function RequestForm({ initialPartner, partners }: { initialPartner?: string; pa
       <Btn label="Send request" stretch celebrate disabled={!selected || !message.trim()}
         onPress={async () => {
           if (!selected) return;
+          const text = message.trim();
+          const details = detailsToShare(shared, workspace.data?.account.details);
+          const key = JSON.stringify([selected.id, text, needs, details]);
+          if (attempt.current?.key !== key) attempt.current = { key, id: newId(), at: now() };
+          const { id, at } = attempt.current;
           await run({
-            type: 'send', id: newId(), partnerId: selected.id, message: message.trim(), needs,
-            shared: detailsToShare(shared, workspace.data?.account.details), at: now(),
+            type: 'send', id, partnerId: selected.id, message: text, needs, shared: details, at,
           });
-          router.replace('/activity');
+          setSent({ id, organization: selected.name, message: text, needs });
         }} />
     </Page>
   );

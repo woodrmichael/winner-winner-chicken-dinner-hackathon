@@ -20,7 +20,7 @@ import {
 } from './ReferralDetails';
 
 type Ticket = ReturnType<typeof partnerInbox>[number];
-type Action = 'delivery' | 'schedule' | 'handoff' | 'decline';
+type FollowUp = 'handoff' | 'decline';
 
 function Delivery({
   assignment,
@@ -152,7 +152,7 @@ function ProviderResponse({
   close,
 }: {
   assignment: ReferralAssignment;
-  action: 'handoff' | 'decline';
+  action: FollowUp;
   categories: Category[];
   close: () => void;
 }) {
@@ -252,26 +252,16 @@ export function PartnerReferralSummary({ ticket }: { ticket: Ticket }) {
 }
 
 export function PartnerReferralTimeline({ ticket }: { ticket: Ticket }) {
-  const { run, state } = useDemo();
-  const [action, setAction] = useState<Action | null>(null);
-  const [more, setMore] = useState(false);
+  const { run } = useDemo();
+  const [action, setAction] = useState<'delivery' | 'schedule' | null>(null);
   const { assignment } = ticket;
   const canSchedule = !!assignment.acceptedAt && ticket.actionable.length > 0;
-  const handoffCategories = ticket.handoffCategories.filter(
-    (category) => otherProviders(assignment.partnerId, category, state.partners).length > 0,
-  );
-  const canShowAction = {
-    delivery: !!assignment.acceptedAt && ticket.deliverable.length > 0,
-    schedule: canSchedule,
-    handoff: handoffCategories.length > 0,
-    decline: ticket.actionable.length > 0,
-  };
+  const canDeliver = !!assignment.acceptedAt && ticket.deliverable.length > 0;
+  const canShowAction = { delivery: canDeliver, schedule: canSchedule };
   const activeAction = action && canShowAction[action] ? action : null;
   const close = () => setAction(null);
-  const accepted = ticket.status === 'Accepted';
-  const moreActions = accepted || canShowAction.handoff || canShowAction.decline;
-  const hasActions = ticket.canRespond || canShowAction.delivery || canSchedule || moreActions;
-  const actionTitle = ticket.canRespond ? 'Awaiting acceptance' : canShowAction.delivery ? 'Delivery pending' : 'Manage request';
+  const hasActions = ticket.canRespond || canDeliver || canSchedule;
+  const actionTitle = ticket.canRespond ? 'Awaiting acceptance' : canDeliver ? 'Delivery pending' : 'Manage pickup or visit';
 
   return <RequestTimeline assignments={[assignment]} upcoming={ticket.actionable.length ? [assignment] : []}
     services={ticket.services} currentPartnerId={assignment.partnerId}>
@@ -295,28 +285,8 @@ export function PartnerReferralTimeline({ ticket }: { ticket: Ticket }) {
         <Delivery assignment={assignment} categories={ticket.deliverable} close={close} />
       )}
       {activeAction === 'schedule' && <Schedule assignment={assignment} close={close} />}
-      {activeAction === 'handoff' && (
-        <ProviderResponse
-          key="handoff"
-          assignment={assignment}
-          action="handoff"
-          categories={handoffCategories}
-          close={close}
-        />
-      )}
-      {activeAction === 'decline' && (
-        <ProviderResponse
-          key="decline"
-          assignment={assignment}
-          action="decline"
-          categories={ticket.actionable}
-          close={close}
-        />
-      )}
-      {!activeAction && (
-        <>
-          {(canShowAction.delivery || canSchedule) && <View style={wrap}>
-            {canShowAction.delivery && (
+      {!activeAction && (canDeliver || canSchedule) && <View style={wrap}>
+            {canDeliver && (
               <Btn label="Record delivery" icon={ClipboardCheck} onPress={() => setAction('delivery')} />
             )}
             {canSchedule && (
@@ -324,19 +294,31 @@ export function PartnerReferralTimeline({ ticket }: { ticket: Ticket }) {
                 icon={CalendarDays} secondary onPress={() => setAction('schedule')} />
             )}
           </View>}
-          {moreActions && (
-            <Disclosure label="More actions" expanded={more} onToggle={() => setMore(!more)}>
-              {accepted && <WorkerAssignment key={assignment.assignedWorker?.id ?? 'unassigned'} assignment={assignment} />}
-              {canShowAction.handoff && (
-                <Btn label="Suggest another partner" quiet onPress={() => setAction('handoff')} />
-              )}
-              {canShowAction.decline && (
-                <Btn label="Decline a need" quiet onPress={() => setAction('decline')} />
-              )}
-            </Disclosure>
-          )}
-        </>
-      )}
     </View>}
   </RequestTimeline>;
+}
+
+export function PartnerReferralMoreActions({ ticket }: { ticket: Ticket }) {
+  const { state } = useDemo();
+  const [expanded, setExpanded] = useState(false);
+  const [action, setAction] = useState<FollowUp | null>(null);
+  const { assignment } = ticket;
+  const accepted = ticket.status === 'Accepted';
+  const handoffCategories = ticket.handoffCategories.filter(
+    (category) => otherProviders(assignment.partnerId, category, state.partners).length > 0,
+  );
+  if (!accepted && !handoffCategories.length && !ticket.actionable.length) return null;
+  const categories = action === 'handoff' ? handoffCategories : ticket.actionable;
+  return <Card style={{ paddingVertical: 3 }}>
+    <Disclosure label="More actions" expanded={expanded} onToggle={() => setExpanded(!expanded)}>
+      <View style={{ gap: 8, paddingBottom: 12 }}>
+        {action && categories.length ? <ProviderResponse key={action} assignment={assignment}
+          action={action} categories={categories} close={() => setAction(null)} /> : <>
+          {accepted && <WorkerAssignment key={assignment.assignedWorker?.id ?? 'unassigned'} assignment={assignment} />}
+          {!!handoffCategories.length && <Btn label="Suggest another partner" quiet onPress={() => setAction('handoff')} />}
+          {!!ticket.actionable.length && <Btn label="Decline a need" quiet onPress={() => setAction('decline')} />}
+        </>}
+      </View>
+    </Disclosure>
+  </Card>;
 }

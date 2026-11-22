@@ -9,7 +9,7 @@ import { Btn, Card, Copy, Page, color, row } from '../../ui/kit';
 import { BackButton } from '../../ui/BackButton';
 import { SelectMenu } from '../../ui/SelectMenu';
 import { partnerName } from '../matching/directory';
-import { PartnerReferralSummary, PartnerReferralTimeline } from './PartnerReferral';
+import { PartnerReferralMoreActions, PartnerReferralSummary, PartnerReferralTimeline } from './PartnerReferral';
 import { formatActivityTime, partnerRequestTitle, RequestTimeline } from './ReferralDetails';
 import { ResidentReferral } from './ResidentReferral';
 
@@ -120,7 +120,7 @@ export default function ReferralConversation() {
         <RequestTimeline assignments={assignments} services={referral.services}
           upcoming={assignments.filter((item) => actionableNeeds(referral, item).length > 0)} />
       </>}
-      <View key={assignment.id} onLayout={({ nativeEvent }) => {
+      <View key={`messages:${assignment.id}`} onLayout={({ nativeEvent }) => {
         const y = nativeEvent.layout.y;
         setMessagesOffset((previous) => previous?.id === assignment.id && previous.y === y ? previous : { id: assignment.id, y });
       }}>
@@ -132,6 +132,7 @@ export default function ReferralConversation() {
           <PrivateThread key={`thread:${shared.data?.account.id}:${thread.id}`} assignmentId={thread.id} partnerId={thread.partnerId} />
         </Card>
       </View>
+      {ticket && <PartnerReferralMoreActions key={`actions:${assignment.id}`} ticket={ticket} />}
     </Page>
   );
 }

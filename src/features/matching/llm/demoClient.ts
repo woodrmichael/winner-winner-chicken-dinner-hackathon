@@ -169,7 +169,7 @@ function cannedDraft(text: string, needs: Category[]): string {
     );
   }
   if (clothing) {
-    return 'We need clothing for our family. Thank you for any help you can provide.';
+    return 'Hello, our family could use some warm clothing. If winter coats are available, could you tell us how to request the right sizes and when we can come by? Thank you.';
   }
   if (ride) {
     return 'We need a ride to reach the pickup. Thank you for considering our request.';
