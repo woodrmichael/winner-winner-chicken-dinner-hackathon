@@ -17,9 +17,13 @@ The partner inbox projects assignments into New, In progress and History and sup
 
 The main Milwaukee map uses MapLibre. The event detail card loads a bundled preview for its venue and shows its address and data credits. Reopening an event uses the same preview image.
 
-### Request transcription
+## Voice, matching and routing
 
-In Expo Go, the mic streams mono PCM through the shared workspace API to OpenAI Realtime when the server has an `OPENAI_API_KEY`. The server issues short-lived, single-use WebSocket tickets to signed-in residents and keeps the provider key in its environment. Requests have a time limit. The app puts partial and final transcripts in the editable request field. Microphone audio is forwarded and does not enter workspace storage. In browsers with speech recognition, the mic uses the browser service.
+1. **Voice to text.** On mobile, the mic streams mono PCM through the shared workspace API to OpenAI Realtime when the server has an `OPENAI_API_KEY`. Signed-in residents receive short-lived, single-use WebSocket tickets. The app puts partial and final transcripts in the editable request field. Microphone audio is forwarded without saving it in the workspace. Supported browsers can use their speech recognition service.
+2. **Automatic matching.** Local request interpretation identifies needs such as food, clothing and transportation. It can ask for more detail or suggest an editable draft. The matcher ranks approved organizations by accepting services and coverage, including the resident's neighborhood when applicable. Editing the message updates the needs and recommendation.
+3. **Private routing.** The resident reviews the suggested organization and selects which personal details to share. Sending creates a referral and an assignment for that organization. If the partner proposes a handoff later, the resident reviews the new recipient and sharing choices before the request reaches that organization.
+
+See [API configuration](deployment.md#shared-workspace-api) and the [phone transcription walkthrough](mobile.md#try-voice-input).
 
 ## Business partnerships
 

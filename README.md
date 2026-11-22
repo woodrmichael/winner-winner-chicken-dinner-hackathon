@@ -4,6 +4,8 @@ ComForce Connect helps Milwaukee residents find local support and gives communit
 
 Built by **Winner Winner Chicken Dinner** for HacksGiving ComForce MKE.
 
+**From voice to a routed request.** OpenAI Realtime transcribes spoken requests on mobile. ComForce Connect identifies the services a resident needs, recommends an organization that can help and routes the request privately after the resident reviews it.
+
 | Community | Resident request review | Partner request timeline |
 | --- | --- | --- |
 | <img src="docs/references/community-current.png" width="220" alt="Community feed with an event, RSVP, and bookmark" /> | <img src="docs/references/request-review.png" width="220" alt="Resident reviewing the suggested organization and choosing information to share" /> | <img src="docs/references/partner-timeline.png" width="220" alt="Partner request with a timeline and actions for recording a delivery or scheduling a pickup" /> |
@@ -13,7 +15,7 @@ Built by **Winner Winner Chicken Dinner** for HacksGiving ComForce MKE.
 | Area | Workflows |
 | --- | --- |
 | **Community** | Browse and search neighborhood events, offers and updates. RSVP, reserve a volunteer role, bookmark events, join neighborhood groups, publish an offer and reply to public posts. Event details show the venue, a bundled map and what to bring. |
-| **Ask for help** | Type or speak a request, review the needs identified and choose an organization. Matching considers service coverage, neighborhood and current availability. Residents review the draft and choose whether to share their name, contact number and neighborhood. |
+| **Ask for help** | Type a request or speak it with **OpenAI Realtime transcription** on mobile. The app identifies needs, drafts a message when useful and automatically recommends a partner based on services, neighborhood coverage and availability. Review the recipient and sharing choices before sending. [How matching and routing work](docs/architecture.md#voice-matching-and-routing) |
 | **Activity and partner inbox** | Track private requests in a timeline and message the assigned partner. Organization staff can see new, in-progress and historical requests, assign work, accept referrals, schedule pickups, record individual services and propose a handoff for resident approval. |
 | **Community map** | Explore Milwaukee neighborhoods, community events, libraries, available resources and aggregate service activity. Use map layers to view historical public safety data alongside community activity. |
 | **Impact** | Review requests, services delivered, residents assisted and open referrals by reporting period. See which organizations provided services, review program delivery history and share aggregate results. |
