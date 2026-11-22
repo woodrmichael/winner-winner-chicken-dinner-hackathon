@@ -156,5 +156,5 @@ In the shared workspace, sign in as the winter worker. On an accepted referral, 
 | iPhone reports an account mismatch | Run `npx expo whoami` and compare it with the account shown in Expo Go. Sign in to the same account on both, then retry. |
 | Expo Go reports an incompatible SDK | Check the SDK 58 installer for your device. Run `npx expo install --check` from the repo to check package versions. |
 | Phone shows an old bundle | Stop the server and restart with `npm run mobile:lan -- --clear` or `npm run mobile:tunnel -- --clear`. Scan the new code. |
-| Map shows an iOS URL error in Expo Go | Use the development QR from `npm run mobile:lan` or `npm run mobile:tunnel`. That server hosts the embedded map page. Use EAS Build for a standalone release with bundled map files. |
+| Map shows an iOS URL error or says the street map couldn’t load in Expo Go | Restart with `npm run mobile:tunnel` (or `npm run mobile:lan` on the same network) and scan its new development QR. For a smaller transfer use `--minify` and leave development mode enabled. Expo's `--no-dev` flag makes the map look for bundled HTML, which is available in installed builds. |
 | PowerShell blocks npm scripts | Run `npm.cmd` or `npx.cmd` in place of `npm` or `npx`. |
