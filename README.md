@@ -10,6 +10,10 @@ Built by **Winner Winner Chicken Dinner** for HacksGiving ComForce MKE.
 | --- | --- | --- |
 | <img src="docs/references/community-current.png" width="220" alt="Community feed with an event, RSVP, and bookmark" /> | <img src="docs/references/request-review.png" width="220" alt="Resident reviewing the suggested organization and choosing information to share" /> | <img src="docs/references/partner-timeline.png" width="220" alt="Partner request with a timeline and actions for recording a delivery or scheduling a pickup" /> |
 
+| Milwaukee map | Impact reporting | Project sponsorship |
+| --- | --- | --- |
+| <img src="docs/references/map-current.png" width="220" alt="Milwaukee map with community event pins, neighborhood shading, and service totals" /> | <img src="docs/references/impact-current.png" width="220" alt="Impact dashboard with monthly requests, deliveries, residents assisted, and service categories" /> | <img src="docs/references/sponsorship-current.png" width="220" alt="Winter Essentials sponsorship with funding goals, contributions, and project results" /> |
+
 ## What you can do
 
 | Area | Workflows |
