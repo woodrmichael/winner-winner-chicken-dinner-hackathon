@@ -9,12 +9,12 @@
 | 2:20–3:05 | Explain why Winter Care Collective matched both needs and how the resident chose the recipient and shared details. |
 | 3:05–4:00 | Choose November 2026 in Impact and show the assistance breakdown and community partners. Open Winter essentials from Recent work to show its funding and delivery history. Return to Impact and open the share summary to show what a funder receives. |
 
-On the presentation laptop, run `npm run export:web`, then `npm run preview`. Open the address it prints in a private browser window to rehearse with the starting records. Keep a local recording as backup.
+On the presentation laptop, run `npm run export:web`, then `npm run preview`. Open the address it prints in a private browser window to start from a fresh workspace. Keep a recording of both roles available for playback.
 
 For the two phone recordings, use the same Expo Go installation and switch profiles by swiping left from the right edge between takes. Record Alex Rivera entering a clothing-and-ride request, finding Winter Care Collective, choosing what to share and sending the request. For Morgan Chen’s recording, open Inbox, accept that request, send a private reply and record the coat and ride deliveries. Switch back to Alex after the partner take to capture the completed request for the resident recording. To show live microphone transcription on the phone, use the [shared workspace voice setup](mobile.md#try-voice-input).
 
-Demo service activity is fictional. The same seeded referrals drive Activity, Map and Impact. They cover 26 neighborhoods, from Havenwoods and Silver Spring on the north side to Wilson Park and Tippecanoe on the south side, with a mix of pending requests, partial deliveries and completed work. Existing workspaces pick up the additional records on load by ID. The city boundaries and library locations come from public sources.
+## Sponsorship walkthrough
 
-The community events are fictional and use real Milwaukee venues. The repair, pantry and kids’ coat images are generated for the sample posts. The winter drive ties into the apartment-fire recovery scenario. Event maps show the public meeting location. Clothing and ride requests appear in neighborhood totals, with household details confined to authorized referral views. Use a fresh or reset demo workspace for the latest event copy.
+Open **Winter essentials drive → See sponsorship options**. Show how a business can ask about the project, offer funding for supplies and operations, and commit volunteer places. In the Partner profile, open **Impact → Manage project support** to confirm a pledge and record a partial payment. Open **Business summary** to show project-level commitments and provider credit together. Use the same business name on the Pantry meal kits project to see how the summary combines both projects.
 
-The submission owner sends the team’s GitHub link through the event workspace by **11 am Central, Sunday, November 22, 2026**. Target 10:30 am and check the confirmation email for presentation order. [Organizer brief](https://msoe-maic.com/library/?nav=Competitions&article=HacksGiving-ComForce-MKE-2026)
+One teammate submits the team’s GitHub link through the event workspace by **11 am Central, Sunday, November 22, 2026**. Check the confirmation email for presentation order.

@@ -1,4 +1,4 @@
-name: Starter checks
+name: Verify ComForce Connect
 on: [push, pull_request]
 jobs:
   verify:

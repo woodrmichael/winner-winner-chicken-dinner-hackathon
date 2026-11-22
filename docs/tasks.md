@@ -20,6 +20,14 @@ Community is where neighbors offer items and organize activities. A resident wit
 
 - [x] **1.9 Keep position and media when changing screens.** After 1.7 and 1.8. Filter Community to Events, scroll to a photographed event and open it. Return to the same scroll position, then switch tabs and return. The feed image should remain mounted and the event photo should appear without a second fade. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/50c6594c1de5ee45851659e0f2c4fc2f6b8e3ada)
 
+- [x] **1.10 Connect the feed, request review and Activity.** After 1.8, 2.2, 3.4, 8.1 and 10.1. Claimed by `codex/two-demo-views`. Join the winter drive from Community, open its event details, and open an offer without showing the report form. Review a request with an organization card and opt-in checkboxes, then verify its timeline and messages in Activity. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/ecfda9b755ebe0c4aea2bb6ce60128cae6dd442e)
+
+- [x] **1.11 Polish event cards, the map and private messages.** After the 1.10 changes. Claimed by `codex/two-demo-views`. On a phone, scroll past the repair café and driver orientation to find the winter drive. Open an event by tapping its card, join from the feed, and check the spacing between the count and the bookmark. Open the event and confirm its map appears automatically. Send a private message and check its alignment and confirmation. Open Map and check the event overlay is already on. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/ecfda9b755ebe0c4aea2bb6ce60128cae6dd442e)
+
+- [x] **1.12 Keep venue maps fast and make the partner inbox easier to scan.** After 1.11. Claimed by `codex/two-demo-views`. Open the winter drive, go back and reopen it with the map service unavailable. The same venue preview should appear each time. Switch to Partner and follow a new request through New, In progress and History. Check that the team and personal scopes still apply. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/ecfda9b755ebe0c4aea2bb6ce60128cae6dd442e)
+
+- [x] **1.13 Put the referral timeline and messages on one screen.** After 1.12. Claimed by `codex/two-demo-views`. Accept a request and record a delivery from the partner timeline. Scroll to Messages and send a reply, then open its notification as the resident to reach the inline thread. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/ecfda9b755ebe0c4aea2bb6ce60128cae6dd442e)
+
 ## 2. Resource matching
 
 From **Community → Ask for help**, a resident can describe a situation without knowing which organization handles it. Today the app uses keywords to suggest directory partners. The resident can choose a different partner, review the message, and decide whether to include their first name, callback number, or neighborhood. The matching work below helps someone reach a partner that covers the help they still need.
@@ -113,7 +121,7 @@ Ben Nguyen verified private messages and unread updates on iPhone and PC. [Share
 
 ## 9. Resident and organization access
 
-The offline demo switches roles on one device. The [shared workspace](../README.md#run-the-shared-workspace) uses signed-in sample accounts so residents and organizations can open their own referrals across devices.
+The device workspace switches roles on one phone. The [shared workspace](deployment.md#shared-workspace-api) uses signed-in accounts so residents and organizations can open their own referrals across devices.
 
 - [x] **9.1 Open a referral from the right account.** Show the active person and organization. Send a request as a resident on one device, accept it as an approved worker on another, and verify that the resident sees the update. Check that an unrelated signed-in account cannot read the same referral or record a delivery against it.
 - [x] **9.2 Approve a worker to act for an organization.** After 9.1. A worker requests membership or accepts an invitation. While approval is pending, the worker cannot open the partner inbox. After an authorized administrator approves membership, the worker can handle that organization’s referrals.

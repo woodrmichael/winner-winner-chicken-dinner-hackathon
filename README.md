@@ -1,47 +1,46 @@
 # ComForce Connect
 
-Milwaukee residents can post offers and privately request help. A partner accepts a referral and records the service it delivered. That one entry updates the resident’s timeline, the neighborhood map and ComForce’s impact totals.
+ComForce Connect helps Milwaukee residents find local support and gives community organizations a shared way to coordinate and record the help they provide. A resident can request winter coats and a ride in one message. A partner can accept the request, confirm pickup in a private thread and record each service as it happens. Those records update the resident’s timeline, neighborhood service totals and ComForce’s impact reporting.
 
-**First time using Expo?** Start with [testing on your phone](docs/mobile.md). The [team task board](docs/tasks.md) describes each workflow and the changes planned for it. Claim an open subtask by number and use its example to check your work.
+Built by **Winner Winner Chicken Dinner** for HacksGiving ComForce MKE.
 
-## Run on a laptop
+| Community | Resident request review | Partner request timeline |
+| --- | --- | --- |
+| <img src="docs/references/community-current.png" width="220" alt="Community feed with an event, RSVP, and bookmark" /> | <img src="docs/references/request-review.png" width="220" alt="Resident reviewing the suggested organization and choosing information to share" /> | <img src="docs/references/partner-timeline.png" width="220" alt="Partner request with a timeline and actions for recording a delivery or scheduling a pickup" /> |
 
-Install Node.js 26.3.0 (the version in `.nvmrc`). From the directory containing `package.json`, run:
+## What you can do
+
+| Area | Workflows |
+| --- | --- |
+| **Community** | Browse and search neighborhood events, offers and updates. RSVP, reserve a volunteer role, bookmark events, join neighborhood groups, publish an offer and reply to public posts. Event details show the venue, a bundled map and what to bring. |
+| **Ask for help** | Type or speak a request, review the needs identified and choose an organization. Matching considers service coverage, neighborhood and current availability. Residents review the draft and choose whether to share their name, contact number and neighborhood. |
+| **Activity and partner inbox** | Track private requests in a timeline and message the assigned partner. Organization staff can see new, in-progress and historical requests, assign work, accept referrals, schedule pickups, record individual services and propose a handoff for resident approval. |
+| **Community map** | Explore Milwaukee neighborhoods, community events, libraries, available resources and aggregate service activity. Use map layers to view historical public safety data alongside community activity. |
+| **Impact** | Review requests, services delivered, residents assisted and open referrals by reporting period. See which organizations provided services, review program delivery history and share aggregate results. |
+| **Business partnerships** | Sponsor a project such as **Winter essentials** or **Pantry meal kits**. Businesses can send a private inquiry, pledge funds for supplies or operations and offer volunteer places. Organizers confirm commitments, record full or partial payments and report funding and participation by project or business. |
+| **Organization directory** | Browse service and pickup information, submit an organization for review and manage approved listings. Organization administrators can review membership, update service availability and coordinate staff responsibilities. |
+
+## Run the app
+
+Use the Node.js version in [.nvmrc](.nvmrc), then install the pinned dependencies.
 
 ```sh
 npm ci
 npm run web
 ```
 
-| When you need to… | Run or read |
-| --- | --- |
-| Develop on a phone on the same network | `npm run mobile:lan` · [Expo Go setup and phone test](docs/mobile.md) |
-| Develop on a phone using cellular or a different network | `npm run mobile:tunnel` · [Expo Go setup and phone test](docs/mobile.md) |
-| Check a change before merging | `npm run check` runs lint, type checking and tests |
-| Rehearse from a local build | `npm run export:web`, then `npm run preview` · [Local preview](http://localhost:4173) |
-| Change referral behavior or metrics | [Architecture and contracts](docs/architecture.md) |
-| Start an agent or hand work to another teammate | [Agent instructions](AGENTS.md) · [Task board](docs/tasks.md) |
-| Prepare the four-minute presentation | [Presentation runbook](docs/demo.md) |
+For **iOS or Android**, open the project in Expo Go. Run `npm run mobile:lan` on the same network or `npm run mobile:tunnel` for a phone on another network, then scan the QR code in the terminal. On the phone, swipe left from the right edge to open Settings and switch between the resident and partner profiles. On desktop, open Settings from the app brand or with `Alt+Shift+S`. [Phone setup and walkthrough](docs/mobile.md)
 
-## Run the shared workspace
+For **multi-device coordination**, run `npm run api` and set `EXPO_PUBLIC_API_URL` to the API address before starting the app. The shared workspace uses sign-in, role-scoped records and persistent server storage. [API setup and mobile release](docs/deployment.md)
 
-The default Expo setup opens the offline rehearsal. To try shared referrals, organization approval and volunteer coordination, open two terminals:
+## Start with a referral
 
-```powershell
-# Terminal 1
-npm.cmd run api
+1. As the **Resident**, open **Community → Ask for help**. Request children’s winter coats and a ride to pick them up. Review Winter Care Collective, select the neighborhood to share and send the request.
+2. As the **Partner**, open **Inbox → New** and accept the request from its timeline. Scroll to **Messages** to confirm the pickup details. Record the clothing delivery, then record transportation separately.
+3. Return to the **Resident** to see both deliveries on the timeline. Open **Impact** to see how the services roll up by category and provider. Open **Winter essentials** for funding and program delivery history.
 
-# Terminal 2
-$env:EXPO_PUBLIC_API_URL = 'http://127.0.0.1:8787'
-npm.cmd run web
-```
+## Engineering notes
 
-Open **Settings** to sign in. On first launch, the API prints unique passwords for the sample accounts. Use separate browser profiles or devices for `alex` (resident), `winter-worker` (approved worker), `candidate` (worker applying for membership) and `organizer` (Winter Care Collective administrator). `jordan` and `sam` are additional residents, and `table-worker` belongs to Neighborhood Table.
+The app uses Expo Router, React Native and TypeScript for iOS, Android and web. A shared domain model applies referral and service rules across the device workspace and the authenticated Node.js API. MapLibre renders the interactive Milwaukee map. Program metrics aggregate recorded services, and the sponsorship ledger tracks contributions and allocations separately.
 
-The server saves records in `.comforce/workspace.json`. Set `COMFORCE_API_DATA` to a new local file path to start a separate rehearsal and generate another set of passwords. Expo sessions are held in memory, so sign in again after a complete reload. Use sample records on a trusted local network. See the [shared phone walkthrough](docs/mobile.md#check-the-shared-workspace-on-two-devices) for LAN instructions.
-
-## Set up a Codex worktree
-
-Install Node.js using the version in `.nvmrc`. In the Codex desktop app, select the **ComForce Connect** local environment for a new Worktree chat. Its setup runs `npm ci` in the new checkout. Use **Mobile LAN**, **Mobile Tunnel**, or **Check** from the project actions. On a physical iPhone, sign into Expo Go and run `npx expo login` on the host with the same account before scanning. [Local environments](https://learn.chatgpt.com/docs/environments/local-environment)
-
-[Current mobile interface](docs/references/community-current.png) · [Map sources and original mockups](docs/sources.md)
+Run `npm run check` for lint, types and tests. Run `npm run export:web` to generate `dist/` and `npm run preview` to serve it locally. [Architecture](docs/architecture.md) · [Map data and credits](docs/sources.md) · [Presentation walkthrough](docs/demo.md)
