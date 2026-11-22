@@ -30,6 +30,8 @@ Community is where neighbors offer items and organize activities. A resident wit
 
 - [x] **1.14 Show Joined on Community cards.** After 1.11. Claimed by `codex/two-demo-views`. Join an event, tap Joined and verify the count and RSVP update. Repeat with a winter drive role. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/6914c534a0e5b3f0bb3df4d6db149d9f2265f109)
 
+- [x] **1.15 Open volunteer roles from the event card.** After 1.14. Claimed by `codex/two-demo-views`. Choose a role from the winter drive card, reserve it on the event page and return to the same position in Community. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/77cedc3cec14a4396cb8a60e6ab68b1a4b77e0c2)
+
 ## 2. Resource matching
 
 From **Community → Ask for help**, a resident can describe a situation without knowing which organization handles it. Today the app uses keywords to suggest directory partners. The resident can choose a different partner, review the message, and decide whether to include their first name, callback number, or neighborhood. The matching work below helps someone reach a partner that covers the help they still need.
@@ -105,6 +107,8 @@ One proposed funding model is for an employer to sponsor a ComForce project such
 - [x] **6.6 Give a business a partnership summary.** After 6.2 and 6.4. An employer supporting two projects can see its commitments, payments, upcoming activities and public updates together. A reader can identify what the business contributed and which partner delivered each service. Keep resident messages and contact details private.
 
 - [x] **6.7 Collect sponsorship payments through Stripe Checkout.** After 6.1 and 6.5. Claimed by `codex/two-demo-views`. Confirm a pledge, share a link for a partial payment and verify the signed webhook credits the ledger once. Confirm that an expired link frees the reserved amount. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/6914c534a0e5b3f0bb3df4d6db149d9f2265f109)
+
+- [x] **6.8 Improve the sponsorship project page.** After 6.7. Claimed by `codex/two-demo-views`. Open a project, find the main pledge action and team inquiry, and check that the funding totals and volunteer places reconcile with its supporter records. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/77cedc3cec14a4396cb8a60e6ab68b1a4b77e0c2)
 
 ## 7. Partner directory
 

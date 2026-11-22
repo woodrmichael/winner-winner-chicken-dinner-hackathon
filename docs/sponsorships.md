@@ -4,7 +4,7 @@ Businesses can ask about a project, pledge support for supplies or operations an
 
 ## Collect a payment
 
-1. Open **Community → Winter essentials drive → See sponsorship options** or choose **Pantry meal kits** under **Impact → Choose a project to support**. Submit an offer.
+1. Open **Community → Winter essentials drive → See sponsorship options** or choose **Pantry meal kits** under **Impact → Choose a project to support**. Select **Sponsor this project** and submit a sponsorship pledge.
 2. As the coordinator, open **Manage project support → Review** and confirm the offer.
 3. Open **Payments**, select the pledge and enter the amount to collect. Choose **Create Stripe payment link**. Copy the link or share it from the phone. The sponsor can open it directly in their browser.
 4. The coordinator’s outstanding balance and project reports update when Stripe confirms the payment. Repeat for any remaining balance. Use **Record offline payment** for funds received outside Stripe.

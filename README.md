@@ -4,8 +4,6 @@ ComForce Connect helps Milwaukee residents find local support and gives communit
 
 Built by **Winner Winner Chicken Dinner** for HacksGiving ComForce MKE.
 
-**From voice to a routed request.** OpenAI Realtime transcribes spoken requests on mobile. ComForce Connect identifies the services a resident needs, recommends an organization that can help and routes the request privately after the resident reviews it.
-
 | Community | Resident request review | Partner request timeline |
 | --- | --- | --- |
 | <img src="docs/references/community-current.png" width="220" alt="Community feed with an event, RSVP, and bookmark" /> | <img src="docs/references/request-review.png" width="220" alt="Resident reviewing the suggested organization and choosing information to share" /> | <img src="docs/references/partner-timeline.png" width="220" alt="Partner request with a timeline and actions for recording a delivery or scheduling a pickup" /> |

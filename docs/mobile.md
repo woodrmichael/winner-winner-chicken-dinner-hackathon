@@ -104,6 +104,8 @@ app with the same API URL to test using a second account on the laptop.
 | From the winter drive, reserve the two distribution places as `alex` and `jordan`. Open the event as `sam`. Cancel one reservation, then reserve the reopened place. | Sorting stays at four places. Distribution shows Full at two. The volunteer’s role and instructions appear in Activity. |
 | As `organizer`, record 120 minutes for the attending volunteer and zero for the other. Open the event summary and the attendee’s Activity. | The summary shows two sign-ups, one participant and two contributed hours. The attendee can select and copy the hours confirmation. |
 
+On the winter drive’s Community card, **Choose a role** opens the event at **Volunteer roles**. Reserving a place changes the card to **Joined**. For other events, **Join event** is a direct RSVP.
+
 ## Check private messages and unread updates
 
 Use the shared workspace with a resident and approved worker on separate devices.
