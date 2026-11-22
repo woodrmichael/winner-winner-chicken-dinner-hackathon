@@ -1,9 +1,9 @@
-import { BookOpen, CalendarDays } from 'lucide-react-native';
+import { BookOpen, Bus, CalendarDays } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import type { Category } from '../../domain/types';
 import { Copy, color, wrap } from '../../ui/kit';
 import { incidentBands, incidentLayers, incidentPeriod, needBands } from './incidentScale';
-import { eventColor, libraryColor } from './pointColors';
+import { eventColor, libraryColor, transitColor } from './pointColors';
 
 type IncidentLayer = (typeof incidentLayers)[number];
 
@@ -32,13 +32,14 @@ function Scale({ title, bands, shape }: {
   );
 }
 
-export function MapLegend({ needs, incidents, events, libraries }: {
+export function MapLegend({ needs, incidents, events, libraries, transit }: {
   needs: Category | 'All' | null;
   incidents: IncidentLayer[];
   events: boolean;
   libraries: boolean;
+  transit: boolean;
 }) {
-  if (!needs && !incidents.length && !events && !libraries) return null;
+  if (!needs && !incidents.length && !events && !libraries && !transit) return null;
 
   return (
     <View style={styles.legend}>
@@ -53,7 +54,7 @@ export function MapLegend({ needs, incidents, events, libraries }: {
           shape={key === 'fatal' ? 'outline' : 'dot'}
         />
       ))}
-      {(events || libraries) && (
+      {(events || libraries || transit) && (
         <View style={styles.pins}>
           {events && <View style={styles.item}>
             <View style={[styles.pin, { backgroundColor: eventColor }]}><CalendarDays size={12} color="#FFF" /></View>
@@ -62,6 +63,10 @@ export function MapLegend({ needs, incidents, events, libraries }: {
           {libraries && <View style={styles.item}>
             <View style={[styles.pin, { backgroundColor: libraryColor }]}><BookOpen size={12} color="#FFF" /></View>
             <Copy kind="small">Public libraries</Copy>
+          </View>}
+          {transit && <View style={styles.item}>
+            <View style={[styles.pin, { backgroundColor: transitColor }]}><Bus size={12} color="#FFF" /></View>
+            <Copy kind="small">Live buses</Copy>
           </View>}
         </View>
       )}

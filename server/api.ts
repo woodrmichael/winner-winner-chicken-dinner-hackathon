@@ -2,6 +2,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { type Account } from '../src/shared/workspace';
 import { publicLibrariesPath } from '../src/shared/publicLibraries';
+import { fetchPublicTransit, publicTransitPath, transitRefresh, type TransitSnapshot } from '../src/shared/publicTransit';
 import { reportingMonth } from '../src/features/impact/report';
 import { object, parseCommand } from './commands';
 import { WorkspaceError } from '../src/shared/referralAccess';
@@ -61,6 +62,7 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
   const sessions = new Map<string, { accountId: string; expires: number; cacheId: string }>();
   const attempts = new Map<string, { count: number; expires: number }>();
   const getPublicLibraries = createPublicLibraryCache();
+  let transit: { expiresAt: number; pending: Promise<TransitSnapshot> } | undefined;
   function save(updated: Workspace) {
     if (updated === workspace) return;
     persist(updated);
@@ -109,6 +111,14 @@ export function createApi(initial: Workspace, persist: (workspace: Workspace) =>
         const libraries = await getPublicLibraries();
         response.setHeader('Cache-Control', 'public, max-age=300');
         json(response, 200, libraries);
+        return;
+      }
+      if (request.url === publicTransitPath && request.method === 'GET') {
+        if (!transit || transit.expiresAt <= Date.now()) {
+          transit = { expiresAt: Date.now() + transitRefresh, pending: fetchPublicTransit() };
+        }
+        response.setHeader('Cache-Control', 'public, max-age=10');
+        json(response, 200, await transit.pending);
         return;
       }
 

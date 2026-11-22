@@ -50,6 +50,10 @@ For live transcription in Expo Go, set `OPENAI_API_KEY` on the shared workspace 
 
 As a resident, bookmark **Winter essentials drive** in Community. Open **Activity → Saved events**, select the event and check that its back arrow returns to Activity. Remove the bookmark in the event and verify it disappears from Saved events. Reload after bookmarking to confirm it persists.
 
+## Check live transit and incident sources
+
+Open **Map → Map overlays** and enable **Live buses and service alerts**. Tap a purple bus dot to read its route and next reported stop estimate. Open **Service alerts** to read detours, then open **Transit data credits** to check the feed timestamps. Enable either historical incident layer to see its reporting period and use **Explore recent homicide and shooting data** to open the commission dashboard.
+
 ## Community and larger-text walkthrough
 
 Run this on the same phone as the referral check above. Record the model, OS,

@@ -20,6 +20,8 @@ npm.cmd run web
 
 For a hosted shared workspace, run one API instance per workspace file and place it behind an HTTPS endpoint that forwards WebSocket upgrades. Serve the client builds with that endpoint as `EXPO_PUBLIC_API_URL`. Each phone or browser signs in with its own account. For local devices, follow the [shared phone walkthrough](mobile.md#check-the-shared-workspace-on-two-devices).
 
+The web map reads live buses and service alerts from the public `GET /public/map/transit` endpoint. Set `EXPO_PUBLIC_API_URL` for a separate API origin or forward that route to the API on the web app’s origin. Expo Go and native builds can read the public MCTS feeds directly. Transit requires no workspace sign-in or provider key. [Data sources and refresh](sources.md)
+
 ## Mobile release
 
 Configure the project in the publishing organization’s Expo account. Set the organization’s iOS bundle identifier and Android application ID in `app.json`, and set the hosted `EXPO_PUBLIC_API_URL` in the build environment. Use EAS Build to generate signed binaries and distribute them to TestFlight and Google Play internal testing. [Expo build setup](https://docs.expo.dev/build/setup/) · [Store submission](https://docs.expo.dev/deploy/submit-to-app-stores/)

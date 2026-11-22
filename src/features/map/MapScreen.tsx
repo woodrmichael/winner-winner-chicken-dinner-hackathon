@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useContext, useMemo, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Linking, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { MapPin, RotateCw } from 'lucide-react-native';
 
 import { communityEventPins } from '../../domain/demoCommunity';
 import { historicalIncidents } from '../../domain/seed';
 import { categories, type Category } from '../../domain/types';
 import { useDemo } from '../../state/Demo';
+import { alertFeedAge, livePositionAge } from '../../shared/publicTransit';
 import { Disclosure } from '../../ui/Disclosure';
 import { TabActive } from '../../ui/RetainedTab';
 import { SelectMenu } from '../../ui/SelectMenu';
@@ -17,6 +18,8 @@ import MilwaukeeMap from './MilwaukeeMap';
 import { MapLegend } from './MapLegend';
 import { incidentBand, incidentLayers, incidentPeriod, noIncidentData, needColor } from './incidentScale';
 import { usePublicLibraries } from './usePublicLibraries';
+import { TransitDetails } from './TransitDetails';
+import { usePublicTransit } from './usePublicTransit';
 
 const metrics = [
   { key: 'open', label: 'Needs still open', ink: '#87411F' },
@@ -26,8 +29,9 @@ const serviceOptions = (['All', ...categories] as const).map((value) => ({
   value,
   label: value === 'All' ? 'All services' : value,
 }));
-type Overlay = 'needs' | 'libraries' | 'events' | 'fatal' | 'nonfatal';
+type Overlay = 'needs' | 'libraries' | 'events' | 'transit' | 'fatal' | 'nonfatal';
 const noRows: NonNullable<ReturnType<typeof useDemo>['shared']['data']>['reporting']['map'] = [];
+const recentIncidentDashboard = 'https://www.mcw.edu/departments/epidemiology/research/milwaukee-homicide-review-commission/reports/dashboards';
 
 export default function MapScreen() {
   const router = useRouter();
@@ -35,7 +39,7 @@ export default function MapScreen() {
   const { width, height, fontScale } = useWindowDimensions();
   const { state, shared } = useDemo();
   const [visible, setVisible] = useState<Record<Overlay, boolean>>({
-    needs: true, libraries: false, events: true, fatal: false, nonfatal: false,
+    needs: true, libraries: false, events: true, transit: false, fatal: false, nonfatal: false,
   });
   const [overlaysExpanded, setOverlaysExpanded] = useState(false);
   const [areasExpanded, setAreasExpanded] = useState(false);
@@ -44,6 +48,18 @@ export default function MapScreen() {
   const [mapUnavailable, setMapUnavailable] = useState(false);
   const mapHeight = Math.max(290, Math.min(500, Math.round(height * (width < 900 ? 0.46 : 0.60))));
   const publicLibraries = usePublicLibraries(active && visible.libraries);
+  const reading = usePublicTransit(active && visible.transit);
+  const transit = reading?.data;
+  const now = reading?.fetchedAt ?? 0;
+  const vehicleFeed = transit?.vehicles;
+  const deadline = vehicleFeed ? vehicleFeed.updatedAt + livePositionAge : null;
+  const validThrough = deadline && deadline > now ? deadline : null;
+  const tripUpdateAt = transit?.tripsUpdatedAt && now - transit.tripsUpdatedAt < alertFeedAge ? transit.tripsUpdatedAt : null;
+  const vehicles = useMemo(() => {
+    if (!visible.transit || !validThrough || !vehicleFeed) return null;
+    return vehicleFeed.items.filter(({ recordedAt }) => now - recordedAt < livePositionAge)
+      .map((vehicle) => tripUpdateAt ? vehicle : { ...vehicle, arrivals: [] });
+  }, [visible.transit, validThrough, vehicleFeed, tripUpdateAt, now]);
   const posts = shared.data?.posts;
   const events = useMemo(() => visible.events && posts ? communityEventPins(posts) : null, [posts, visible.events]);
 
@@ -108,6 +124,7 @@ export default function MapScreen() {
               incidents={shownIncidents}
               events={!!events?.length}
               libraries={visible.libraries && publicLibraries.length > 0}
+              transit={!!vehicles?.length}
             />
             <View style={{ height: mapHeight }}>
               {mapUnavailable ? <View style={styles.mapFallback}>
@@ -121,6 +138,7 @@ export default function MapScreen() {
                 shading={incidentShading}
                 libraries={visible.libraries ? publicLibraries : null}
                 events={events}
+                vehicles={vehicles}
                 onSelect={toggleNeighborhood}
                 onOpenEvent={openEvent}
                 dom={{
@@ -139,9 +157,14 @@ export default function MapScreen() {
                 {overlaySwitch('needs', 'Open needs')}
                 {overlaySwitch('events', 'Community events')}
                 {overlaySwitch('libraries', 'Public libraries')}
+                {overlaySwitch('transit', 'Live buses and service alerts')}
                 {incidentLayers.map(({ key, label }) => overlaySwitch(key, label))}
+                <Btn label="Explore recent homicide and shooting data" quiet
+                  onPress={() => Linking.openURL(recentIncidentDashboard)} />
               </Disclosure>
             </View>
+            {visible.transit && <TransitDetails data={transit} now={now} vehicleCount={vehicles?.length ?? 0}
+              validThrough={validThrough} tripUpdateAt={tripUpdateAt} />}
           </Card>
         }
         side={

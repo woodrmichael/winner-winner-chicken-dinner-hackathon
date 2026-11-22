@@ -10,9 +10,10 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { neighborhoods, serviceNeighborhoods, type Neighborhood } from '../../domain/types';
 import type { CommunityEventPin } from '../../domain/demoCommunity';
 import { libraryDirectory, librarySource, type PublicLibrary } from '../../shared/publicLibraries';
+import { type TransitVehicle } from '../../shared/publicTransit';
 import { styleUrl, workerUrl } from './basemap';
 import { MapCredits } from './MapCredits';
-import { eventColor, libraryColor } from './pointColors';
+import { eventColor, libraryColor, transitColor } from './pointColors';
 import geometry from './neighborhoods.geojson.json';
 import './MilwaukeeMap.css';
 
@@ -23,6 +24,8 @@ const homicideOutlineId = 'homicide-outline';
 const shootingPointSource = 'shooting-points';
 const shootingDotId = 'shooting-dot';
 const selectionOutlineId = 'neighborhood-selection';
+const transitVehicleSource = 'transit-vehicles';
+const transitVehicleLayer = 'transit-vehicle-dots';
 
 const features = geometry.features as Feature<Polygon | MultiPolygon, { area: string }>[];
 const homeBounds = new MapLibre.LngLatBounds();
@@ -69,6 +72,7 @@ export default function MilwaukeeMap({
   shading,
   libraries,
   events,
+  vehicles,
   onSelect,
   onOpenEvent,
 }: {
@@ -77,6 +81,7 @@ export default function MilwaukeeMap({
   shading: { fatal: Record<string, string> | null; nonfatal: Record<string, string> | null };
   libraries: PublicLibrary[] | null;
   events: CommunityEventPin[] | null;
+  vehicles: TransitVehicle[] | null;
   onSelect: (area: string | null) => Promise<void>;
   onOpenEvent: (id: string) => Promise<void>;
   dom?: DOMProps;
@@ -88,6 +93,7 @@ export default function MilwaukeeMap({
   const [readyMap, setReadyMap] = useState<MapLibre.Map | null>(null);
   const [showLoading, setShowLoading] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const select = useEffectEvent((area: string | null) => { void onSelect(area); });
   const openEvent = useEffectEvent((id: string) => { void onOpenEvent(id); });
   const showingLibraries = libraries != null;
@@ -190,10 +196,23 @@ export default function MilwaukeeMap({
         filter: ['==', ['get', 'area'], ''],
         paint: { 'line-color': baseFill, 'line-width': 2, 'line-gap-width': 4 },
       }, beforeLabels);
+      map.addSource(transitVehicleSource, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addLayer({
+        id: transitVehicleLayer,
+        source: transitVehicleSource,
+        type: 'circle',
+        paint: { 'circle-radius': 8, 'circle-color': transitColor, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
+      });
+      map.on('mouseenter', transitVehicleLayer, () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', transitVehicleLayer, () => { map.getCanvas().style.cursor = ''; });
 
       map.on('click', (event) => {
         const target = event.originalEvent.target;
         if (target instanceof Element && target.closest('.maplibregl-marker, .maplibregl-popup')) return;
+        const [bus] = map.queryRenderedFeatures(event.point, { layers: [transitVehicleLayer] });
+        const id = bus?.properties.id as string | undefined;
+        setSelectedVehicle((current) => id && current !== id ? id : null);
+        if (id) return;
         const [feature] = map.queryRenderedFeatures(event.point, { layers: [fillId, outlineId] });
         const area = feature?.properties.area;
         select(typeof area === 'string' && areaBounds.has(area) ? area : null);
@@ -290,6 +309,37 @@ export default function MilwaukeeMap({
       }
     };
   }, [events, libraries, readyMap, status]);
+
+  useEffect(() => {
+    if (status !== 'ready' || !readyMap || mapRef.current !== readyMap) return;
+    readyMap.getSource<MapLibre.GeoJSONSource>(transitVehicleSource)?.setData({
+      type: 'FeatureCollection',
+      features: (vehicles ?? []).map(({ id, coordinates }) => ({
+        type: 'Feature',
+        properties: { id },
+        geometry: { type: 'Point', coordinates },
+      })),
+    });
+  }, [readyMap, status, vehicles]);
+
+  const bus = vehicles?.find(({ id }) => id === selectedVehicle);
+  useEffect(() => {
+    if (!bus || status !== 'ready' || !readyMap || mapRef.current !== readyMap) return;
+    const content = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = `Route ${bus.route}`;
+    const next = document.createElement('div');
+    const estimatedArrival = bus.arrivals.find((arrival) => arrival >= Date.now());
+    next.textContent = estimatedArrival
+      ? `Next reported stop in ${Math.ceil((estimatedArrival - Date.now()) / 60_000)} min`
+      : 'No upcoming stop estimate';
+    content.append(title, next);
+    const popup = new MapLibre.Popup({ offset: 12, closeOnClick: false })
+      .setDOMContent(content).setLngLat(bus.coordinates).addTo(readyMap);
+    const close = () => setSelectedVehicle(null);
+    popup.on('close', close);
+    return () => { popup.off('close', close); popup.remove(); };
+  }, [bus, readyMap, status]);
 
   useEffect(() => {
     const map = readyMap;
