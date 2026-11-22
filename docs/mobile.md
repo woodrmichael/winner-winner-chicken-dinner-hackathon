@@ -18,7 +18,7 @@ Swipe left from the right edge to open **Settings**. On desktop, click **ComForc
 | --- | --- |
 | Open **Impact**, tap the reporting month and choose **All time**. Note the starting totals. | A fresh workspace has 530 sample requests. Using All time makes it easy to compare totals after the walkthrough. |
 | Go to **Community → Ask for help**. Type “We need clothes for the kids and a ride to pick the clothes up.” Tap **Find resources**. | Winter Care Collective matches clothing and transportation. Tap its name to see the other sample partners. |
-| Under **Information to share**, select **Neighborhood · Harambee**, then tap **Send referral**. | Your referral appears in Activity as **Sent**. |
+| Under **Information to share**, select **Neighborhood · Harambee**, then tap **Send request**. | Your referral appears in Activity as **Sent**. |
 | In **Settings**, select **Partner**, then tap **Done**. Open the referral in **Inbox → New** and tap **Accept referral**. Return to Inbox and select **In progress**. | The referral moves to **In progress** and stays there after reload. |
 | Scroll down to **Messages** and ask which coat sizes to bring. Switch to **Resident** and open the unread reply in **Activity**. Answer “6 and 8.” | The notification jumps to Messages at the bottom of the request. Alex can reply and scroll up to see the timeline. |
 | In the partner’s request timeline, tap **Record delivery**, select **Clothing**, keep the winter program selected and tap **Record completed service**. Switch to **Resident view**. | Winter Care Collective is credited for clothing. Transportation remains outstanding. |
@@ -63,7 +63,7 @@ the native keyboard and system-text checks.
    remain. Check that the author, title and filter labels stay inside their cards.
 3. Open **Ask for help** and type a request with the keyboard open. Scroll to
    **Find resources** and tap it. On the review screen, edit the message and
-   scroll through partner selection, optional sharing and **Send referral**.
+   scroll through the suggested organization, optional sharing and **Send request**.
 4. Select the winter partner and send the referral. Confirm it appears in
    **Activity**, and that its private message is absent from all Community filters.
    Finish acceptance and service recording using the complete-referral check above.
@@ -150,4 +150,5 @@ In the shared workspace, sign in as the winter worker. On an accepted referral, 
 | iPhone reports an account mismatch | Run `npx expo whoami` and compare it with the account shown in Expo Go. Sign in to the same account on both, then retry. |
 | Expo Go reports an incompatible SDK | Check the SDK 58 installer for your device. Run `npx expo install --check` from the repo to check package versions. |
 | Phone shows an old bundle | Stop the server and restart with `npm run mobile:lan -- --clear` or `npm run mobile:tunnel -- --clear`. Scan the new code. |
+| Map shows an iOS URL error in Expo Go | Use the development QR from `npm run mobile:lan` or `npm run mobile:tunnel`. That server hosts the embedded map page. Use EAS Build for a standalone release with bundled map files. |
 | PowerShell blocks npm scripts | Run `npm.cmd` or `npx.cmd` in place of `npm` or `npx`. |

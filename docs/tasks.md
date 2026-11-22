@@ -28,6 +28,8 @@ Community is where neighbors offer items and organize activities. A resident wit
 
 - [x] **1.13 Put the referral timeline and messages on one screen.** After 1.12. Claimed by `codex/two-demo-views`. Accept a request and record a delivery from the partner timeline. Scroll to Messages and send a reply, then open its notification as the resident to reach the inline thread. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/ecfda9b755ebe0c4aea2bb6ce60128cae6dd442e)
 
+- [x] **1.14 Show Joined on Community cards.** After 1.11. Claimed by `codex/two-demo-views`. Join an event, tap Joined and verify the count and RSVP update. Repeat with a winter drive role. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/6914c534a0e5b3f0bb3df4d6db149d9f2265f109)
+
 ## 2. Resource matching
 
 From **Community → Ask for help**, a resident can describe a situation without knowing which organization handles it. Today the app uses keywords to suggest directory partners. The resident can choose a different partner, review the message, and decide whether to include their first name, callback number, or neighborhood. The matching work below helps someone reach a partner that covers the help they still need.
@@ -44,6 +46,8 @@ From **Community → Ask for help**, a resident can describe a situation without
 - [x] **2.10 Handle requests with no automatic matches.** After 2.1. For a request the directory cannot match automatically, show that no automatic matches were found and ask the resident to rephrase their request or select a partner manually. The full directory stays available for manual selection.
 
 - [x] **2.11 Enter a request by voice.** After 2.1 and 2.2. Open Ask for help and tap the mic icon. On a supported browser or a configured shared workspace in Expo Go, watch the transcript update while speaking. Stop, edit the text, find resources, and use the back arrow to return to your wording. Without a transcription connection, Expo Go displays a brief status. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/50c6594c1de5ee45851659e0f2c4fc2f6b8e3ada)
+
+- [x] **2.12 Simplify request review and the Food quick action.** After 2.11. Claimed by `codex/two-demo-views`. Use Food, apply the grocery draft and confirm Food is the only identified need. Send the request to Neighborhood Table. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/6914c534a0e5b3f0bb3df4d6db149d9f2265f109)
 
 ## 3. Referral coordination
 
@@ -75,6 +79,8 @@ Residents and coordinators can explore Milwaukee streets and select a reporting 
 - [x] **4.8 Map public community events.** After 1.3 and 4.5. Open the winter drive from Community to see Moody Park, its street address and a map directly on the page. Enable Community events and Public libraries together on Map, then tap the winter drive pin to open that same event. Show the related clothing and ride requests only in neighborhood totals. [PR #8](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/8)
 - [x] **4.9 Broaden service activity coverage.** After 4.3. Open Map in an existing workspace and check 26 neighborhoods have service totals, including Havenwoods and Jackson Park. Compare the totals to the shared workspace reports and check that loading again adds each record once. [PR #8](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/pull/8)
 
+- [x] **4.10 Recover when Expo Go can’t load the embedded map page.** After 4.5. Claimed by `codex/two-demo-views`. Open Map with an Expo development QR and verify that the city map document and script load. If the web view fails to navigate, retry or browse neighborhoods. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/6914c534a0e5b3f0bb3df4d6db149d9f2265f109)
+
 ## 5. Impact and presentation
 
 Impact helps ComForce answer a funder’s question about what the winter program accomplished. A coat delivery credits the organization that supplied the coat and, when linked, the winter program. Funding appears alongside deliveries. The reporting work adds a time period so ComForce can describe a particular month and share the figures outside the app.
@@ -97,6 +103,8 @@ One proposed funding model is for an employer to sponsor a ComForce project such
 
 - [x] **6.5 Allocate program and operating support.** After 6.1. For a $200 agreement covering $150 of supplies and $50 of coordination, record both purposes. When the employer pays in full, the report shows $150 received for supplies and $50 for operations, adding up to a single $200 payment.
 - [x] **6.6 Give a business a partnership summary.** After 6.2 and 6.4. An employer supporting two projects can see its commitments, payments, upcoming activities and public updates together. A reader can identify what the business contributed and which partner delivered each service. Keep resident messages and contact details private.
+
+- [x] **6.7 Collect sponsorship payments through Stripe Checkout.** After 6.1 and 6.5. Claimed by `codex/two-demo-views`. Confirm a pledge, share a link for a partial payment and verify the signed webhook credits the ledger once. Confirm that an expired link frees the reserved amount. [Implementation commit](https://github.com/woodrmichael/winner-winner-chicken-dinner-hackathon/commit/6914c534a0e5b3f0bb3df4d6db149d9f2265f109)
 
 ## 7. Partner directory
 

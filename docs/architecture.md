@@ -31,6 +31,8 @@ The meal-kit project uses the existing pantry event, a $1,000 goal and optional 
 
 Only confirmed support is published in the shared projection. Delivery credit comes from the existing program service records. The business summary uses public project information, funding and aggregate provider credit.
 
+The authenticated coordinator creates hosted Checkout links through [the sponsorship payment service](../server/sponsor-payments.ts). An active link reserves its amount in the workspace. The signed Stripe webhook updates the reservation and receipt together in one save. Workspace snapshots expose active amounts to the coordinator, and published funding views read the existing payment ledger. [Sponsorship setup](sponsorships.md)
+
 ## Worker notes and responsibility
 
 The delivery form optionally suggests one eligible completed service from a worker note using conservative completion phrases. Notes and suggestions stay on the device until review. Only the existing complete command records the selected category, provider and optional program. Keyboard dictation can fill the note field.

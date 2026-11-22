@@ -15,6 +15,7 @@ npm.cmd run web
 | `COMFORCE_API_PORT` | API host | Listen port. Defaults to `8787`. |
 | `COMFORCE_API_DATA` | API host | Workspace file. Defaults to `.comforce/workspace.json`. Use a persistent, backed-up path for a hosted instance. |
 | `OPENAI_API_KEY` | API host | Server-side credential for live microphone transcription through OpenAI Realtime. |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CHECKOUT_RETURN_ORIGIN` | API host | Hosted Checkout, signed payment events and the public return page. See [sponsorship setup](sponsorships.md#configure-the-api). |
 | `EXPO_PUBLIC_API_URL` | Client build environment | Base URL for the shared workspace. Use an address reachable from the device. |
 
 For a hosted shared workspace, run one API instance per workspace file and place it behind an HTTPS endpoint that forwards WebSocket upgrades. Serve the client builds with that endpoint as `EXPO_PUBLIC_API_URL`. Each phone or browser signs in with its own account. For local devices, follow the [shared phone walkthrough](mobile.md#check-the-shared-workspace-on-two-devices).
